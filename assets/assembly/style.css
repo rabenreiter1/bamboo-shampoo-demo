@@ -35,7 +35,6 @@ body::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
 #stage,
 #viewport {
-  background: var(--stage-background) url('./product-poster.jpg') center / cover no-repeat;
   position: fixed;
   inset: 0;
   width: 100%;
@@ -46,6 +45,7 @@ body::-webkit-scrollbar { display: none; width: 0; height: 0; }
 }
 
 #viewport {
+  background: var(--stage-background) url('./product-poster.jpg') center / cover no-repeat;
   outline: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
