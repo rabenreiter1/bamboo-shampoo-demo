@@ -8,6 +8,7 @@
     "build:assembly": "node scripts/build-assembly.mjs",
     "dev": "node scripts/serve.mjs",
     "test:assembly": "node --test scripts/assembly.test.mjs",
+    "test:ritual": "node --test scripts/ritual-*.test.mjs",
     "validate:assembly": "node scripts/validate-assembly-glb.mjs",
     "test": "node --test scripts/*.test.mjs && node scripts/check.mjs"
   },

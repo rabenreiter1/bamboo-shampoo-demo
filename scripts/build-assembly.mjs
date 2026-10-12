@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('..',import.meta.url));
 const source=path.join(root,'assets','assembly');
 const target=path.join(root,'docs','assembly');
-for(const name of ['index.html','style.css','scene.js','timeline.js','body.js','cap.js','original-engraving.svg']) {
+for(const name of ['index.html','style.css','scene.js','timeline.js','body.js','cap.js','ritual-cap.js','ritual-effects.js','ritual-input.js','ritual-timeline.js','product-poster.jpg','original-engraving.svg']) {
   if(!fs.existsSync(path.join(source,name))) throw new Error(`Assembly source missing: ${name}`);
 }
 const deliver=fs.readFileSync(path.join(source,'original-engraving.svg'));
