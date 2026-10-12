@@ -24,7 +24,8 @@ export const RITUAL_PHASES = [
 ];
 
 export const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
-export const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
+// Minimum-jerk transitions have zero velocity and acceleration at both ends.
+export const smooth = value => { const t = clamp(value); return t * t * t * (t * (t * 6 - 15) + 10); };
 export const range = (p, a, b) => clamp((p - a) / (b - a));
 export const easeRange = (p, a, b) => smooth(range(p, a, b));
 const mix = (a, b, t) => a + (b - a) * t;
@@ -36,7 +37,9 @@ function capPosition(p) {
     + easeRange(p, .72, .741) - easeRange(p, .927, .96);
   const park = easeRange(p, .10, .15) - easeRange(p, .27, .31)
     + easeRange(p, .741, .765) - easeRange(p, .90, .927);
-  return [75 * park, 44 * lift, 0];
+  // The scene replaces this nominal lateral coordinate with a camera-aligned
+  // lane, so axial inspection never swings the parked cap through the insert.
+  return [park ? -130 * park : 0, 44 * lift, 0];
 }
 
 function remainingFill(p) {
@@ -55,43 +58,53 @@ export function computeRitualState(value) {
   const press = easeRange(p, .54, .552) * (1 - easeRange(p, .564, .585));
   const gush = easeRange(p, .547, .558) * (1 - easeRange(p, .567, .588));
   const flow = easeRange(p, .475, .49) * (1 - easeRange(p, .635, .66));
-  // Hold the authored revolution while pouring, to make the nipple and dose
-  // action inspectable. The final orientation is exactly one turn from start.
-  const yaw = TAU * (.43 * easeRange(p, .06, .42) + .57 * easeRange(p, .72, .96));
-  const dispose = easeRange(p, .79, .822);
-  const arrive = easeRange(p, .796, .844);
-  const lower = easeRange(p, .844, .90);
+  const yaw = 2 * TAU * p;
+  const dispose = easeRange(p, .79, .825);
+  // The spent PET has left before its replacement starts to enter.
+  const arrive = easeRange(p, .83, .86);
+  const lower = easeRange(p, .86, .90);
   const filmExit = easeRange(p, .246, .27);
   return {
     progress: p, phase, tilt, yaw,
-    cap: { position: capPosition(p), lift, swivel, press },
+    cap: { position: capPosition(p), lift, swivel, press,
+      park: easeRange(p, .10, .15) - easeRange(p, .27, .31)
+        + easeRange(p, .741, .765) - easeRange(p, .90, .927) },
     oldRefill: {
-      position: [290 * dispose, 174 * easeRange(p, .765, .79) + 65 * Math.sin(dispose * Math.PI) - 125 * dispose, 18 * dispose],
-      rotation: [0, 0, dispose === 0 ? 0 : -.8 * dispose],
-      visible: p < .824, fill: remainingFill(p),
+      position: [0, 174 * easeRange(p, .765, .79), 0],
+      rotation: [0, 0, 0], depart: dispose,
+      visible: p < .83, fill: remainingFill(p),
     },
     newRefill: {
-      position: [170 * (1 - arrive), 178 * (1 - lower), 0],
-      rotation: [0, 0, 0], visible: p >= .796, fill: 1,
+      position: [0, 174 * (1 - lower), 0],
+      rotation: [0, 0, 0], approach: 1 - arrive,
+      visible: p >= .83, fill: 1,
     },
     seal: {
       unfold: easeRange(p, .15, .167),
       peel: easeRange(p, .167, .246), exit: filmExit,
       visible: p < .27,
     },
-    newSeal: { unfold: 0, peel: 0, exit: 0, visible: p >= .796 },
+    newSeal: { unfold: 0, peel: 0, exit: 0, visible: p >= .83 },
     liquid: { flow, gush, fillOld: remainingFill(p), fillNew: 1 },
     // Framing ignores a thrown-away refill and the departing foil. Those
     // should leave the frame, rather than drag the camera along with them.
     framing: {
       oldRefill: p >= .765 && p <= .79,
-      newRefill: p >= .82 && p <= .90,
-      foil: p >= .15 && p <= .25,
+      newRefill: p >= .83 && p <= .90,
+      foil: easeRange(p, .15, .20) * (1 - easeRange(p, .246, .27)),
       liquid: p >= .473 && p <= .67,
       pouring: easeRange(p, .42, .49) * (1 - easeRange(p, .67, .72)),
     },
     sealed: p < .06 || p >= .96,
   };
+}
+
+/** Infinite signed coordinate, with no discontinuity in the authored yaw. */
+export function computeCycleState(value) {
+  const cyclePosition = Number.isFinite(value) ? value : 0;
+  const cycleIndex = Math.floor(cyclePosition);
+  const state = computeRitualState(cyclePosition - cycleIndex);
+  return { ...state, cyclePosition, cycleIndex, yaw: 2 * TAU * cyclePosition };
 }
 
 /** Equivalent physical retail state, independent of which refill is present. */

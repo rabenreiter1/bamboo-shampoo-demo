@@ -89,6 +89,45 @@ test('deformed foil updates camera bounds and its skins have outward normals', (
   seal.dispose();
 });
 
+test('external foil departure preserves scene-owned pose and visibility through reverse scrubbing', () => {
+  const seal = createPeelSeal({ THREE });
+  seal.group.position.set(300, 440, -70); seal.group.rotation.set(.2, 1.1, -.3);
+  seal.group.visible = true;
+  const quaternion = seal.group.quaternion.toArray();
+  for (const exit of [0, .25, 1, .3, 0]) {
+    seal.update({ unfold: 1, peel: 1, exit, externalExit: true });
+    assert.equal(seal.group.visible, true, 'Effect hid a foil still controlled by the scene');
+    assert.deepEqual(seal.group.position.toArray(), [300, 440, -70]);
+    assert.deepEqual(seal.group.quaternion.toArray(), quaternion);
+  }
+  seal.group.visible = false;
+  seal.update({ unfold: 1, peel: 1, exit: 0, externalExit: true });
+  assert.equal(seal.group.visible, false, 'Repeated effect updates overrode scene visibility');
+  seal.reset();
+  for (const coordinate of seal.group.position.toArray()) near(coordinate, 0);
+  assert.deepEqual(seal.group.quaternion.toArray(), [0, 0, 0, 1]);
+  assert.equal(seal.group.visible, true);
+  near(seal.getLocalBounds().max.y, 170.48, 2e-5);
+  seal.dispose();
+});
+
+test('local foil bounds remain precise independently of departing world transforms', () => {
+  const seal = createPeelSeal({ THREE });
+  seal.update({ unfold: 1, peel: .82, externalExit: true });
+  const local = seal.getLocalBounds();
+  seal.group.position.set(590, 750, -110); seal.group.rotation.y = 2;
+  const departingLocal = seal.getLocalBounds();
+  assert.deepEqual([departingLocal.min.toArray(), departingLocal.max.toArray()],
+    [local.min.toArray(), local.max.toArray()]);
+  for (const mesh of seal.group.children) {
+    const position = mesh.geometry.attributes.position;
+    for (let i = 0; i < position.count; i++) {
+      assert.ok(local.containsPoint(new THREE.Vector3().fromBufferAttribute(position, i)), 'A foil vertex escaped its departure envelope');
+    }
+  }
+  seal.dispose();
+});
+
 test('nominal gel cylinder contains exactly 250 ml and proportional drain volume', () => {
   for (const fraction of [0, .12, .5, .88, 1]) {
     const fill = sampleFill(fraction);
@@ -108,6 +147,30 @@ test('full transmissive fill uses physical-height geometry and unit model scale'
     near(body.scale.y, fraction); near(bounds.min.y, 5.3, 2e-5);
     near(bounds.max.y - bounds.min.y, sampleFill(fraction).height, 2e-5);
   }
+  gel.dispose();
+});
+
+test('amber absorption belongs to the measured liquid volume and disappears with its contents', () => {
+  const gel = createGel({ THREE });
+  const body = gel.oldFillGroup.getObjectByName('Measured_250ml_gel_volume');
+  const surface = gel.oldFillGroup.getObjectByName('Level_gel_free_surface');
+  const material = body.material;
+  assert.equal(surface.material, material, 'The free surface must be the same colored gel as its bulk');
+  assert.equal(material.opacity, 1); assert.ok(material.transmission > .8);
+  // Beer-Lambert attenuation should yield a perceptibly warm bulk, rather
+  // than applying an opaque tint to the PET wall. Three stores linear RGB.
+  const transmitted = ['r', 'g', 'b'].map(channel => Math.pow(material.attenuationColor[channel], material.thickness / material.attenuationDistance));
+  assert.ok(transmitted[0] > transmitted[1] && transmitted[1] > transmitted[2]);
+  assert.ok(transmitted[0] - transmitted[2] > .5, 'The bulk remains too pale to read separately from bamboo');
+  const stream = gel.streamGroup.getObjectByName('World_gravity_viscous_shampoo_stream');
+  assert.ok(stream.material.attenuationColor.equals(material.attenuationColor), 'Stream hue differs from the refill contents');
+  const strandTransmission = ['r', 'g', 'b'].map(channel => Math.pow(stream.material.attenuationColor[channel], stream.material.thickness / stream.material.attenuationDistance));
+  assert.ok(strandTransmission[0] - strandTransmission[2] > .5, 'The thin strand becomes almost colorless in studio light');
+  gel.update({ fillOld: 0, fillNew: 1 });
+  assert.equal(gel.oldFillGroup.visible, false); assert.equal(gel.newFillGroup.visible, true);
+  assert.equal(gel.oldFillGroup.userData.fillMilliliters, 0);
+  const bounds = new THREE.Box3().setFromObject(gel.newFillGroup, true);
+  assert.ok(bounds.max.y < 170 - 10, 'A clear air space must separate gel from the sealed flange');
   gel.dispose();
 });
 

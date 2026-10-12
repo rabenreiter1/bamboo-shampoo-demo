@@ -1,10 +1,11 @@
 import * as THREE from './vendor/three.module.js';
 import { RoomEnvironment } from './vendor/RoomEnvironment.js';
 import { createBody } from './body.js';
-import { createRitualCap } from './ritual-cap.js';
-import { createPeelSeal, createGel } from './ritual-effects.js';
-import { createInspectionInput } from './ritual-input.js';
-import { computeRitualState, clamp, easeRange, TILT_AXIS } from './ritual-timeline.js';
+import { createRitualCap } from './ritual-cap.js?v=ritual-20261012-4';
+import { createPeelSeal, createGel } from './ritual-effects.js?v=ritual-20261012-4';
+import { createInspectionInput } from './ritual-input.js?v=ritual-20261012-4';
+import { computeCycleState, clamp, TILT_AXIS } from './ritual-timeline.js?v=ritual-20261012-4';
+import { createRitualSpace } from './ritual-space.js?v=ritual-20261012-4';
 
 const viewport = document.getElementById('viewport');
 const telemetry = document.getElementById('assembly-state');
@@ -12,128 +13,61 @@ const statusText = document.getElementById('render-status');
 const tiltAxis = new THREE.Vector3(...TILT_AXIS);
 const outletWorld = new THREE.Vector3(), outletDirection = new THREE.Vector3();
 const outletQuaternion = new THREE.Quaternion();
-const cameraDirection = new THREE.Vector3(.19, .44, 1).normalize();
-const cameraRight = new THREE.Vector3(0, 1, 0).cross(cameraDirection).normalize();
-const cameraUp = cameraDirection.clone().cross(cameraRight).normalize();
+const space = createRitualSpace({ THREE });
 let renderer, camera, scene, tiltRig, yawRig, product, floor;
 let body, cap, oldSeal, newSeal, gel, oldRefill, newRefill, input;
 let environment, resizeObserver, lastTelemetry = -1000;
-let progress = 0, manualYaw = 0, zoom = 1, ready = false, mappedScrollRange = 0;
-let error = null, frameRequest = 0, framing = null;
+let cyclePosition = 0, manualYaw = 0, zoom = 1, ready = false;
+let error = null, frameRequest = 0, framing = null, spatial = null;
+let renderDuration = 0, renderFrames = 0;
 const metrics = {};
-const scrollRange = () => Math.max(1, document.documentElement.scrollHeight - innerHeight);
 
 function scheduleRender() {
   if (!frameRequest) frameRequest = requestAnimationFrame(render);
 }
 
 function setProgress(value) {
-  progress = clamp(value);
-  window.scrollTo({ top: progress * scrollRange(), behavior: 'instant' });
-  scheduleRender();
+  setCyclePosition(clamp(Number.isFinite(value) ? value : 0));
 }
 
-function onScroll() {
-  const actualRange = scrollRange();
-  // Some browsers dispatch scroll before resize, after clamping the old
-  // pixel offset to the new viewport. Keep the old normalized stage until
-  // it has been mapped onto the new range, rather than reading that offset.
-  if (mappedScrollRange && Math.abs(actualRange - mappedScrollRange) > .5) {
-    resize(); return;
-  }
-  progress = clamp(scrollY / actualRange);
+function setCyclePosition(value) {
+  cyclePosition = Number.isFinite(value) ? value : 0;
+  input?.seek(cyclePosition);
   scheduleRender();
 }
 
 function resize() {
   if (!renderer) return;
-  const retainedProgress = progress;
   const width = Math.max(1, viewport.clientWidth), height = Math.max(1, viewport.clientHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, width < 760 ? 1.3 : 1.8));
   renderer.setSize(width, height);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
-  // Retain the ritual stage through orientation/viewport changes.
-  mappedScrollRange = scrollRange();
-  window.scrollTo({ top: retainedProgress * mappedScrollRange, behavior: 'instant' });
-  progress = retainedProgress;
   input?.resize?.();
   scheduleRender();
-}
-
-function fitCamera(state) {
-  // Transform actual box corners before projecting into the camera plane.
-  // A world-aligned bounding box grows unnecessarily during the pouring tilt.
-  const points = [];
-  function includeBox(min, max, matrix, blend = null, weight = 1) {
-    for (const x of [min[0], max[0]]) for (const y of [min[1], max[1]]) for (const z of [min[2], max[2]]) {
-      const point = new THREE.Vector3(x, y, z);
-      if (matrix) point.applyMatrix4(matrix);
-      if (blend) point.lerp(blend, 1 - weight);
-      points.push(point);
-    }
-  }
-  includeBox([-29.5, 0, -29.5], [29.5, 173.4, 29.5], product.matrixWorld);
-  includeBox([-29.5, 149.9, -29.5], [29.5, 175, 39.7], cap.group.matrixWorld);
-  if (state.framing.foil) {
-    const sheetBox = new THREE.Box3().setFromObject(oldSeal.group);
-    const base = new THREE.Vector3(0, 170.34, 0).applyMatrix4(product.matrixWorld);
-    if (!sheetBox.isEmpty()) includeBox(sheetBox.min.toArray(), sheetBox.max.toArray(), null, base, 1 - state.seal.exit);
-  }
-  const pourFrame = easeRange(state.progress, .445, .49) * (1 - easeRange(state.progress, .67, .72));
-  if (pourFrame > 0) {
-    points.push(outletWorld.clone());
-    points.push(outletWorld.clone().add(new THREE.Vector3(4, -136 * pourFrame, 4)));
-  }
-  // Anticipate the vertical exchange continuously; departing objects leave
-  // this authored inspection area instead of pulling the camera after them.
-  const exchange = easeRange(state.progress, .735, .785) * (1 - easeRange(state.progress, .90, .96));
-  if (exchange > 0) includeBox([-29, 170, -29], [90 * exchange + 29, 170.6 + 178 * exchange, 29], product.matrixWorld);
-  const bounds = new THREE.Box3().setFromPoints(points);
-  const projected = { right: [Infinity, -Infinity], up: [Infinity, -Infinity], depth: [Infinity, -Infinity] };
-  for (const point of points) for (const [axis, direction] of [['right', cameraRight], ['up', cameraUp], ['depth', cameraDirection]]) {
-    const coordinate = point.dot(direction);
-    projected[axis][0] = Math.min(projected[axis][0], coordinate);
-    projected[axis][1] = Math.max(projected[axis][1], coordinate);
-  }
-  const center = new THREE.Vector3()
-    .addScaledVector(cameraRight, (projected.right[0] + projected.right[1]) / 2)
-    .addScaledVector(cameraUp, (projected.up[0] + projected.up[1]) / 2)
-    .addScaledVector(cameraDirection, (projected.depth[0] + projected.depth[1]) / 2);
-  const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), tanH = tanV * camera.aspect;
-  let distance = 0;
-  for (const point of points) {
-    const corner = point.clone().sub(center);
-    distance = Math.max(distance, corner.dot(cameraDirection) + Math.abs(corner.dot(cameraUp)) / tanV, corner.dot(cameraDirection) + Math.abs(corner.dot(cameraRight)) / tanH);
-  }
-  const fittedDistance = Math.max(250, distance * 1.12);
-  camera.up.set(0, 1, 0);
-  camera.position.copy(center).addScaledVector(cameraDirection, fittedDistance / zoom);
-  camera.lookAt(center);
-  camera.updateMatrixWorld();
-  framing = { min: bounds.min.toArray(), max: bounds.max.toArray(), center: center.toArray(), distance: fittedDistance, zoom, cameraPosition: camera.position.toArray() };
 }
 
 function applyState(state) {
   tiltRig.quaternion.setFromAxisAngle(tiltAxis, state.tilt);
   yawRig.rotation.y = state.yaw + manualYaw;
-  cap.group.position.fromArray(state.cap.position);
   cap.update(state.cap);
   for (const [group, pose] of [[oldRefill, state.oldRefill], [newRefill, state.newRefill]]) {
     group.position.fromArray(pose.position);
     group.rotation.set(...pose.rotation);
     group.visible = pose.visible;
   }
-  oldSeal.update(state.seal); oldSeal.group.visible = state.seal.visible;
+  oldSeal.update({ ...state.seal, externalExit: true });
   newSeal.update(state.newSeal); newSeal.group.visible = state.newSeal.visible;
   tiltRig.updateWorldMatrix(true, true);
+  framing = space.fitCamera({ state, camera, product, tiltRig, zoom });
+  spatial = space.placeParts({ state, camera, product, cap, oldRefill, newRefill, oldSeal, width: viewport.clientWidth });
+  product.updateWorldMatrix(true, true);
   cap.outlet.getWorldPosition(outletWorld);
   cap.outlet.getWorldQuaternion(outletQuaternion);
   outletDirection.set(0, 1, 0).applyQuaternion(outletQuaternion);
   gel.update({ progress: state.progress, ...state.liquid, outletWorld, outletDirection });
   floor.material.opacity = .13 * (1 - state.framing.pouring);
   floor.visible = floor.material.opacity > .001;
-  fitCamera(state);
 }
 
 function writeTelemetry(state, force = false) {
@@ -144,6 +78,7 @@ function writeTelemetry(state, force = false) {
   Object.assign(viewport.dataset, {
     status: error ? 'error' : ready ? 'ready' : 'loading',
     progress: state.progress.toFixed(6), phase: state.phase,
+    cyclePosition: cyclePosition.toFixed(8), cycleIndex: String(state.cycleIndex),
     yaw: (state.yaw + manualYaw).toFixed(6), zoom: zoom.toFixed(6),
     drawCalls: String(renderInfo?.calls || 0), triangles: String(renderInfo?.triangles || 0),
   });
@@ -151,17 +86,23 @@ function writeTelemetry(state, force = false) {
     ...state, ready, error, inspection: { manualYaw, zoom, actualYaw: state.yaw + manualYaw },
     outlet: outletWorld.toArray(), outletDirection: outletDirection.toArray(),
     sealVisible: oldSeal?.group.visible ?? false, newSealVisible: newSeal?.group.visible ?? false,
-    streamVisible: gel?.streamGroup.visible ?? false, framing, metrics,
-    render: { calls: renderInfo?.calls || 0, triangles: renderInfo?.triangles || 0 },
+    streamVisible: gel?.streamGroup.visible ?? false, framing, spatial, metrics,
+    capOperation: cap?.group.userData.operation || null,
+    render: { calls: renderInfo?.calls || 0, triangles: renderInfo?.triangles || 0,
+      cpuMilliseconds: renderDuration, frames: renderFrames },
     input: input?.getState?.() || null,
   });
 }
 
-function render() {
+function render(timestamp = performance.now()) {
   frameRequest = 0;
-  const state = computeRitualState(progress);
-  if (ready) { applyState(state); renderer.render(scene, camera); }
-  writeTelemetry(state, true);
+  const started = performance.now();
+  const moving = input?.tick(timestamp) || false;
+  const state = computeCycleState(cyclePosition);
+  if (ready) { applyState(state); renderer.render(scene, camera); renderFrames++; }
+  renderDuration = performance.now() - started;
+  writeTelemetry(state, !moving);
+  if (ready && moving) scheduleRender();
 }
 
 async function boot() {
@@ -178,9 +119,9 @@ async function boot() {
     canvas.setAttribute('aria-label', 'Bamboo Shampoo: scroll to open, pour and refill; drag horizontally to rotate and pinch to zoom.');
     viewport.prepend(canvas);
     canvas.addEventListener('webglcontextlost', event => {
-      event.preventDefault(); ready = false; error = 'WebGL context lost';
+      event.preventDefault(); ready = false; error = 'WebGL context lost'; input?.cancelMomentum();
       if (statusText) statusText.textContent = 'The interactive view has stopped. A still image of the product is shown.';
-      writeTelemetry(computeRitualState(progress), true);
+      writeTelemetry(computeCycleState(cyclePosition), true);
     });
     canvas.addEventListener('webglcontextrestored', () => location.reload());
     scene = new THREE.Scene(); scene.background = new THREE.Color('#eeece5');
@@ -216,30 +157,29 @@ async function boot() {
     oldRefill.add(body.components.inlay, oldSeal.group, gel.oldFillGroup);
     newRefill.add(body.components.inlay.clone(true), newSeal.group, gel.newFillGroup);
     product.add(body.components.shell, oldRefill, newRefill, cap.group); scene.add(gel.streamGroup);
-    Object.assign(metrics, { body: body.metrics, cap: cap.metrics, seal: oldSeal.metrics, gel: gel.metrics, units: 'mm', timeline: 'factory-sealed use and refill cycle; deterministic normalized scroll', petAppearance: 'Reflective transparent skin over refractive gel; thin-wall visual approximation avoids overlapping transmission buffers.' });
+    Object.assign(metrics, { body: body.metrics, cap: cap.metrics, seal: oldSeal.metrics, gel: gel.metrics, units: 'mm', timeline: 'Endless reversible sealed use/refill cycle; continuous 720 degree authored yaw per cycle', petAppearance: 'Reflective transparent skin over amber refractive gel; thin-wall visual approximation avoids overlapping transmission buffers.' });
     scene.traverse(object => { if (object.geometry) { object.geometry.computeBoundingBox(); object.geometry.computeBoundingSphere(); } });
-    progress = clamp(scrollY / scrollRange());
     input = createInspectionInput({
-      canvas, getProgress: () => progress, setProgress,
-      getYaw: () => manualYaw, setYaw: value => { manualYaw = value; scheduleRender(); },
-      getZoom: () => zoom, setZoom: value => { zoom = clamp(value, .6, 3); scheduleRender(); },
+      canvas, getCyclePosition: () => cyclePosition,
+      setCyclePosition: value => { cyclePosition = value; },
+      getYaw: () => manualYaw, setYaw: value => { manualYaw = value; },
+      getZoom: () => zoom, setZoom: value => { zoom = clamp(value, .6, 3); },
       onChange: scheduleRender,
     });
     ready = true;
     if (statusText) statusText.textContent = 'Interactive product ready. Scroll up or down to control the cycle.';
     resizeObserver = new ResizeObserver(resize); resizeObserver.observe(viewport);
-    resize(); render();
+    resize();
     document.dispatchEvent(new CustomEvent('assembly-ready', { detail: { metrics } }));
   } catch (failure) {
     error = String(failure?.message || failure);
     console.error('Product ritual could not start', failure);
     renderer?.domElement.remove();
     if (statusText) statusText.textContent = 'The interactive model needs WebGL in a current browser.';
-    viewport.dataset.status = 'error'; writeTelemetry(computeRitualState(progress), true);
+    viewport.dataset.status = 'error'; writeTelemetry(computeCycleState(cyclePosition), true);
   }
 }
 
-window.addEventListener('scroll', onScroll, { passive: true });
 window.addEventListener('resize', resize, { passive: true });
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
@@ -248,13 +188,13 @@ window.addEventListener('pagehide', event => {
   environment?.dispose(); floor?.geometry.dispose(); floor?.material.dispose(); renderer?.dispose();
 }, { once: true });
 
-// Hidden development inspection surface; no transport UI or autoplay loop.
+// Hidden inspection surface. Inertia runs only in response to user input.
 window.__ASSEMBLY__ = {
-  setProgress,
-  getState: () => ({ ...computeRitualState(progress), ready, error, manualYaw, zoom }),
+  setProgress, setCyclePosition,
+  getState: () => ({ ...computeCycleState(cyclePosition), ready, error, manualYaw, zoom, spatial }),
   getMetrics: () => metrics,
   get scene() { return scene; }, get renderer() { return renderer; }, get camera() { return camera; },
   get productRoot() { return product; }, get components() { return { shell: body?.components.shell, oldRefill, newRefill, cap: cap?.group }; },
-  timeline: computeRitualState, render: scheduleRender,
+  timeline: computeCycleState, render: scheduleRender,
 };
 boot();

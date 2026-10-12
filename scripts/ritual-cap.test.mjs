@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { CAP_SOURCE } from '../assets/assembly/cap-data.js';
-import { createRitualCap } from '../assets/assembly/ritual-cap.js';
+import { createRitualCap, siliconeRoofField } from '../assets/assembly/ritual-cap.js';
 import { shellRadiusAt } from '../assets/assembly/body.js';
 
 const cap = await createRitualCap({ THREE });
@@ -72,7 +72,7 @@ test('stopper is disengaged before the circular ring can turn', () => {
   assert.ok(Math.hypot(plugCenter.x - cap.outlet.position.x, plugCenter.z - cap.outlet.position.z) > cap.metrics.outletDiameter);
 });
 
-test('captive circle and teardrop face clear each other through the press and swivel', () => {
+test('captive circle and integral teardrop clear each other through press and swivel', () => {
   assert.ok(cap.metrics.clearances.circularBearingRadial > 0.18);
   assert.ok(cap.metrics.clearances.buttonAtFullPressAboveRing >= 0.099);
   const bearing = cap.group.getObjectByName('hidden-circular-captive-bearing');
@@ -88,29 +88,126 @@ test('captive circle and teardrop face clear each other through the press and sw
       if (z <= 10.05) near(position.getY(vertex), closedPosition[vertex * 3 + 1], 0.00001);
     }
     const top = bounds('teardrop-button-traced-original');
-    assert.ok(top.min.y >= cap.metrics.ringTop + 0.099);
+    assert.ok(top.min.y >= cap.metrics.ringTop + cap.components.ring.position.y + 0.649);
+  }
+});
+
+test('silicone center is integral and broad roof flexes while flange support stays fixed', () => {
+  assert.equal(cap.components.button.parent, cap.components.cap);
+  const roof = cap.group.getObjectByName('cap-roof-with-open-dosing-aperture');
+  cap.update(); cap.group.updateMatrixWorld(true);
+  const ray = new THREE.Raycaster(new THREE.Vector3(0, 180, 0), new THREE.Vector3(0, -1, 0));
+  assert.ok(ray.intersectObject(roof).length, 'Roof has an unintended central through-hole');
+  const p = roof.geometry.getAttribute('position');
+  const rest = Float32Array.from(p.array);
+  cap.update({ lift: 1, swivel: 1.9, press: 1 });
+  near(cap.components.button.position.length(), 0);
+  let centerCount = 0, transitionCount = 0, supportedCount = 0;
+  for (let i = 0; i < p.count; i++) {
+    const at = i * 3, radius = Math.hypot(rest[at], rest[at+2]);
+    const field = siliconeRoofField(rest[at], rest[at+2], 1.2);
+    near(p.getY(i), rest[at+1] + field.displacement, 0.00002);
+    if (radius <= 11) { centerCount++; near(field.displacement, -1.2); }
+    else if (radius < 23.5) { transitionCount++; assert.ok(field.displacement < 0 && field.displacement > -1.2); }
+    else { supportedCount++; near(field.displacement, 0); }
+  }
+  assert.ok(centerCount && transitionCount > 100 && supportedCount);
+  near(siliconeRoofField(0,19,1.2).displacement, -0.30107676672);
+  near(siliconeRoofField(23.5,0,1.2).displacement, 0);
+  const denied = cap.update({ lift: 0.4, swivel: 1.9, press: 1 });
+  near(denied.press, 0); assert.deepEqual(p.array, rest);
+});
+
+test('deformed outlet and relief artwork follow the same roof field and normal', () => {
+  cap.update();
+  const artwork = cap.group.getObjectByName('PRESS-TO-DOSE-traced-original').geometry.getAttribute('position');
+  const rest = Float32Array.from(artwork.array);
+  cap.update({ lift: 1, swivel: 1.9, press: 1 });
+  for (let i = 0; i < artwork.count; i++) {
+    const at = i * 3;
+    near(artwork.getY(i), rest[at+1] + siliconeRoofField(rest[at], rest[at+2],1.2).displacement, 0.00002);
+  }
+  const field = siliconeRoofField(0,19,1.2);
+  near(cap.outlet.position.y, cap.metrics.roofTop + 0.004 + field.displacement);
+  const actual = new THREE.Vector3(0,1,0).applyQuaternion(cap.outlet.quaternion);
+  const expected = new THREE.Vector3(-field.dx,1,-field.dz).normalize();
+  near(actual.distanceTo(expected),0);
+  assert.ok(actual.z < -0.15, 'Outlet normal fails to follow the flexed silicone surface');
+});
+
+test('sampled open ring, flex bridge and nipple clear the deformed roof through a full turn', () => {
+  const ring = cap.group.getObjectByName('ring-and-two-discs-traced-original');
+  const plug = cap.group.getObjectByName('shallow-nipple-plug-provisional-D5.8');
+  const point = new THREE.Vector3();
+  for (let pressIndex = 0; pressIndex <= 10; pressIndex++) {
+    for (let angleIndex = 0; angleIndex <= 24; angleIndex++) {
+      const press = pressIndex / 10;
+      cap.update({ lift: 1, swivel: angleIndex * Math.PI / 12, press });
+      cap.group.updateMatrixWorld(true);
+      for (const object of [ring, plug]) {
+        const positions = object.geometry.getAttribute('position');
+        for (let i = 0; i < positions.count; i++) {
+          point.fromBufferAttribute(positions,i).applyMatrix4(object.matrixWorld);
+          const radius = Math.hypot(point.x,point.z);
+          if (radius > 29.5 || radius < 7.55) continue;
+          const roofTop = cap.metrics.roofTop + siliconeRoofField(point.x,point.z,1.2*press).displacement;
+          assert.ok(point.y >= roofTop + 0.011 - 0.00003, `${object.name} collides with roof: press${press}, swivel${angleIndex}, r${radius}`);
+        }
+      }
+      const bearing = cap.group.getObjectByName('hidden-circular-captive-bearing');
+      const bearingBottom = new THREE.Box3().setFromObject(bearing,true).min.y;
+      assert.ok(bearingBottom >= cap.metrics.roofTop - 1.2*press + 0.011);
+    }
   }
 });
 
 test('repeating and reversing operative cap poses returns identical geometry', () => {
   const ring = cap.group.getObjectByName('ring-and-two-discs-traced-original');
   const positions = ring.geometry.getAttribute('position');
+  const roof = cap.group.getObjectByName('cap-roof-with-open-dosing-aperture').geometry;
   cap.update();
   const initial = Float32Array.from(positions.array);
-  const poses = Array.from({ length: 101 }, (_, i) => ({ lift: i / 100, swivel: i / 100 * 1.9, press: Math.sin(i / 100 * Math.PI) ** 2 }));
+  const initialRoof = Float32Array.from(roof.getAttribute('position').array);
+  const initialNormals = Float32Array.from(roof.getAttribute('normal').array);
+  const poses = Array.from({ length: 101 }, (_, i) => ({ lift: Math.min(i / 20,1), swivel: i / 100 * 1.9, press: Math.sin(i / 100 * Math.PI) ** 2 }));
   const forward = poses.map(pose => {
     const state = cap.update(pose);
-    return { state, positions: Float32Array.from(positions.array), buttonY: cap.components.button.position.y };
+    return { state, positions: Float32Array.from(positions.array), roof: Float32Array.from(roof.getAttribute('position').array), normals: Float32Array.from(roof.getAttribute('normal').array), buttonY: cap.components.button.position.y };
   });
   for (let i = poses.length - 1; i >= 0; i--) {
     assert.deepEqual(cap.update(poses[i]), forward[i].state);
     assert.deepEqual(positions.array, forward[i].positions);
+    assert.deepEqual(roof.getAttribute('position').array, forward[i].roof);
+    assert.deepEqual(roof.getAttribute('normal').array, forward[i].normals);
     near(cap.components.button.position.y, forward[i].buttonY);
   }
   cap.update();
   assert.deepEqual(positions.array, initial);
+  assert.deepEqual(roof.getAttribute('position').array, initialRoof);
+  assert.deepEqual(roof.getAttribute('normal').array, initialNormals);
   near(cap.components.ring.rotation.y, 0);
   near(cap.components.button.position.y, 0);
+});
+
+test('cached conservative bounds enclose every actual deformed vertex after scene initialization', () => {
+  // Viewer initialization computes all rest bounds once. That must not destroy
+  // the separately cached range needed by subsequent pressure deformation.
+  cap.group.traverse(object => {
+    if (object.geometry) { object.geometry.computeBoundingBox(); object.geometry.computeBoundingSphere(); }
+  });
+  const point = new THREE.Vector3();
+  for (const [lift, press] of [[1,.25],[1,1],[1,.6],[.5,0],[0,0]]) {
+    cap.update({ lift, press, swivel:1.9 });
+    cap.group.traverse(object => {
+      if (!object.isMesh) return;
+      const geometry = object.geometry, positions = geometry.getAttribute('position');
+      for (let i = 0; i < positions.count; i++) {
+        point.fromBufferAttribute(positions,i);
+        assert.ok(geometry.boundingBox.containsPoint(point), `${object.name} escapes cached box`);
+        assert.ok(point.distanceTo(geometry.boundingSphere.center) <= geometry.boundingSphere.radius + .0001, `${object.name} escapes cached sphere`);
+      }
+    });
+  }
 });
 
 test.after(() => cap.dispose());

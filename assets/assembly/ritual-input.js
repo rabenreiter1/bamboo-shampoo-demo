@@ -9,6 +9,11 @@ export const INSPECTION_LIMITS = Object.freeze({
   axisLockDistance: 8,
   yawPerPixel: 0.012,
   wheelZoomRate: 0.002,
+  wheelTau: 0.18,
+  scrollTau: 0.22,
+  spinTau: 0.30,
+  velocityTau: 0.06,
+  cycleViewportHeights: 9,
 });
 
 const finite = (value, fallback) => Number.isFinite(value) ? value : fallback;
@@ -26,7 +31,7 @@ const pointerFromEvent = event => ({
 
 export function createGestureState({progress = 0, yaw = 0, zoom = 1} = {}) {
   return {
-    progress: clampProgress(progress),
+    progress: finite(progress, 0),
     yaw: finite(yaw, 0),
     zoom: clampZoom(zoom),
     pointers: [],
@@ -68,7 +73,7 @@ export function reduceInspectionGesture(state, event) {
   if (event.type === 'rebase') {
     return rebase({
       ...state,
-      progress: clampProgress(finite(event.progress, state.progress)),
+      progress: finite(event.progress, state.progress),
       yaw: finite(event.yaw, state.yaw),
       zoom: clampZoom(finite(event.zoom, state.zoom)),
     }, true);
@@ -82,7 +87,7 @@ export function reduceInspectionGesture(state, event) {
     // an active gesture its own values are authoritative.
     const values = state.pointers.length ? state : {
       ...state,
-      progress: clampProgress(finite(event.progress, state.progress)),
+      progress: finite(event.progress, state.progress),
       yaw: finite(event.yaw, state.yaw),
       zoom: clampZoom(finite(event.zoom, state.zoom)),
     };
@@ -115,7 +120,7 @@ export function reduceInspectionGesture(state, event) {
   }
   if (mode === 'horizontal') return {...state, pointers, mode, yaw: state.origin.yaw + dx * INSPECTION_LIMITS.yawPerPixel};
   const scrollRange = Math.max(1, finite(event.scrollRange, 1));
-  return {...state, pointers, mode, progress: clampProgress(state.origin.progress - dy / scrollRange)};
+  return {...state, pointers, mode, progress: state.origin.progress - dy / scrollRange};
 }
 
 export function zoomFromWheel(zoom, deltaY, deltaMode = 0, viewportHeight = 800) {
@@ -125,31 +130,43 @@ export function zoomFromWheel(zoom, deltaY, deltaMode = 0, viewportHeight = 800)
 }
 
 /**
- * Root owns native window scrolling and resize progress preservation. Its
- * setProgress callback writes progress back to real scroll. Call resize()
- * after root preserves progress to rebase an active gesture.
+ * Virtual infinite transport. Root owns the single RAF animator and calls tick
+ * with its timestamp. Progress callbacks carry unbounded cycle coordinates;
+ * wheel tails are target smoothing, while only pointer release adds velocity.
  */
-export function createInspectionInput({canvas, getProgress, setProgress, getYaw, setYaw, getZoom, setZoom, onChange = () => {}}) {
+export function createInspectionInput({canvas, getProgress, setProgress, getCyclePosition = getProgress, setCyclePosition = setProgress, getYaw, setYaw, getZoom, setZoom, onChange = () => {}, now = () => performance.now()}) {
   if (!canvas?.addEventListener) throw new TypeError('A canvas is required for inspection input.');
   const view = canvas.ownerDocument?.defaultView;
   if (!view) throw new TypeError('The inspection canvas must belong to a browser document.');
-  const read = () => ({progress: clampProgress(getProgress()), yaw: finite(getYaw(), 0), zoom: clampZoom(getZoom())});
+  const read = () => ({progress: finite(getCyclePosition(), 0), yaw: finite(getYaw(), 0), zoom: clampZoom(getZoom())});
   let state = createGestureState(read());
   let disposed = false;
+  let target = state.progress, wheelActive = false, wheelDirection = 0;
+  let scrollVelocity = 0, yawVelocity = 0, sampleScrollVelocity = 0, sampleYawVelocity = 0;
+  let lastSample = now(), lastMotion = -Infinity, lastTick = null;
+  const reducedMotion = view.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const isMoving = () => wheelActive || Math.abs(scrollVelocity) > 1e-5 || Math.abs(yawVelocity) > 1e-4;
 
   const getScrollRange = () => {
-    const scrolling = canvas.ownerDocument.scrollingElement || canvas.ownerDocument.documentElement;
-    return Math.max(1, scrolling.scrollHeight - view.innerHeight);
+    return Math.max(1, view.innerHeight * INSPECTION_LIMITS.cycleViewportHeights);
   };
-  const getState = () => ({...read(), mode: state.mode, pointerCount: state.pointers.length, pointerIds: state.pointers.map(pointer => pointer.id)});
+  const getState = () => ({...read(), cyclePosition: read().progress, targetCyclePosition: target,
+    scrollVelocity, yawVelocity, isMoving: isMoving(), mode: state.mode,
+    pointerCount: state.pointers.length, pointerIds: state.pointers.map(pointer => pointer.id)});
 
-  function commit(next) {
+  function cancelMomentum() {
+    scrollVelocity = yawVelocity = sampleScrollVelocity = sampleYawVelocity = 0;
+    target = read().progress; wheelActive = false; wheelDirection = 0; lastTick = null;
+    lastSample = now(); lastMotion = -Infinity;
+  }
+
+  function commit(next, notify = true) {
     const previous = state;
     state = next;
-    if (next.progress !== previous.progress) setProgress(next.progress);
+    if (next.progress !== previous.progress) setCyclePosition(next.progress);
     if (next.yaw !== previous.yaw) setYaw(next.yaw);
     if (next.zoom !== previous.zoom) setZoom(next.zoom);
-    if (next !== previous) onChange(getState());
+    if (notify && next !== previous) onChange(getState());
   }
 
   const pointerEvent = (event, type = event.type) => ({
@@ -160,27 +177,99 @@ export function createInspectionInput({canvas, getProgress, setProgress, getYaw,
   function down(event) {
     if (disposed || (event.pointerType !== 'touch' && event.button !== 0)) return;
     event.preventDefault();
+    cancelMomentum();
     commit(reduceInspectionGesture(state, pointerEvent(event)));
     try { canvas.setPointerCapture(event.pointerId); } catch { /* A browser may cancel before capture. */ }
   }
   function move(event) {
     if (disposed || !state.pointers.some(pointer => pointer.id === event.pointerId)) return;
     event.preventDefault();
-    commit(reduceInspectionGesture(state, pointerEvent(event)));
+    const previous = state;
+    const next = reduceInspectionGesture(state, pointerEvent(event));
+    const time = now(), dt = Math.max(.001, (time - lastSample) / 1000);
+    const weight = 1 - Math.exp(-dt / INSPECTION_LIMITS.velocityTau);
+    const dq = next.progress - previous.progress, dyaw = next.yaw - previous.yaw;
+    if (next.mode === 'pinch') cancelMomentum();
+    else {
+      // A reversed flick belongs to its latest direction, rather than the
+      // previous stroke's filtered velocity. Position still follows the finger.
+      if (dq && Math.sign(dq) !== Math.sign(sampleScrollVelocity)) sampleScrollVelocity = 0;
+      if (dyaw && Math.sign(dyaw) !== Math.sign(sampleYawVelocity)) sampleYawVelocity = 0;
+      sampleScrollVelocity += (dq / dt - sampleScrollVelocity) * weight;
+      sampleYawVelocity += (dyaw / dt - sampleYawVelocity) * weight;
+      if (dq || dyaw) lastMotion = time;
+    }
+    lastSample = time;
+    commit(next);
   }
   function end(event, type = event.type) {
     if (disposed || !state.pointers.some(pointer => pointer.id === event.pointerId)) return;
+    const previousMode = state.mode;
     commit(reduceInspectionGesture(state, pointerEvent(event, type)));
+    if (type === 'pointerup' && !state.pointers.length && !reducedMotion?.matches && now() - lastMotion <= 80) {
+      scrollVelocity = previousMode === 'vertical' ? Math.max(-2, Math.min(2, sampleScrollVelocity)) : 0;
+      yawVelocity = previousMode === 'horizontal' ? Math.max(-16, Math.min(16, sampleYawVelocity)) : 0;
+      lastTick = now();
+      if (isMoving()) onChange(getState());
+    } else cancelMomentum();
     try { if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); } catch { /* Capture may already have been released. */ }
   }
   function wheel(event) {
-    if (disposed || !event.ctrlKey) return; // Ordinary wheel scrolling stays native.
+    if (disposed) return;
     event.preventDefault();
     const values = read();
     state = {...state, ...values};
-    commit(reduceInspectionGesture(state, {type: 'zoom', zoom: zoomFromWheel(values.zoom, event.deltaY, event.deltaMode, view.innerHeight)}));
+    if (event.ctrlKey) {
+      cancelMomentum();
+      commit(reduceInspectionGesture(state, {type: 'zoom', zoom: zoomFromWheel(values.zoom, event.deltaY, event.deltaMode, view.innerHeight)}));
+      return;
+    }
+    if (state.pointers.length) return;
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? view.innerHeight : 1;
+    const delta = finite(event.deltaY, 0) * unit / getScrollRange();
+    if (!delta) return;
+    if (!wheelActive || Math.sign(delta) !== wheelDirection) target = values.progress;
+    scrollVelocity = yawVelocity = 0;
+    target += delta; wheelDirection = Math.sign(delta);
+    if (reducedMotion?.matches) { commit({...state, progress: target}); wheelActive = false; }
+    else { wheelActive = true; lastTick ??= now(); onChange(getState()); }
   }
+  function key(event) {
+    if (disposed || event.ctrlKey || event.metaKey || event.altKey || state.pointers.length) return;
+    const steps = {ArrowDown: 80, ArrowUp: -80, PageDown: view.innerHeight * .85, PageUp: -view.innerHeight * .85, ' ': view.innerHeight * (event.shiftKey ? -.85 : .85)};
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault(); seek(Math.floor(read().progress) + (event.key === 'End' ? .999999 : 0)); return;
+    }
+    if (!(event.key in steps)) return;
+    wheel({deltaY: steps[event.key], deltaMode: 0, preventDefault: () => event.preventDefault()});
+  }
+  function tick(timestamp) {
+    if (disposed || !isMoving()) { lastTick = null; return false; }
+    const dt = Math.max(0, Math.min(.05, (timestamp - (lastTick ?? timestamp)) / 1000));
+    lastTick = timestamp;
+    state = {...state, ...read()};
+    let next = {...state};
+    if (wheelActive) {
+      next.progress += (target - next.progress) * (1 - Math.exp(-dt / INSPECTION_LIMITS.wheelTau));
+      if (Math.abs(target - next.progress) < 1e-7) { next.progress = target; wheelActive = false; }
+    } else if (scrollVelocity) {
+      const decay = Math.exp(-dt / INSPECTION_LIMITS.scrollTau);
+      next.progress += scrollVelocity * INSPECTION_LIMITS.scrollTau * (1 - decay);
+      scrollVelocity *= decay;
+      if (Math.abs(scrollVelocity) < 1e-5) scrollVelocity = 0;
+    }
+    if (yawVelocity) {
+      const decay = Math.exp(-dt / INSPECTION_LIMITS.spinTau);
+      next.yaw += yawVelocity * INSPECTION_LIMITS.spinTau * (1 - decay);
+      yawVelocity *= decay;
+      if (Math.abs(yawVelocity) < 1e-4) yawVelocity = 0;
+    }
+    commit(next, false);
+    return isMoving();
+  }
+  function seek(q) { cancelMomentum(); state = {...state, ...read()}; commit(rebase({...state, progress: finite(q, 0)}, true)); target = state.progress; }
   function cancelAll() {
+    cancelMomentum();
     const pointerIds = state.pointers.map(pointer => pointer.id);
     commit(reduceInspectionGesture(state, {type: 'reset'}));
     for (const id of pointerIds) {
@@ -189,6 +278,7 @@ export function createInspectionInput({canvas, getProgress, setProgress, getYaw,
   }
 
   const lostCapture = event => end(event, 'pointercancel');
+  const visibility = () => { if (canvas.ownerDocument.hidden) cancelAll(); };
   const passiveFalse = {passive: false};
   canvas.addEventListener('pointerdown', down, passiveFalse);
   canvas.addEventListener('pointermove', move, passiveFalse);
@@ -197,10 +287,13 @@ export function createInspectionInput({canvas, getProgress, setProgress, getYaw,
   canvas.addEventListener('lostpointercapture', lostCapture);
   canvas.addEventListener('wheel', wheel, passiveFalse);
   view.addEventListener('blur', cancelAll);
+  view.addEventListener('keydown', key);
+  canvas.ownerDocument.addEventListener?.('visibilitychange', visibility);
+  reducedMotion?.addEventListener?.('change', cancelMomentum);
 
   return {
-    getState,
-    resize() { if (!disposed) commit(reduceInspectionGesture(state, {type: 'rebase', ...read()})); },
+    getState, tick, cancelMomentum, seek,
+    resize() { if (!disposed) { cancelMomentum(); commit(reduceInspectionGesture(state, {type: 'rebase', ...read()})); } },
     dispose() {
       if (disposed) return;
       cancelAll();
@@ -212,6 +305,9 @@ export function createInspectionInput({canvas, getProgress, setProgress, getYaw,
       canvas.removeEventListener('lostpointercapture', lostCapture);
       canvas.removeEventListener('wheel', wheel, passiveFalse);
       view.removeEventListener('blur', cancelAll);
+      view.removeEventListener('keydown', key);
+      canvas.ownerDocument.removeEventListener?.('visibilitychange', visibility);
+      reducedMotion?.removeEventListener?.('change', cancelMomentum);
     },
   };
 }

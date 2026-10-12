@@ -8,7 +8,7 @@
 const PI = Math.PI;
 const TAU = PI * 2;
 const clamp = (value, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, Number.isFinite(value) ? value : lo));
-const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
+const smooth = value => { const t = clamp(value); return t * t * t * (t * (t * 6 - 15) + 10); };
 const FOIL_RADIUS = 29;
 const FOIL_THICKNESS = .08;
 const FOIL_Y = 170.34; // Bottom surface contacts the top of the PET flange.
@@ -184,14 +184,19 @@ export function createPeelSeal({ THREE } = {}) {
     group.add(mesh);
   }
   let previous = '';
-  function update({ unfold = 0, peel = 0, exit = 0 } = {}) {
+  function update({ unfold = 0, peel = 0, exit = 0, externalExit = false } = {}) {
     unfold = clamp(unfold); peel = clamp(peel); exit = clamp(exit);
-    const signature = `${unfold}|${peel}|${exit}`;
+    const signature = `${unfold}|${peel}|${exit}|${Boolean(externalExit)}`;
     if (signature === previous) return;
     previous = signature;
-    group.visible = exit < .99999;
-    const depart = smooth(exit);
-    group.position.set(-145 * depart, 95 * depart, -18 * depart);
+    // The fullscreen scene routes fully detached foil through a world-space
+    // lane. It owns that transform and its frustum-safe visibility; deformation
+    // must never overwrite either, including when its state has not changed.
+    if (!externalExit) {
+      group.visible = exit < .99999;
+      const depart = smooth(exit);
+      group.position.set(-145 * depart, 95 * depart, -18 * depart);
+    }
     disk.deform(p => samplePeelPoint(p.x, p.z, peel));
     tab.deform(p => {
       const fold = sampleFoldedTab(p.distance, p.z, unfold);
@@ -203,7 +208,7 @@ export function createPeelSeal({ THREE } = {}) {
       if (bent.bonded) { bent.nx = fold.nx; bent.ny = fold.ny; }
       return bent;
     });
-    group.userData.effectState = { unfold, peel, exit, ...samplePeelState(peel) };
+    group.userData.effectState = { unfold, peel, exit, externalExit: Boolean(externalExit), ...samplePeelState(peel) };
   }
   update();
   const metrics = {
@@ -218,6 +223,18 @@ export function createPeelSeal({ THREE } = {}) {
   };
   return {
     group, update, metrics,
+    getLocalBounds(target = new THREE.Box3()) {
+      target.makeEmpty();
+      for (const mesh of group.children) {
+        mesh.updateMatrix();
+        target.union(mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrix));
+      }
+      return target;
+    },
+    reset() {
+      previous = ''; group.position.set(0, 0, 0);
+      group.quaternion.identity(); group.scale.set(1, 1, 1); update();
+    },
     dispose() { disk.geometry.dispose(); tab.geometry.dispose(); top.dispose(); bottom.dispose(); edge.dispose(); },
   };
 }
@@ -373,12 +390,17 @@ function createStreamMesh(THREE, material, longitudinal = 44, radial = 14) {
 export function createGel({ THREE } = {}) {
   if (!THREE?.BufferGeometry) throw new Error('createGel requires the shared THREE namespace.');
   const liquid = new THREE.MeshPhysicalMaterial({
-    color: '#ffffff', metalness: 0, roughness: .055, transmission: .975,
+    color: '#ffe0a3', metalness: 0, roughness: .09, transmission: .88, opacity: 1,
     thickness: 26, ior: 1.43, clearcoat: 1, clearcoatRoughness: .025,
-    attenuationColor: '#f5ecd9', attenuationDistance: 155, side: THREE.FrontSide,
+    attenuationColor: '#c67a14', attenuationDistance: 35, side: THREE.FrontSide,
   });
-  liquid.name = 'Clear_glossy_neutral_viscous_gel';
-  const movingGel = liquid.clone(); movingGel.thickness = 2.8; movingGel.name = 'Clear_gel_stream_and_drops';
+  liquid.name = 'Translucent_warm_amber_viscous_shampoo_volume';
+  const movingGel = liquid.clone(); movingGel.thickness = 2.8;
+  // A thin strand needs stronger absorption than the bulk to remain legible
+  // against the studio background. This is an authored appearance adjustment,
+  // not a measured chemical property; hue stays identical to the refill gel.
+  movingGel.color.set('#f3c36d'); movingGel.attenuationDistance = 3.2;
+  movingGel.name = 'Matching_amber_shampoo_stream_and_drops';
   const oldFill = createFillMesh(THREE, liquid, 'Old_refill_250ml_gel_fill');
   const newFill = createFillMesh(THREE, liquid, 'New_refill_250ml_gel_fill');
   const streamGroup = new THREE.Group(); streamGroup.name = 'Shampoo_flow_in_world_gravity';
@@ -413,6 +435,8 @@ export function createGel({ THREE } = {}) {
     fullFillHeight: GEL_HEIGHT, fullFillSurfaceY: GEL_FLOOR_Y + GEL_HEIGHT,
     areaPressureMultiplier: 3.2, maximumStreamLength: 118, maximumDropletGravityDistance: 129,
     stateOnly: true, worldGravity: [0, -1, 0], seededByProgress: true,
+    appearance: { color: '#ffe0a3', attenuationColor: '#c67a14', attenuationDistance: 35,
+      transmission: .88, roughness: .09, ior: 1.43, streamColor: '#f3c36d', streamAttenuationDistance: 3.2 },
     assumptions: [
       'Gel appearance, flow rate,3.2times pressure area and trajectory are authored visual effects, not measured fluid data.',
       'The inner radius23.2mm follows the unmeasured0.3mm PET wall placeholder;250ml is the user-confirmed nominal fill.',
