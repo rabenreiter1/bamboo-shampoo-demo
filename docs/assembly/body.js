@@ -88,13 +88,13 @@ async function makeWoodMaps(THREE, url) {
   const rng = seededRandom();
   const columns = new Float32Array(w);
   for (let x = 0; x < w; x++) {
-    columns[x] = Math.sin(x * .021) * 3.4 + Math.sin(x * .083) * 2.7
-      + Math.sin(x * .421) * 1.45 + (rng() - .5) * 2;
+    columns[x] = Math.sin(x * .021) * 5.2 + Math.sin(x * .083) * 3.8
+      + Math.sin(x * .421) * 2.0 + (rng() - .5) * 2.4;
   }
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = 4 * (y * w + x);
-      const noise = columns[x] + (rng() - .5) * 3.2
+      const noise = columns[x] + (rng() - .5) * 4.2
         + Math.sin(y * .006 + x * .08) * .6;
       // White native SVG paths are negative-space details, not white paint.
       const luminance = (artwork[i] * .2126 + artwork[i + 1] * .7152 + artwork[i + 2] * .0722) / 255;
@@ -138,9 +138,9 @@ async function makeWoodMaps(THREE, url) {
   for (let n = 0; n < 3600; n++) {
     const x = rng() * w, y = rng() * h;
     const length = 2 + Math.pow(rng(), 2) * 170;
-    const a = .025 + rng() * .09;
+    const a = .06 + rng() * .12;
     colourCtx.strokeStyle = `rgba(87,54,21,${a})`;
-    colourCtx.lineWidth = .25 + rng() * .6;
+    colourCtx.lineWidth = .30 + rng() * .7;
     colourCtx.beginPath(); colourCtx.moveTo(x, y);
     colourCtx.quadraticCurveTo(x + .35, y + length / 2, x + (rng() - .5) * .8, y + length);
     colourCtx.stroke();

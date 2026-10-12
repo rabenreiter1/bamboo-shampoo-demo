@@ -3,10 +3,62 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import * as THREE from 'three';
 import { createPeelSeal, createGel, samplePeelPoint, samplePeelState, sampleFoldedTab,
-  sampleFill, sampleGelStream, sampleGelDrop } from '../assets/assembly/ritual-effects.js';
+  sampleFill, sampleGelStream, sampleGelDrop, sampleGelSurface, sampleGelOpticalPath,
+  configurePetReflectionSkin, samplePetFresnel, GEL_APPEARANCE } from '../assets/assembly/ritual-effects.js';
 
 const near = (actual, expected, tolerance = 1e-5) => assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
 const finite = object => { for (const value of Object.values(object)) if (typeof value === 'number') assert.ok(Number.isFinite(value)); };
+
+test('clear PET Fresnel reflection strengthens at the silhouette without a white diffuse wash', () => {
+  const f0 = ((1.57 - 1) / (1.57 + 1)) ** 2;
+  near(samplePetFresnel(1), f0); near(samplePetFresnel(0), 1);
+  let previous = 1;
+  for (let i = 0; i <= 100; i++) {
+    const reflectance = samplePetFresnel(i / 100);
+    assert.ok(reflectance <= previous + 1e-12); previous = reflectance;
+    assert.ok(reflectance >= f0 && reflectance <= 1);
+    const contents = [.73, .31, .26], incident = [.7, .8, .9];
+    const reflected = incident.map(value => value * reflectance);
+    const straightRgb = reflected.map(value => value / reflectance);
+    straightRgb.forEach((value, channel) => near(value * reflectance + contents[channel] * (1 - reflectance),
+      reflected[channel] + contents[channel] * (1 - reflectance)));
+  }
+  const material = new THREE.MeshPhysicalMaterial({ ior: 1.57, thickness: .3, opacity: .22,
+    transmission: 0, transparent: true, clearcoat: .85 });
+  configurePetReflectionSkin({ THREE, material });
+  const shader = { fragmentShader: THREE.ShaderLib.physical.fragmentShader };
+  material.onBeforeCompile(shader);
+  assert.match(shader.fragmentShader, /vec3 outgoingLight = totalSpecular/);
+  assert.doesNotMatch(shader.fragmentShader, /outgoingLight = totalDiffuse \+ totalSpecular/);
+  assert.match(shader.fragmentShader, /outgoingLight \/ petReflectance, petReflectance/);
+  assert.match(shader.fragmentShader, /ior - 1\.0/);
+  assert.equal(material.opacity, 1); assert.equal(material.transmission, 0);
+  assert.equal(material.clearcoat, 0); assert.equal(material.depthWrite, false);
+  near(material.ior, 1.57); near(material.thickness, .3);
+  material.dispose();
+});
+
+test('PET reflection configuration changes no manufactured geometry or source dimensions', async () => {
+  const { createBody } = await import('../assets/assembly/body.js');
+  const body = await createBody({ THREE });
+  const snapshot = () => {
+    const hash = createHash('sha256');
+    body.components.inlay.traverse(object => {
+      for (const attribute of Object.values(object.geometry?.attributes || {})) {
+        hash.update(Buffer.from(attribute.array.buffer));
+      }
+      if (object.geometry?.index) hash.update(Buffer.from(object.geometry.index.array.buffer));
+      hash.update(JSON.stringify([object.position.toArray(), object.quaternion.toArray(), object.scale.toArray()]));
+    });
+    return hash.digest('hex');
+  };
+  const initial = snapshot(), dimensions = structuredClone(body.components.inlay.userData.confirmedDimensions);
+  configurePetReflectionSkin({ THREE, material: body.materials.clearPET });
+  assert.equal(snapshot(), initial);
+  assert.deepEqual(body.components.inlay.userData.confirmedDimensions, dimensions);
+  assert.deepEqual(dimensions, { bodyDiameter: 47, bodyHeight: 165, flangeDiameter: 58, flangeRadialWidth: 5.5 });
+  body.dispose();
+});
 
 test('retail foil fits below the cap and folded tab stays inside its bore', () => {
   const seal = createPeelSeal({ THREE });
@@ -150,27 +202,107 @@ test('full transmissive fill uses physical-height geometry and unit model scale'
   gel.dispose();
 });
 
-test('amber absorption belongs to the measured liquid volume and disappears with its contents', () => {
+test('grapefruit absorption belongs to the measured liquid volume and disappears with its contents', () => {
   const gel = createGel({ THREE });
   const body = gel.oldFillGroup.getObjectByName('Measured_250ml_gel_volume');
   const surface = gel.oldFillGroup.getObjectByName('Level_gel_free_surface');
   const material = body.material;
-  assert.equal(surface.material, material, 'The free surface must be the same colored gel as its bulk');
+  assert.ok(surface.material.color.equals(material.color), 'Free surface and bulk have different liquid tint');
+  assert.ok(surface.material.attenuationColor.equals(material.attenuationColor), 'Free surface and bulk have different absorption');
+  near(surface.material.transmission, material.transmission);
   assert.equal(material.opacity, 1); assert.ok(material.transmission > .8);
-  // Beer-Lambert attenuation should yield a perceptibly warm bulk, rather
+  // Beer-Lambert attenuation should yield a perceptibly coral bulk, rather
   // than applying an opaque tint to the PET wall. Three stores linear RGB.
   const transmitted = ['r', 'g', 'b'].map(channel => Math.pow(material.attenuationColor[channel], material.thickness / material.attenuationDistance));
   assert.ok(transmitted[0] > transmitted[1] && transmitted[1] > transmitted[2]);
   assert.ok(transmitted[0] - transmitted[2] > .5, 'The bulk remains too pale to read separately from bamboo');
+  assert.ok(transmitted[1] - transmitted[2] < .12, 'The contents still read yellow/amber rather than grapefruit coral');
+  assert.equal(material.color.getHexString(), GEL_APPEARANCE.color.slice(1));
+  assert.equal(material.attenuationColor.getHexString(), GEL_APPEARANCE.attenuationColor.slice(1));
   const stream = gel.streamGroup.getObjectByName('World_gravity_viscous_shampoo_stream');
   assert.ok(stream.material.attenuationColor.equals(material.attenuationColor), 'Stream hue differs from the refill contents');
+  assert.ok(stream.material.color.equals(material.color), 'The thin strand uses a darker painted tint');
+  near(stream.material.attenuationDistance, material.attenuationDistance);
   const strandTransmission = ['r', 'g', 'b'].map(channel => Math.pow(stream.material.attenuationColor[channel], stream.material.thickness / stream.material.attenuationDistance));
-  assert.ok(strandTransmission[0] - strandTransmission[2] > .5, 'The thin strand becomes almost colorless in studio light');
+  assert.ok(strandTransmission[0] - strandTransmission[2] > .1, 'The strand loses its grapefruit absorption');
+  assert.ok(strandTransmission[0] - strandTransmission[2] < transmitted[0] - transmitted[2], 'A thin strand absorbs more light than the thick refill volume');
   gel.update({ fillOld: 0, fillNew: 1 });
   assert.equal(gel.oldFillGroup.visible, false); assert.equal(gel.newFillGroup.visible, true);
   assert.equal(gel.oldFillGroup.userData.fillMilliliters, 0);
   const bounds = new THREE.Box3().setFromObject(gel.newFillGroup, true);
   assert.ok(bounds.max.y < 170 - 10, 'A clear air space must separate gel from the sealed flange');
+  gel.dispose();
+});
+
+test('optical depth follows the real cylinder chord and finite drained volume', () => {
+  const radius = 23.2, height = sampleFill(1).height;
+  const point = [radius, height / 2, 0];
+  near(sampleGelOpticalPath(point, [-1, 0, 0]), radius * 2);
+  for (const angle of [0, .2, .5, .75, 1.1, 1.4]) {
+    const ray = [-Math.cos(angle), 0, Math.sin(angle)];
+    const distance = sampleGelOpticalPath(point, ray);
+    near(distance, radius * 2 * Math.cos(angle));
+    const exit = point.map((value, i) => value + ray[i] * distance);
+    near(Math.hypot(exit[0], exit[2]), radius);
+  }
+  for (const fraction of [1, .55, .12, .001]) {
+    const path = sampleGelOpticalPath([0, height, 0], [0, -1, 0], { scale: [1, fraction, 1] });
+    near(path, sampleFill(fraction).height);
+  }
+  const clipped = sampleGelOpticalPath([radius, 3, 0], [-Math.SQRT1_2, -Math.SQRT1_2, 0]);
+  near(clipped, 3 * Math.SQRT2);
+});
+
+test('bulk refraction shader uses actual geometry and retains built-in physical attenuation', () => {
+  const gel = createGel({ THREE });
+  const material = gel.oldFillGroup.getObjectByName('Measured_250ml_gel_volume').material;
+  const shader = { vertexShader: THREE.ShaderLib.physical.vertexShader, fragmentShader: THREE.ShaderLib.physical.fragmentShader };
+  material.onBeforeCompile(shader);
+  assert.match(shader.vertexShader, /vGelVolumePosition = position/);
+  assert.match(shader.fragmentShader, /refract\( -v, normalize\( n \), 1\.0 \/ ior \)/);
+  assert.match(shader.fragmentShader, /sideExit/); assert.match(shader.fragmentShader, /axialExit/);
+  assert.match(shader.fragmentShader, /volumeAttenuation\( length\( transmissionRay \)/);
+  assert.match(shader.fragmentShader, /return ray \* distance/);
+  assert.match(shader.fragmentShader, /material\.transmissionAlpha = 1\.0/);
+  assert.equal((shader.fragmentShader.match(/vec3 getVolumeTransmissionRay\(/g) || []).length, 1);
+  assert.equal(material.userData.optics.timeUniform, false);
+  assert.equal(material.userData.resolvedBackgroundCoverage, true);
+  assert.notEqual(material.customProgramCacheKey(), new THREE.MeshPhysicalMaterial().customProgramCacheKey());
+  gel.dispose();
+});
+
+test('the capillary free surface has zero mean displacement and remains inside the PET bore', () => {
+  const gel = createGel({ THREE });
+  const surface = gel.oldFillGroup.getObjectByName('Level_gel_free_surface');
+  for (const state of [ { fraction: 1, progress: 0, flow: 0 }, { fraction: .6, progress: .557, flow: 1, gush: .9 },
+    { fraction: .002, progress: .655, flow: .01 }, { fraction: 0, progress: .66, flow: 0 } ]) {
+    let mean = 0;
+    // Equal-area annuli, rather than uniformly spaced radii, test real volume.
+    for (let ring = 0; ring < 512; ring++) for (let j = 0; j < 12; j++) {
+      const radius = Math.sqrt((ring + .5) / 512);
+      mean += sampleGelSurface(radius, j * Math.PI / 6, state) / (512 * 12);
+    }
+    near(mean, 0, 1e-6);
+    assert.ok(sampleGelSurface(1, 0, state) >= sampleGelSurface(0, 0, state), 'Meniscus should rise toward its wetting wall');
+    gel.update({ progress: state.progress, fillOld: state.fraction, flow: state.flow, gush: state.gush });
+    const position = surface.geometry.attributes.position, normal = surface.geometry.attributes.normal;
+    for (let i = 0; i < position.count; i++) {
+      assert.ok(Math.hypot(position.getX(i), position.getZ(i)) <= 23.200002, 'The liquid enters the PET wall');
+      assert.ok(Math.abs(position.getY(i)) < .3);
+      assert.ok(normal.getY(i) > .99, 'The viscous free surface acquired a harsh ripple');
+      near(Math.hypot(normal.getX(i), normal.getY(i), normal.getZ(i)), 1, 2e-6);
+    }
+    let area = 0, displacedVolume = 0;
+    const index = surface.geometry.index;
+    for (let i = 0; i < index.count; i += 3) {
+      const a = index.getX(i), b = index.getX(i + 1), c = index.getX(i + 2);
+      const faceArea = Math.abs((position.getX(b) - position.getX(a)) * (position.getZ(c) - position.getZ(a))
+        - (position.getX(c) - position.getX(a)) * (position.getZ(b) - position.getZ(a))) / 2;
+      area += faceArea;
+      displacedVolume += faceArea * (position.getY(a) + position.getY(b) + position.getY(c)) / 3;
+    }
+    near(displacedVolume / area, 0, 1e-8);
+  }
   gel.dispose();
 });
 
@@ -199,6 +331,56 @@ test('final droplets remain after the continuous flow stops, then vanish before 
   }
 });
 
+test('the viscous strand has a closed rounded tail, correct slope normals and an outlet-safe start', () => {
+  const gel = createGel({ THREE });
+  const mesh = gel.streamGroup.getObjectByName('World_gravity_viscous_shampoo_stream');
+  const origin = [13, 114, -7], direction = [.6, -.8, 0];
+  const normal = new THREE.Vector3(), across = new THREE.Vector3(), down = new THREE.Vector3();
+  const positions = mesh.geometry.attributes.position, normals = mesh.geometry.attributes.normal;
+  for (const progress of [.49, .553, .57, .64, .653]) {
+    const state = { progress, flow: 1, gush: .8, outletWorld: origin, outletDirection: direction };
+    gel.update(state);
+    near(sampleGelStream(1, state).radius, 0);
+    const start = sampleGelStream(0, state), next = sampleGelStream(.0001, state);
+    const nozzleTangent = new THREE.Vector3(next.x - start.x, next.y - start.y, next.z - start.z).normalize();
+    assert.ok(nozzleTangent.dot(new THREE.Vector3(...direction)) > .9999);
+    assert.ok(start.radius < 3, 'Stream fills or intersects the 6 mm aperture lip');
+    const last = positions.count - 15;
+    for (let j = 1; j < 15; j++) {
+      near(positions.getX(last + j), positions.getX(last));
+      near(positions.getY(last + j), positions.getY(last));
+      near(positions.getZ(last + j), positions.getZ(last));
+    }
+    // Compare the shading normal to the real deformed surface derivatives,
+    // catching the old radial normals on capillary necks and tapered tips.
+    for (let i = 1; i < 72; i++) for (let j = 0; j < 14; j++) {
+      const id = i * 15 + j;
+      const a = i * 15 + (j + 13) % 14, b = i * 15 + (j + 1) % 14;
+      across.set(positions.getX(b) - positions.getX(a), positions.getY(b) - positions.getY(a), positions.getZ(b) - positions.getZ(a));
+      down.set(positions.getX(id + 15) - positions.getX(id - 15), positions.getY(id + 15) - positions.getY(id - 15), positions.getZ(id + 15) - positions.getZ(id - 15));
+      normal.crossVectors(across, down).normalize();
+      assert.ok(normal.dot(new THREE.Vector3().fromBufferAttribute(normals, id)) > .9999);
+    }
+    for (let i = 0; i < normals.count; i++) near(Math.hypot(normals.getX(i), normals.getY(i), normals.getZ(i)), 1, 2e-6);
+  }
+  gel.dispose();
+});
+
+test('detached droplets stretch without changing their volume and emerge smoothly from the tip', () => {
+  const origin = [2, 80, -1], state = { flow: 1, outletWorld: origin, outletDirection: [.6, -.8, 0] };
+  for (let i = 0; i <= 1000; i++) for (let index = 0; index < 5; index++) {
+    const sample = sampleGelDrop(index, { ...state, progress: .475 + i / 1000 * .195 });
+    finite(sample);
+    near(sample.radialScale ** 2 * sample.axialScale, 1, 1e-12);
+    if (sample.visible) assert.ok(origin[1] - sample.y <= 129.000001, 'A drop escapes the shared camera gravity envelope');
+  }
+  const beginning = sampleGelDrop(0, { ...state, progress: .65, flow: 0 });
+  const next = sampleGelDrop(0, { ...state, progress: .650001, flow: 0 });
+  assert.equal(beginning.visible, false); near(beginning.radius, 0);
+  assert.ok(next.radius < .00001, 'A final drop pops into existence at full scale');
+  assert.ok(Math.hypot(next.x - beginning.x, next.y - beginning.y, next.z - beginning.z) < .01);
+});
+
 test('world gel meshes are history independent and hold still without scroll', () => {
   const gel = createGel({ THREE });
   const state = { progress: .57, flow: 1, gush: .7, fillOld: .68, fillNew: 1,
@@ -207,7 +389,8 @@ test('world gel meshes are history independent and hold still without scroll', (
     const objects = [];
     for (const group of [gel.streamGroup, gel.oldFillGroup, gel.newFillGroup]) group.traverse(object => {
       objects.push({ name: object.name, visible: object.visible, position: object.position.toArray(), scale: object.scale.toArray(),
-        vertices: object.geometry ? createHash('sha256').update(Buffer.from(object.geometry.attributes.position.array.buffer)).digest('hex') : null });
+        vertices: object.geometry ? createHash('sha256').update(Buffer.from(object.geometry.attributes.position.array.buffer)).digest('hex') : null,
+        normals: object.geometry ? createHash('sha256').update(Buffer.from(object.geometry.attributes.normal.array.buffer)).digest('hex') : null });
     });
     return objects;
   };

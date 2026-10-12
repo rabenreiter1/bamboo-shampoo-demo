@@ -1,8 +1,8 @@
 import * as THREE from '../assembly/vendor/three.module.js';
-import { RoomEnvironment } from '../assembly/vendor/RoomEnvironment.js';
-import { createBody } from '../assembly/body.js';
-import { createRitualCap } from '../assembly/ritual-cap.js?v=ritual-20261012-4';
-import { createPeelSeal, createGel } from '../assembly/ritual-effects.js?v=ritual-20261012-4';
+import { createStudioEnvironment } from '../assembly/studio-environment.js?v=ritual-20261013-1';
+import { createBody } from '../assembly/body.js?v=ritual-20261013-1';
+import { createRitualCap } from '../assembly/ritual-cap.js?v=ritual-20261013-1';
+import { createPeelSeal, createGel, configurePetReflectionSkin } from '../assembly/ritual-effects.js?v=ritual-20261013-3';
 import { computeCycleState, TILT_AXIS, clamp } from '../assembly/ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from '../assembly/ritual-space.js?v=ritual-20261012-4';
 
@@ -16,10 +16,7 @@ async function acquireBody() {
     const entry = { references: 0, value: null, promise: null };
     entry.promise = createBody({ THREE, engravingUrl: new URL('../assembly/original-engraving.svg', import.meta.url).href })
       .then(body => {
-        Object.assign(body.materials.clearPET, {
-          transmission: 0, transparent: true, opacity: .22, depthWrite: false, roughness: .06,
-        });
-        body.materials.clearPET.needsUpdate = true;
+        configurePetReflectionSkin({ THREE, material: body.materials.clearPET });
         entry.value = body;
         return body;
       });
@@ -45,7 +42,7 @@ const MODES = new Set(['product', 'refill', 'cap', 'ritual']);
 const STATIC_MODES = new Set(['product', 'refill', 'cap']);
 const ALT = {
   product: 'Bamboo Shampoo, 250 ml. Bamboo case with the original engraving and emerald silicone cap. Drag left or right to rotate; arrow keys also rotate.',
-  refill: 'A sealed 250 ml refill: a transparent PET insert, amber shampoo, visible headspace and a peelable film on its supporting flange. Drag left or right to rotate; arrow keys also rotate.',
+  refill: 'A sealed 250 ml refill: a transparent PET insert, grapefruit-coral shampoo, visible headspace and a peelable film on its supporting flange. Drag left or right to rotate; arrow keys also rotate.',
   cap: 'The complete emerald silicone cap, with its integral teardrop feature and circular captive closure bearing. Drag left or right to rotate; arrow keys also rotate.',
   ritual: 'Bamboo Shampoo opening, pouring and refill sequence. Page scrolling moves the sequence forwards or backwards. Drag horizontally to inspect the product.',
 };
@@ -64,6 +61,11 @@ const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(
 export function mountShopScene(container, options = {}) {
   if (!container?.appendChild || !container?.getBoundingClientRect) throw new TypeError('A shop viewer needs a container element.');
   const initialMode = MODES.has(options.mode) ? options.mode : 'product';
+  const artDirection = ['campaign', 'detail'].includes(options.artDirection) ? options.artDirection : 'studio';
+  const campaign = artDirection === 'campaign';
+  const worlds = { aloe: '#ebe4ff', argan: '#f7d9ce', bamboo: '#ddeaf4' };
+  let world = Object.hasOwn(worlds, options.scent) ? options.scent : 'bamboo';
+  let poseProgress = 0, targetPoseProgress = 0, reveal = campaign ? 0 : 1;
   let mode = initialMode, disposed = false, ready = false, rendered = false, error = null;
   let renderer, scene, camera, bodyLease, body, cap, oldSeal, newSeal, gel;
   let tiltRig, yawRig, product, oldRefill, newRefill, floor, environment, key;
@@ -124,7 +126,7 @@ export function mountShopScene(container, options = {}) {
       progress: mode === 'ritual' ? state.progress : progress,
       cyclePosition: progress, targetProgress, phase: mode === 'ritual' ? state.phase : `sealed-${mode}`,
       yaw: (mode === 'ritual' ? state.yaw : progress * Math.PI * 4) + manualYaw,
-      manualYaw, reducedMotion, frames, framing, spatial,
+      manualYaw, reducedMotion, frames, framing, spatial, artDirection, world, poseProgress,
       warming, shaderWarmupMilliseconds,
       renderedMode, active: active(), inView, observedInView, renderPending, size: { width, height },
       visibility: {
@@ -188,7 +190,8 @@ export function mountShopScene(container, options = {}) {
     // Cylindrical envelopes make manual yaw stable: no camera breathing as
     // different engraving or cap corners rotate toward the viewer.
     const direction = mode === 'cap'
-      ? new THREE.Vector3(.13, .83, 1).normalize() : space.directions.direction;
+      ? new THREE.Vector3(.13, .83, 1).normalize()
+      : campaign ? new THREE.Vector3(.10, .28, 1).normalize() : space.directions.direction;
     const right = new THREE.Vector3(0, 1, 0).cross(direction).normalize();
     const up = direction.clone().cross(right).normalize();
     const [radius, bottom, top] = mode === 'cap' ? [40, 149.9, 173.4]
@@ -196,7 +199,8 @@ export function mountShopScene(container, options = {}) {
     const points = [];
     for (const y of [bottom, top]) for (let j = 0; j < 48; j++) {
       const angle = j * Math.PI / 24;
-      points.push(new THREE.Vector3(radius * Math.cos(angle), y - 85, radius * Math.sin(angle)));
+      points.push(new THREE.Vector3(radius * Math.cos(angle), y - 85, radius * Math.sin(angle))
+        .applyMatrix4(tiltRig.matrixWorld));
     }
     const limits = [[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]];
     const axes = [right, up, direction];
@@ -223,7 +227,13 @@ export function mountShopScene(container, options = {}) {
     const ritual = mode === 'ritual';
     state = computeCycleState(ritual ? progress : 0);
     tiltRig.quaternion.setFromAxisAngle(tiltAxis, ritual ? state.tilt : 0);
-    yawRig.rotation.y = (ritual ? state.yaw : progress * Math.PI * 4) + manualYaw;
+    if (!ritual && campaign) {
+      tiltRig.rotation.z = .22 - poseProgress * .13 + (1 - reveal) * .10;
+      tiltRig.position.y = (1 - reveal) * -8;
+      staticCameraDirty = true;
+    }
+    yawRig.rotation.y = (ritual ? state.yaw : progress * Math.PI * 4)
+      + manualYaw + (campaign && !ritual ? -.10 + poseProgress * .45 + (1 - reveal) * -.16 : 0);
     product.visible = true;
     product.children[0].visible = mode === 'product' || ritual;
     cap.group.visible = mode !== 'refill';
@@ -249,7 +259,7 @@ export function mountShopScene(container, options = {}) {
     outletDirection.set(0, 1, 0).applyQuaternion(outletQuaternion);
     gel.update({ progress: ritual ? state.progress : 0,
       ...(ritual ? state.liquid : { flow: 0, gush: 0, fillOld: 1, fillNew: 1 }), outletWorld, outletDirection });
-    floor.position.y = mode === 'refill' ? -80.4 : -85.4;
+    floor.position.y = campaign ? -101 : mode === 'refill' ? -80.4 : -85.4;
     floor.material.opacity = .105 * (1 - (ritual ? state.framing.pouring : 0));
     floor.visible = mode !== 'cap' && floor.material.opacity > .001;
   }
@@ -267,6 +277,13 @@ export function mountShopScene(container, options = {}) {
     const dt = lastTick ? Math.min(.05, Math.max(0, (timestamp - lastTick) / 1000)) : 1 / 60;
     lastTick = timestamp;
     let moving = false;
+    if (campaign) {
+      const previousReveal = reveal;
+      reveal = reducedMotion ? 1 : Math.min(1, reveal + dt / 1.25);
+      if (reveal !== previousReveal) moving = true;
+      if (reducedMotion || Math.abs(targetPoseProgress - poseProgress) < .0001) poseProgress = targetPoseProgress;
+      else { poseProgress += (targetPoseProgress - poseProgress) * (1 - Math.exp(-dt / .18)); moving = true; }
+    }
     if (reducedMotion || Math.abs(targetProgress - progress) < .00001) progress = targetProgress;
     else {
       progress += (targetProgress - progress) * (1 - Math.exp(-dt / .14));
@@ -325,6 +342,23 @@ export function mountShopScene(container, options = {}) {
   function setYaw(value) {
     if (disposed) return;
     stopMomentum(); manualYaw = finite(value); requestRender();
+  }
+
+  // Commerce scenes keep a separate, bounded camera pose so their scroll
+  // drift never opens the package or changes the approved ritual timeline.
+  function setPoseProgress(value) {
+    if (disposed || !campaign) return;
+    targetPoseProgress = clamp(finite(value), 0, 1);
+    if (!active() || reducedMotion) poseProgress = targetPoseProgress;
+    requestRender();
+  }
+
+  function setWorld(value, background) {
+    if (disposed || !Object.hasOwn(worlds, value)) return false;
+    world = value;
+    renderer?.setClearColor(background || worlds[world], options.opaque === true ? 1 : 0);
+    requestRender();
+    return true;
   }
 
   function setMode(value) {
@@ -395,11 +429,10 @@ export function mountShopScene(container, options = {}) {
   }
 
   function makeEnvironment() {
-    const room = new RoomEnvironment(), pmrem = new THREE.PMREMGenerator(renderer);
     const previous = environment;
-    environment = pmrem.fromScene(room, .025);
-    scene.environment = environment.texture; scene.environmentIntensity = .58;
-    room.dispose(); pmrem.dispose(); previous?.dispose();
+    environment = createStudioEnvironment({ THREE, renderer });
+    scene.environment = environment.texture; scene.environmentIntensity = .82;
+    previous?.dispose();
   }
 
   function disposeResources() {
@@ -466,13 +499,13 @@ export function mountShopScene(container, options = {}) {
       // Physical transmission writes straight RGB with transmission-derived
       // alpha. Let the browser composite that RGBA as straight alpha; assuming
       // premultiplied RGB can wash the amber refill to white on an ivory page.
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: false, preserveDrawingBuffer: options.capture === true, powerPreference: 'high-performance' });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: options.opaque !== true, premultipliedAlpha: false, preserveDrawingBuffer: options.capture === true, powerPreference: 'high-performance' });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
       renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
       // Ivory RGB is also the transmission buffer's empty background; alpha
       // stays zero so the surrounding shop section remains visible.
-      renderer.setClearColor(options.background || '#f6f3eb', 0);
+      renderer.setClearColor(options.background || (campaign ? worlds[world] : '#e7ebf2'), options.opaque === true ? 1 : 0);
       const canvas = renderer.domElement;
       canvas.className = 'shop-product-canvas'; canvas.tabIndex = options.interactive === false ? -1 : 0;
       canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', options.label || ALT[mode]);
@@ -501,14 +534,15 @@ export function mountShopScene(container, options = {}) {
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(30, 1, .5, 5000);
       makeEnvironment();
-      scene.add(new THREE.HemisphereLight('#fff9ed', '#ced4c9', .70));
-      key = new THREE.DirectionalLight('#fff1de', 2.25);
+      scene.add(new THREE.HemisphereLight('#f5f3ff', '#647385', .25));
+      key = new THREE.DirectionalLight('#fff3e6', 2.7);
       key.position.set(-230, 370, 350); key.castShadow = true;
       key.shadow.mapSize.set(1024, 1024);
       Object.assign(key.shadow.camera, { left: -350, right: 350, top: 450, bottom: -250, near: 1, far: 1600 });
+      key.shadow.camera.updateProjectionMatrix();
       key.shadow.bias = -.00016; key.shadow.normalBias = .28; key.shadow.radius = 4; scene.add(key);
-      const fill = new THREE.DirectionalLight('#f2fafb', .85); fill.position.set(250, 160, 340); scene.add(fill);
-      const rim = new THREE.DirectionalLight('#ffffff', 1.8); rim.position.set(130, 320, -210); scene.add(rim);
+      const fill = new THREE.DirectionalLight('#dfeaff', .35); fill.position.set(250, 160, 340); scene.add(fill);
+      const rim = new THREE.DirectionalLight('#ffffff', 2.6); rim.position.set(130, 320, -210); scene.add(rim);
       floor = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.ShadowMaterial({ color: '#586145', opacity: .105 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -85.4; floor.receiveShadow = true; scene.add(floor);
       const built = await Promise.allSettled([acquireBody(), createRitualCap({ THREE })]);
@@ -579,7 +613,7 @@ export function mountShopScene(container, options = {}) {
     container.dataset.sceneStatus = 'disposed'; container.dataset.sceneRendered = 'false';
   }
 
-  const api = { ready: null, setProgress, setYaw, setMode, resize, destroy, getState, getMetrics: () => metrics };
+  const api = { ready: null, setProgress, setYaw, setMode, setWorld, setPoseProgress, resize, destroy, getState, getMetrics: () => metrics };
   report(true);
   api.ready = boot().then(() => api);
   // Consumers may use the status callback/fallback instead of awaiting ready.

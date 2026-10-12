@@ -61,9 +61,9 @@ export async function createRitualCap({ THREE } = {}) {
   components.button.userData.component = 'cap';
   components.cap.add(components.button);
   const materials = {
-    cap: new THREE.MeshPhysicalMaterial({ color: '#156b43', roughness: 0.33, metalness: 0.025, clearcoat: 0.2, clearcoatRoughness: 0.36 }),
-    button: new THREE.MeshPhysicalMaterial({ color: '#25805a', roughness: 0.31, metalness: 0.025, clearcoat: 0.22, clearcoatRoughness: 0.33 }),
-    ring: new THREE.MeshPhysicalMaterial({ color: '#0c4c33', roughness: 0.4, metalness: 0.02, clearcoat: 0.12, clearcoatRoughness: 0.4 }),
+    cap: new THREE.MeshPhysicalMaterial({ color: '#156b43', roughness: 0.52, metalness: 0, clearcoat: 0.03, clearcoatRoughness: 0.55 }),
+    button: new THREE.MeshPhysicalMaterial({ color: '#25805a', roughness: 0.49, metalness: 0, clearcoat: 0.03, clearcoatRoughness: 0.55 }),
+    ring: new THREE.MeshPhysicalMaterial({ color: '#0c4c33', roughness: 0.5, metalness: 0, clearcoat: 0.03, clearcoatRoughness: 0.55 }),
     capDetail: new THREE.MeshStandardMaterial({ color: '#0b4e33', roughness: 0.47 }),
     buttonDetail: new THREE.MeshStandardMaterial({ color: '#165b40', roughness: 0.42 }),
   };

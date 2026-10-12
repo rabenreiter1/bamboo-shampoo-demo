@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import { RoomEnvironment } from './vendor/RoomEnvironment.js';
-import { createBody } from './body.js';
-import { createRitualCap } from './ritual-cap.js?v=ritual-20261012-4';
-import { createPeelSeal, createGel } from './ritual-effects.js?v=ritual-20261012-4';
+import { createStudioEnvironment } from './studio-environment.js?v=ritual-20261013-1';
+import { createBody } from './body.js?v=ritual-20261013-1';
+import { createRitualCap } from './ritual-cap.js?v=ritual-20261013-1';
+import { createPeelSeal, createGel, configurePetReflectionSkin } from './ritual-effects.js?v=ritual-20261013-3';
 import { createInspectionInput } from './ritual-input.js?v=ritual-20261012-4';
 import { computeCycleState, clamp, TILT_AXIS } from './ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from './ritual-space.js?v=ritual-20261012-4';
@@ -126,18 +126,17 @@ async function boot() {
     canvas.addEventListener('webglcontextrestored', () => location.reload());
     scene = new THREE.Scene(); scene.background = new THREE.Color('#eeece5');
     camera = new THREE.PerspectiveCamera(30, 1, 1, 5000);
-    const room = new RoomEnvironment(), pmrem = new THREE.PMREMGenerator(renderer);
-    environment = pmrem.fromScene(room, .025);
-    scene.environment = environment.texture; scene.environmentIntensity = .58;
-    room.dispose(); pmrem.dispose();
-    scene.add(new THREE.HemisphereLight('#fff9ed', '#ced4c9', .70));
+    environment = createStudioEnvironment({ THREE, renderer });
+    scene.environment = environment.texture; scene.environmentIntensity = .82;
+    scene.add(new THREE.HemisphereLight('#fff9ed', '#ced4c9', .30));
     const key = new THREE.DirectionalLight('#fff1de', 2.25);
     key.position.set(-230, 370, 350); key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
     Object.assign(key.shadow.camera, { left: -350, right: 350, top: 450, bottom: -250, near: 1, far: 1600 });
+    key.shadow.camera.updateProjectionMatrix();
     key.shadow.bias = -.00016; key.shadow.normalBias = .28; key.shadow.radius = 4;
     scene.add(key);
-    const fill = new THREE.DirectionalLight('#f2fafb', .85); fill.position.set(250, 160, 340); scene.add(fill);
+    const fill = new THREE.DirectionalLight('#f2fafb', .40); fill.position.set(250, 160, 340); scene.add(fill);
     const rim = new THREE.DirectionalLight('#ffffff', 1.8); rim.position.set(130, 320, -210); scene.add(rim);
     floor = new THREE.Mesh(new THREE.PlaneGeometry(3600, 3600), new THREE.ShadowMaterial({ color: '#586145', opacity: .13 }));
     floor.rotation.x = -Math.PI / 2; floor.position.y = -85.4; floor.receiveShadow = true; scene.add(floor);
@@ -145,8 +144,7 @@ async function boot() {
     // Thin PET needs a transparent reflective skin here: two overlapping
     // refractive materials otherwise omit one another from Three's opaque
     // transmission buffer and make a full insert look empty.
-    Object.assign(body.materials.clearPET, { transmission: 0, transparent: true, opacity: .22, depthWrite: false, roughness: .06 });
-    body.materials.clearPET.needsUpdate = true;
+    configurePetReflectionSkin({ THREE, material: body.materials.clearPET });
     oldSeal = createPeelSeal({ THREE }); newSeal = createPeelSeal({ THREE }); gel = createGel({ THREE });
     tiltRig = new THREE.Group(); tiltRig.name = 'authored-product-tilt';
     yawRig = new THREE.Group(); yawRig.name = 'longitudinal-axis-inspection';
@@ -157,7 +155,7 @@ async function boot() {
     oldRefill.add(body.components.inlay, oldSeal.group, gel.oldFillGroup);
     newRefill.add(body.components.inlay.clone(true), newSeal.group, gel.newFillGroup);
     product.add(body.components.shell, oldRefill, newRefill, cap.group); scene.add(gel.streamGroup);
-    Object.assign(metrics, { body: body.metrics, cap: cap.metrics, seal: oldSeal.metrics, gel: gel.metrics, units: 'mm', timeline: 'Endless reversible sealed use/refill cycle; continuous 720 degree authored yaw per cycle', petAppearance: 'Reflective transparent skin over amber refractive gel; thin-wall visual approximation avoids overlapping transmission buffers.' });
+    Object.assign(metrics, { body: body.metrics, cap: cap.metrics, seal: oldSeal.metrics, gel: gel.metrics, units: 'mm', timeline: 'Endless reversible sealed use/refill cycle; continuous 720 degree authored yaw per cycle', petAppearance: 'Reflective transparent skin over grapefruit-coral refractive gel; thin-wall visual approximation avoids overlapping transmission buffers.' });
     scene.traverse(object => { if (object.geometry) { object.geometry.computeBoundingBox(); object.geometry.computeBoundingSphere(); } });
     input = createInspectionInput({
       canvas, getCyclePosition: () => cyclePosition,

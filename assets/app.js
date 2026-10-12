@@ -13,7 +13,7 @@ const show=dialog=>{if(dialog&&!dialog.open)dialog.showModal();};
 
 function itemMarkup(row){
  const key=productKey(row.scent,row.format);
- return `<article class="bag-item" data-key="${key}"><img src="${base}/assets/shop-${row.format==='refill'?'refill':'product'}.jpg" alt="${ui.names[row.scent]} · ${ui[row.format]}" width="80" height="114"><div><div class="bag-item-head"><h3><a href="${base}/${lang}/products/${row.scent}/${row.format==='refill'?'?format=refill':''}">${ui.names[row.scent]}</a></h3><span>${formatPrice(prices[row.format]*row.quantity,lang)}</span></div><p>${ui[row.format]} · 250 ml</p><div class="bag-item-actions"><div class="quantity-control"><button type="button" data-bag-change="-1" aria-label="${de?'Menge reduzieren':'Decrease quantity'}" ${row.quantity===1?'disabled':''}>${icon('minus')}</button><input aria-label="${ui.quantity}: ${ui.names[row.scent]} ${ui[row.format]}" type="number" min="1" max="20" value="${row.quantity}" inputmode="numeric" data-bag-quantity><button type="button" data-bag-change="1" aria-label="${de?'Menge erhöhen':'Increase quantity'}" ${row.quantity===20?'disabled':''}>${icon('plus')}</button></div><button type="button" class="bag-remove" data-remove>${ui.remove}</button></div></div></article>`;
+ return `<article class="bag-item" data-key="${key}"><img src="${base}/assets/shop-${row.format==='refill'?'refill':'product'}.webp" alt="${ui.names[row.scent]} · ${ui[row.format]}" width="80" height="114"><div><div class="bag-item-head"><h3><a href="${base}/${lang}/products/${row.scent}/${row.format==='refill'?'?format=refill':''}">${ui.names[row.scent]}</a></h3><span>${formatPrice(prices[row.format]*row.quantity,lang)}</span></div><p>${ui[row.format]} · 250 ml</p><div class="bag-item-actions"><div class="quantity-control"><button type="button" data-bag-change="-1" aria-label="${de?'Menge reduzieren':'Decrease quantity'}" ${row.quantity===1?'disabled':''}>${icon('minus')}</button><input aria-label="${ui.quantity}: ${ui.names[row.scent]} ${ui[row.format]}" type="number" min="1" max="20" value="${row.quantity}" inputmode="numeric" data-bag-quantity><button type="button" data-bag-change="1" aria-label="${de?'Menge erhöhen':'Increase quantity'}" ${row.quantity===20?'disabled':''}>${icon('plus')}</button></div><button type="button" class="bag-remove" data-remove>${ui.remove}</button></div></div></article>`;
 }
 function renderCart(){
  const count=cart.reduce((n,r)=>n+r.quantity,0), total=formatPrice(cartTotal(cart),lang);
@@ -70,7 +70,8 @@ for(const dialog of [bag,notice,menu])dialog?.addEventListener('click',event=>{
 });
 renderCart();
 
-const viewers=new Map(), mounting=new WeakSet();let sceneModule;
+const viewers=new Map(), mounting=new WeakMap();let sceneModule;
+let sceneEpoch=0,pageActive=true;
 const scenes=[...document.querySelectorAll('[data-shop-scene]')];
 const rituals=[...document.querySelectorAll('[data-ritual-scroll]')];
 function staticRitual(section){
@@ -85,21 +86,31 @@ function updateRitualCopy(section,progress){
  section.querySelectorAll('[data-ritual-step]').forEach(el=>{const active=Number(el.dataset.ritualStep)===step;el.classList.toggle('is-active',active);el.setAttribute('aria-hidden',String(!active));});
 }
 async function mountScene(element){
- if(viewers.has(element)||mounting.has(element))return;mounting.add(element);
+ if(!pageActive||viewers.has(element)||mounting.has(element))return;
+ const token={epoch:sceneEpoch};mounting.set(element,token);
+ const current=()=>pageActive&&token.epoch===sceneEpoch&&mounting.get(element)===token;
  try{
   sceneModule??=import(`${base}/assets/shop-scene.js?v=${ui.version}`);
   const {mountShopScene}=await sceneModule;
+  if(!current())return;
   const section=element.closest('[data-ritual-scroll]');
   const mode=element.dataset.requestedMode||element.dataset.shopScene;
-  const view=mountShopScene(element,{mode,label:element.getAttribute('aria-label'),onState:state=>{
+  const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,
+   background:getComputedStyle(element).getPropertyValue('--world-bg').trim()||undefined,
+   label:element.getAttribute('aria-label'),onState:state=>{
+   if(!pageActive||token.epoch!==sceneEpoch)return;
    if(section){if(state.status==='error')staticRitual(section);else updateRitualCopy(section,Math.max(0,Math.min(1,state.cyclePosition)));}
   }});
   viewers.set(element,view);await view.ready;
+  if(!current()||viewers.get(element)!==view){view.destroy();return;}
   if(section&&reduced.matches)staticRitual(section);
   scheduleScroll();
  }catch(error){
+  if(!current())return;
   element.dataset.sceneStatus='error';element.dataset.sceneRendered='false';element.dataset.sceneError=error?.message||'Model unavailable';
   const section=element.closest('[data-ritual-scroll]');if(section)staticRitual(section);
+ }finally{
+  if(mounting.get(element)===token)mounting.delete(element);
  }
 }
 const sceneObserver='IntersectionObserver'in window?new IntersectionObserver(entries=>{
@@ -108,10 +119,26 @@ const sceneObserver='IntersectionObserver'in window?new IntersectionObserver(ent
 scenes.forEach(el=>sceneObserver?sceneObserver.observe(el):mountScene(el));
 rituals.forEach(section=>{if(reduced.matches)staticRitual(section);});
 
+// Fragrance is one coherent campaign world, with a real route to the selected
+// product. A keyboard or touch user receives the same state as a pointer user.
+for(const hero of document.querySelectorAll('[data-world]')){
+ const scene=hero.querySelector('[data-art-direction="campaign"]');
+ for(const button of hero.querySelectorAll('[data-world-scent]'))button.addEventListener('click',()=>{
+  const scent=button.dataset.worldScent;if(!fragrances.includes(scent))return;
+  hero.dataset.world=scent;
+  hero.classList.remove(...fragrances.map(id=>`scent-${id}`));hero.classList.add(`scent-${scent}`);
+  hero.querySelectorAll('[data-world-scent]').forEach(el=>el.setAttribute('aria-pressed',String(el===button)));
+  hero.querySelectorAll('[data-world-name]').forEach(el=>el.textContent=ui.names[scent]);
+  hero.querySelectorAll('[data-world-description]').forEach(el=>el.textContent=ui.scentDescriptions[scent]);
+  hero.querySelectorAll('[data-world-link]').forEach(el=>el.href=`${base}/${lang}/products/${scent}/`);
+  if(scene){scene.dataset.scent=scent;viewers.get(scene)?.setWorld(scent,getComputedStyle(scene).getPropertyValue('--world-bg').trim()||undefined);}
+ });
+}
+
 function setGallery(gallery,mode){
  const element=gallery?.querySelector('[data-shop-scene]');if(!element)return;
  element.dataset.requestedMode=mode; element.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}.`);
- const poster=element.querySelector('img');if(poster){poster.src=`${base}/assets/shop-${mode}.jpg`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
+ const poster=element.querySelector('img');if(poster){poster.src=`${base}/assets/shop-${mode}.webp`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
  const view=viewers.get(element);if(view)view.setMode(mode);else mountScene(element);
  element.querySelector('canvas')?.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}. ${de?'Pfeiltasten links und rechts drehen die Ansicht.':'Left and right arrow keys rotate the view.'}`);
  gallery.querySelectorAll('[data-gallery-view]').forEach(button=>{const selected=button.dataset.galleryView===mode;button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));});
@@ -154,6 +181,16 @@ const layers=[...document.querySelectorAll('[data-parallax]')];let scrollFrame=0
 function renderScroll(){
  scrollFrame=0;const header=document.querySelector('.header'),headerHeight=header?.offsetHeight||84;
  header?.classList.toggle('scrolled',window.scrollY>30);
+ for(const form of document.querySelectorAll('[data-product-form]')){
+  const buy=form.querySelector('.product-add-line'),dock=form.querySelector('[data-product-dock]');
+  if(buy&&dock){const shown=buy.getBoundingClientRect().bottom<0;dock.classList.toggle('is-active',shown);dock.inert=!shown;dock.setAttribute('aria-hidden',String(!shown));}
+ }
+ for(const scene of scenes){
+  if(scene.dataset.artDirection!=='campaign')continue;
+  const hero=scene.closest('.campaign-hero');if(!hero)continue;
+  const rect=hero.getBoundingClientRect();
+  if(rect.bottom>0&&rect.top<innerHeight)viewers.get(scene)?.setPoseProgress(reduced.matches?0:Math.max(0,Math.min(1,-rect.top/Math.max(1,rect.height))));
+ }
  for(const section of rituals){
   if(section.classList.contains('ritual-static'))continue;
   const rect=section.getBoundingClientRect(),travel=rect.height-(innerHeight-headerHeight);
@@ -172,6 +209,6 @@ reduced.addEventListener('change',()=>{
  else rituals.forEach(section=>{if(section.querySelector('[data-shop-scene]').dataset.sceneStatus!=='error')section.classList.remove('ritual-static');});
  scheduleScroll();
 });
-window.addEventListener('pagehide',()=>{for(const view of viewers.values())view.destroy();viewers.clear();sceneObserver?.disconnect();});
-window.addEventListener('pageshow',event=>{if(event.persisted){cart=readCart(cart);renderCart();scenes.forEach(el=>{mounting.delete(el);if(sceneObserver)sceneObserver.observe(el);else mountScene(el);});scheduleScroll();}});
+window.addEventListener('pagehide',()=>{pageActive=false;sceneEpoch++;for(const view of viewers.values())view.destroy();viewers.clear();sceneObserver?.disconnect();});
+window.addEventListener('pageshow',event=>{pageActive=true;if(event.persisted){cart=readCart(cart);renderCart();scenes.forEach(el=>{mounting.delete(el);if(sceneObserver)sceneObserver.observe(el);else mountScene(el);});scheduleScroll();}});
 scheduleScroll();

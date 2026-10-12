@@ -4,7 +4,9 @@ German: https://rabenreiter1.github.io/bamboo-shampoo-demo/de/
 English: https://rabenreiter1.github.io/bamboo-shampoo-demo/en/
 Fullscreen 3D product ritual: https://rabenreiter1.github.io/bamboo-shampoo-demo/assembly/
 
-A bilingual storefront preview built around the approved 3D product. The homepage, each fragrance page and the refill page contain a reversible, native-scroll use/refill story. The collection, product configuration, editorial story, FAQ, bag and selection review have dedicated routes and responsive layouts. It accepts no orders, payments or customer contact details.
+A bilingual storefront preview built around the approved 3D product. The campaign direction uses a full-viewport product scene, condensed typography, lavender/ice-blue fragrance worlds and grapefruit-coral liquid. The homepage, each fragrance page and the refill page contain a reversible, native-scroll use/refill story. The collection, product configuration, editorial story, FAQ, bag and selection review have dedicated routes and responsive layouts. It accepts no orders, payments or customer contact details.
+
+Design and implementation evidence: [SHOP_REFERENCE_RESEARCH.md](SHOP_REFERENCE_RESEARCH.md) and [AI_DESIGN_PLAYBOOK.md](AI_DESIGN_PLAYBOOK.md). Reference observations, creator claims and implementation inferences are distinguished; no reference is claimed to be an AI-only build without evidence.
 
 ## Product briefing
 
@@ -33,7 +35,9 @@ The full build writes 22 localized content pages, six legacy fragrance redirects
 
 ## 3D product approval page
 
-`assets/assembly/` contains source-derived tube and cap geometry, the unchanged original engraving SVG, and a fullscreen, endlessly reversible use/refill cycle. Scroll opens the cap, progressively peels the film, opens the outlet, tilts and dispenses amber shampoo with one silicone-roof pressure dose, then replaces the empty insert and closes over a fresh intact seal. Automatic axial rotation totals720° per cycle. Scroll and drag release coast smoothly; horizontal drag adds axial spin, and pinch or Ctrl-wheel zooms. Separate camera-aligned lanes prevent component collisions and carry discarded parts outside the frame. No visible controls or autoplay are present.
+`assets/assembly/` contains source-derived tube and cap geometry, the unchanged original engraving SVG, and a fullscreen, endlessly reversible use/refill cycle. Scroll opens the cap, progressively peels the film, opens the outlet, tilts and dispenses grapefruit-coral shampoo with one silicone-roof pressure dose, then replaces the empty insert and closes over a fresh intact seal. Automatic axial rotation totals720° per cycle. Scroll and drag release coast smoothly; horizontal drag adds axial spin, and pinch or Ctrl-wheel zooms. Separate camera-aligned lanes prevent component collisions and carry discarded parts outside the frame. No visible controls or autoplay are present.
+
+Liquid uses physical transmission, path-length absorption, a concave meniscus, deformed surface normals, capillary strand necking and volume-preserving drop stretch. A specular-only Fresnel skin separates clear PET reflections from the deeper coral contents. Geometry is reconstructed analytically from the scroll pose so reverse motion remains identical. This is an authored viscous fluid surface, not a computational fluid dynamics simulation.
 
 ```sh
 npm run build:assembly
@@ -42,7 +46,7 @@ npm run test:assembly
 npm run validate:assembly
 ```
 
-The selective assembly build leaves existing shop files untouched. The complete build also includes the assembly page. The standalone animation remains unchanged by the shop integration. See [RITUAL_PLAN.md](RITUAL_PLAN.md) for choreography, dimensions, visual assumptions, prompt research and checks. [ASSEMBLY_PLAN.md](ASSEMBLY_PLAN.md) records the earlier exploded study. Its six-component, 14-second animated GLB remains an archived asset in metres; it does not encode the procedural foil/liquid cycle.
+The selective assembly build leaves existing shop files untouched. The complete build also includes the assembly page. The shop shares the approved model and fluid factories while retaining native page scroll. See [RITUAL_PLAN.md](RITUAL_PLAN.md) for choreography, dimensions, visual assumptions, prompt research and checks. [ASSEMBLY_PLAN.md](ASSEMBLY_PLAN.md) records the earlier exploded study. Its six-component, 14-second animated GLB remains an archived asset in metres; it does not encode the procedural foil/liquid cycle.
 
 ## SEO and hosting
 
@@ -52,15 +56,19 @@ Fonts and images are self-hosted. No analytics, third-party embeds or marketing 
 
 The legal notice preserves the operator-provided source fragment verbatim. Regression checks lock both its hash and the hash of the original engraving.
 
+The 2026-10-13 redesign passed 82 regression tests and the 31-page link, asset, language, indexing and domain checks. Browser review covered the desktop campaign and product layout, 390px and 320px mobile layouts, scent and format selection, gallery rotation, quantities, mixed bag totals, language persistence, collection filtering and the mobile purchase dock. Refill and pour render exports were independently reviewed after the final PET/gel optics pass.
+
 ## Asset provenance
 
-The current product photographs are screenshots of the approved 3D model, captured locally with the same component factories used by the interactive viewer:
+The product images are transparent render exports of the approved 3D model, captured locally with the same component factories used by the interactive viewer. WebP files serve the storefront; JPEG versions serve social previews:
 
-- `assets/shop-product.jpg`: closed product with bamboo shell, original engraving and complete silicone cap.
-- `assets/shop-refill.jpg`: sealed transparent PET insert with support flange, amber shampoo and visible headspace.
-- `assets/shop-cap.jpg`: complete silicone cap viewed from above.
-- `assets/forest.webp`: the existing ImageGen bamboo-forest editorial photograph.
+- `assets/shop-product.webp`: closed product with bamboo shell, original engraving and complete silicone cap.
+- `assets/shop-refill.webp`: sealed transparent PET insert with support flange, grapefruit-coral shampoo and visible headspace.
+- `assets/shop-cap.webp`: complete silicone cap viewed from above.
+- `assets/bamboo-water.webp`: ImageGen campaign photograph, lavender lagoon with three bamboo stalks, 2026-10-13; no product geometry, text or ingredients claims. Source `exec-8a27daaa-11b5-4dd4-a7fa-eea5e13eef37.png` in the local generated-image archive.
+- `assets/gel-macro.webp`: ImageGen campaign macro photograph of a translucent grapefruit-coral gel ribbon, 2026-10-13; a visual mood asset rather than a formula photograph. Source `exec-95e79056-bcdd-4f16-9edd-87e0ed20c395.png` in the local generated-image archive.
+- `assets/forest.webp`: retained earlier editorial asset; no longer used as the main campaign direction.
 
 Earlier generated packaging concepts and rejected engraving variants are not included in the new shop build. The build uses an explicit asset allowlist. The assembly review publishes only the authorised cap reference and original engraving, not private technical drawings, legacy CAD, backup files or local QA captures. No stock footage, analytics or external embeds are used.
 
-Cormorant Garamond and Manrope are distributed under their included Open Font Licenses in `assets/`. The favicon and interface graphics are original SVG/CSS.
+Barlow Condensed Bold 700 and Manrope are self-hosted under their included Open Font Licenses in `assets/`. Barlow's source is the official Google Fonts distribution. Retained earlier editorial fonts are also licensed under the included OFL. The favicon and interface graphics are original SVG/CSS.
