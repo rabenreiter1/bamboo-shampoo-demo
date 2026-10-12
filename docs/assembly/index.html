@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f1efe8">
+  <meta name="description" content="Interaktive 3D-Prüfung des Bamboo Shampoo Produkts: sechs einzelne Bauteile, Originalgravur und eine durch Scrollen gesteuerte Montage.">
+  <title>Bamboo — Assembly Study</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body>
+  <a class="skip-link" href="#transport" data-i18n="skip">Zur Animationssteuerung</a>
+  <header class="masthead">
+    <a class="wordmark" href="../de/" aria-label="Bamboo Shampoo">bamboo<span>SHAMPOO</span></a>
+    <div class="masthead-title"><span class="status-dot"></span><span data-i18n="lab">MATERIAL LAB</span><span class="masthead-divider">/</span><span data-i18n="study">ASSEMBLY STUDY 01</span></div>
+    <nav class="language-switch" aria-label="Language"><button type="button" data-language="de" aria-pressed="true">DE</button><span>/</span><button type="button" data-language="en" aria-pressed="false">EN</button></nav>
+  </header>
+
+  <main class="assembly-scroll" id="assembly-scroll">
+    <div class="stage" id="stage">
+      <div class="stage-meta"><span data-i18n="preview">PRODUKTPRÜFUNG · 250 ML</span><span class="stage-meta-right" data-i18n="interactive">INTERAKTIVES 3D-MODELL</span></div>
+
+      <div class="chapter-copy">
+        <div class="chapter-eyebrow"><span id="chapter-number">01</span><span class="eyebrow-rule"></span><span id="chapter-label">Das Objekt</span></div>
+        <h1 id="chapter-title">Natur.<br>Neu gedacht.</h1>
+        <p id="chapter-description">Eine Hülle aus Bambus. Ein austauschbares Inlay. Ein Verschluss, der bleibt.</p>
+        <div class="scroll-cue" id="scroll-cue"><span class="scroll-line"><span></span></span><span data-i18n="scroll">Scrollen, um zu entdecken</span><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v11m-4-4 4 4 4-4" stroke="currentColor" stroke-width="1.3"/></svg></div>
+      </div>
+
+      <div class="visual" id="viewport" role="img" aria-label="Interaktives 3D-Modell des Produkts">
+        <div class="loading" id="loading" role="status"><span class="loading-orbit"></span><span data-i18n="loading">Materialien & Geometrie werden geladen</span></div>
+        <div class="render-fallback" id="render-fallback" hidden><span class="fallback-index">3D</span><h2 data-i18n="renderTitle">Die 3D-Ansicht konnte nicht starten.</h2><p data-i18n="renderMessage">Bitte aktiviere WebGL oder öffne diese Seite in einem aktuellen Browser. Die Originalreferenz und die Bauteilmaße bleiben zugänglich.</p><button class="text-button" type="button" id="retry" data-i18n="retry">Erneut laden ↗</button></div>
+        <div class="axis-key" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M24 33V8m0 25 16 8m-16-8-16 8" stroke="currentColor"/><path d="m21 11 3-3 3 3" stroke="currentColor"/></svg><span>Y ↑<br>MM</span></div>
+      </div>
+
+      <div class="view-controls" aria-label="3D view controls">
+        <button type="button" id="top-view" class="view-button" aria-pressed="false"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><ellipse cx="10" cy="10" rx="7" ry="4.3" stroke="currentColor" stroke-width="1.1"/><circle cx="10" cy="10" r="1.5" stroke="currentColor"/></svg><span data-i18n="topView">Draufsicht</span></button>
+        <button type="button" id="palette" class="view-button" aria-pressed="false"><span class="palette-dot" aria-hidden="true"></span><span data-i18n="palette">CAD-Farben</span></button>
+      </div>
+
+      <div class="inspection-links"><button type="button" id="open-reference" data-i18n="reference">Original-Verschluss ↗</button><button type="button" id="open-specs" data-i18n="specs">Maße & Bauteile ↗</button></div>
+
+      <div class="transport" id="transport" tabindex="-1">
+        <div class="transport-top"><span class="transport-label" data-i18n="assembly">MONTAGE</span><nav class="chapter-nav" id="chapter-nav" aria-label="Assembly chapters"></nav><span class="progress-value" id="progress-value">000<span>%</span></span></div>
+        <div class="transport-bottom">
+          <button type="button" class="icon-button play-button" id="play" aria-label="Animation abspielen" aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 9 6-9 6V6Z" fill="currentColor"/></svg><svg class="pause-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 6h3v12H8zm5 0h3v12h-3z" fill="currentColor"/></svg></button>
+          <input id="scrubber" type="range" min="0" max="1000" value="0" step="1" aria-label="Montagefortschritt" aria-valuetext="0 Prozent">
+          <button type="button" id="pause-rotation" class="rotation-button" aria-pressed="false"><svg viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M5.6 5.7A7 7 0 1 1 4.1 14M5.6 5.7 2.8 5.3m2.8.4-.4-2.8" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg><span data-i18n="rotate">Rotation</span><span class="toggle-led"></span></button>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-chapters" aria-hidden="true"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  </main>
+
+  <footer class="review-footer"><div><span class="footer-index">06 / 06</span><h2 data-i18n="footerTitle">Das Produkt im Detail.</h2><p data-i18n="footerCopy">Eine separate Ansicht zur Freigabe von Form, Materialien und Montage.</p></div><div class="footer-actions"><button type="button" class="download-button" id="download-model"><span data-i18n="download">3D-Modell herunterladen</span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2v11m-4-4 4 4 4-4M4 15v3h12v-3" stroke="currentColor" stroke-width="1.1"/></svg></button><button type="button" class="text-button" id="restart" data-i18n="restart">Noch einmal ansehen ↑</button></div></footer>
+
+  <dialog id="reference-dialog" class="reference-dialog"><button type="button" class="dialog-close" data-close="reference-dialog" aria-label="Schließen">×</button><div class="dialog-heading"><span class="micro-label" data-i18n="source">ORIGINALREFERENZ</span><h2 data-i18n="referenceTitle">Der Verschluss von oben.</h2><p data-i18n="referenceCopy">Das bereitgestellte Referenzbild, vollständig unverändert. Die CAD-Farben kennzeichnen die drei separaten Bauteile.</p></div><div class="reference-image"><img src="./cap-reference.jpg" width="1053" height="1140" alt="Originale CAD-Draufsicht: grüne Kappe, orangefarbener Tropfenknopf und schwarzer kreisrunder Nippelring mit verbundenen Laschen." loading="lazy"></div></dialog>
+
+  <dialog id="specs-dialog" class="specs-dialog"><button type="button" class="dialog-close" data-close="specs-dialog" aria-label="Schließen">×</button><div class="dialog-heading"><span class="micro-label" data-i18n="dimensions">BAUTEILE · MILLIMETER</span><h2 data-i18n="specsTitle">Die Maße hinter der Form.</h2></div><div class="specs-list" id="specs-list"></div><div class="model-note"><span class="status-dot"></span><p data-i18n="modelNote">Bemaßte Vorgaben werden direkt im Modell verwendet. Nicht bemaßte Tiefen des Knopfs, Kappenprofile und PET-Wandstärke bleiben gekennzeichnete Modellannahmen. Die Gravurdatei ist unverändert.</p></div><div class="export-row"><button class="download-button" id="download-animation" type="button"><span data-i18n="downloadAnimation">Montageanimation · GLB</span><span>↗</span></button><button class="text-button" id="download-assembled" type="button" data-i18n="downloadAssembled">Montiertes Modell · GLB ↗</button><button class="text-button" id="download-current" type="button" data-i18n="downloadCurrent">Aktueller Zustand · GLB ↗</button></div><p class="export-note" data-i18n="exportNote">Alle Dateien enthalten sechs separate Bauteile, einschließlich der Siegelfolie.</p></dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="application/json" id="assembly-state">{"status":"loading","ready":false,"progress":0}</script>
+  <script type="module" src="./scene.js"></script>
+</body>
+</html>

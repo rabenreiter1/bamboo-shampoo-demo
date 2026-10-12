@@ -5,8 +5,17 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:assembly": "node scripts/build-assembly.mjs",
     "dev": "node scripts/serve.mjs",
+    "test:assembly": "node --test scripts/assembly.test.mjs",
+    "validate:assembly": "node scripts/validate-assembly-glb.mjs",
     "test": "node --test scripts/*.test.mjs && node scripts/check.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "gltf-validator": "^2.0.0-dev.3.10",
+    "three": "^0.186.1"
+  }
 }

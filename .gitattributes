@@ -1,0 +1,3 @@
+# Keep the approved engraving exactly as supplied, including its byte format.
+assets/assembly/original-engraving.svg -text
+docs/assembly/original-engraving.svg -text

@@ -2,6 +2,7 @@
 
 German: https://rabenreiter1.github.io/bamboo-shampoo-demo/de/
 English: https://rabenreiter1.github.io/bamboo-shampoo-demo/en/
+3D assembly review: https://rabenreiter1.github.io/bamboo-shampoo-demo/assembly/
 
 A botanical luxury design preview with responsive editorial layouts, fragrance pages, animated refill explanation, scroll reveals, desktop parallax, accessible native dialogs, and a session-only demo bag. It accepts no orders, payments or customer contact details.
 
@@ -11,15 +12,28 @@ A botanical luxury design preview with responsive editorial layouts, fragrance p
 
 ## Run and maintain
 
-Node 20 or newer. No build dependencies.
+Node 20 or newer. Install the development dependencies for geometry tests and glTF validation.
 
 ```sh
+npm ci
 npm run build
 npm test
 npm run dev
 ```
 
 The server runs on port 4173. GitHub Pages publishes the committed `docs/` directory from `main`. Change copy and templates in `scripts/build.mjs`, styles in `assets/style.css`, interactions in `assets/app.js`, and product logic in `assets/catalog.js`. Rebuild before publishing changes.
+
+## 3D product approval page
+
+`assets/assembly/` contains six separate Three.js component groups, source-derived tube and cap geometry, the unchanged original engraving SVG, and a reversible scroll timeline with two product rotations. The dedicated page includes component inspection, original cap reference, CAD colours, DE/EN copy, scrubbing, autoplay and a downloadable animated GLB. Confirmed dimensions and provisional depths are listed in its inspector.
+
+```sh
+npm run build:assembly
+npm run test:assembly
+npm run validate:assembly
+```
+
+The selective assembly build leaves existing shop files untouched. The complete build also includes the assembly page. The GLB uses metres and contains the same six components, with the page's timeline exported as a 14-second clip. See [ASSEMBLY_PLAN.md](ASSEMBLY_PLAN.md) for geometry sources, the implementation plan, prompt research and acceptance checks. The marketing redesign remains paused until the product model is approved.
 
 ## SEO and hosting
 
@@ -31,7 +45,7 @@ The legal notice reproduces the operator-provided source page as requested. Revi
 
 ## Asset provenance
 
-All six photographs were generated with OpenAI ImageGen as concept visuals, using the supplied bamboo vessel photo as a shape reference for product scenes. The original reference photo and private technical drawings are not published. No stock photographs or footage are used.
+The shop's six photographs were generated with OpenAI ImageGen as concept visuals, using the supplied bamboo vessel photo as a shape reference for product scenes. Those concept images remain unchanged. The assembly review separately publishes the authorised current cap reference image and exact original engraving artwork. Private technical drawings, legacy CAD files and backup files are not published. No stock photographs or footage are used.
 
 - `assets/hero.webp`: bamboo vessel on travertine, moss and bamboo leaves, warm sunlight, editorial space at left.
 - `assets/product.webp`: whole bamboo vessel centred on ivory, soft sunlight and leaf shadows.
