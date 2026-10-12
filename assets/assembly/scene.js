@@ -253,22 +253,12 @@ async function exportAnimated(options = {}) {
   return exportAssemblyAnimation({ THREE, cloneExportProduct, ...options });
 }
 
-async function downloadAnimationAsset() {
-  const url = new URL('./models/bamboo-250ml-animated-assembly.glb', import.meta.url);
-  try {
-    const response = await fetch(url, { method: 'HEAD' });
-    if (!response.ok || response.headers.get('content-type')?.includes('text/html')) return false;
-    const link = document.createElement('a'); link.href = url.href; link.download = 'bamboo-shampoo-250ml-assembly-animation.glb';
-    document.body.append(link); link.click(); link.remove(); return true;
-  } catch { return false; }
-}
-
 async function downloadModel(kind = 'assembled') {
   if (status !== 'ready') { toast(copy[language].exportLoading); return; }
-  const buttons = [$('download-model'), $('download-animation'), $('download-assembled'), $('download-current')];
+  const buttons = [$('download-assembled'), $('download-current')];
   buttons.forEach((button) => { button.disabled = true; });
   toast(copy[language].exportLoading);
-  try { if (kind === 'animation') { if (!await downloadAnimationAsset()) await exportAnimated(); } else await exportProduct({ assembled: kind === 'assembled', includeSeal: true }); toast(copy[language].exported); }
+  try { await exportProduct({ assembled: kind === 'assembled', includeSeal: true }); toast(copy[language].exported); }
   catch (error) { console.error('GLB export failed', error); toast(copy[language].exportFailed); }
   finally { buttons.forEach((button) => { button.disabled = false; }); }
 }
@@ -360,8 +350,6 @@ for (const button of document.querySelectorAll('[data-close]')) button.addEventL
 for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('click', (event) => { if (event.target === dialog) { const rect = dialog.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close(); } });
 $('retry').addEventListener('click', () => location.reload());
 $('restart').addEventListener('click', () => { stopAutoplay(); setProgress(0); });
-$('download-model').addEventListener('click', () => downloadModel('animation'));
-$('download-animation').addEventListener('click', () => downloadModel('animation'));
 $('download-assembled').addEventListener('click', () => downloadModel('assembled'));
 $('download-current').addEventListener('click', () => downloadModel('current'));
 setLanguage(language); requestAnimationFrame(frame); boot();
