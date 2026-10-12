@@ -2,7 +2,7 @@
 
 German: https://rabenreiter1.github.io/bamboo-shampoo-demo/de/
 English: https://rabenreiter1.github.io/bamboo-shampoo-demo/en/
-3D assembly review: https://rabenreiter1.github.io/bamboo-shampoo-demo/assembly/
+Fullscreen 3D product ritual: https://rabenreiter1.github.io/bamboo-shampoo-demo/assembly/
 
 A botanical luxury design preview with responsive editorial layouts, fragrance pages, animated refill explanation, scroll reveals, desktop parallax, accessible native dialogs, and a session-only demo bag. It accepts no orders, payments or customer contact details.
 
@@ -25,15 +25,16 @@ The server runs on port 4173. GitHub Pages publishes the committed `docs/` direc
 
 ## 3D product approval page
 
-`assets/assembly/` contains six separate Three.js component groups, source-derived tube and cap geometry, the unchanged original engraving SVG, and a reversible scroll timeline with two product rotations. The dedicated page includes component inspection, original cap reference, CAD colours, DE/EN copy, scrubbing, autoplay and a downloadable animated GLB. Confirmed dimensions and provisional depths are listed in its inspector.
+`assets/assembly/` contains source-derived tube and cap geometry, the unchanged original engraving SVG, and a fullscreen reversible use/refill cycle. Scroll opens the cap, progressively peels the film, opens the outlet, tilts and dispenses gel with one pressure dose, then replaces the empty insert and closes over a fresh intact seal. Horizontal drag spins the product; pinch or Ctrl-wheel zooms. No visible controls or autoplay are present.
 
 ```sh
 npm run build:assembly
+npm run test:ritual
 npm run test:assembly
 npm run validate:assembly
 ```
 
-The selective assembly build leaves existing shop files untouched. The complete build also includes the assembly page. The GLB uses metres and contains the same six components, with the page's timeline exported as a 14-second clip. See [ASSEMBLY_PLAN.md](ASSEMBLY_PLAN.md) for geometry sources, the implementation plan, prompt research and acceptance checks. The marketing redesign remains paused until the product model is approved.
+The selective assembly build leaves existing shop files untouched. The complete build also includes the assembly page. See [RITUAL_PLAN.md](RITUAL_PLAN.md) for the current choreography, dimensions, visual assumptions, prompt research and checks. [ASSEMBLY_PLAN.md](ASSEMBLY_PLAN.md) records the earlier exploded-study work. Its six-component,14-second animated GLB remains an archived asset in metres; it does not encode the new procedural foil/liquid cycle. The marketing redesign remains paused until the product model is approved.
 
 ## SEO and hosting
 
