@@ -1,6 +1,6 @@
 # Fullscreen product ritual
 
-The `/assembly/` approval page now contains only the product animation. The shop redesign stays paused. GitHub Pages continues to publish `main/docs`; no domain or DNS is connected.
+The `/assembly/` approval page contains only the product animation. The shop now uses the same component factories and choreography through its element-sized viewer, with native page scrolling for the embedded story. GitHub Pages continues to publish `main/docs`; no domain or DNS is connected.
 
 ## Source contract
 
