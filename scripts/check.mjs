@@ -24,6 +24,6 @@ for(const file of files){
     assert.ok(fs.existsSync(target),`Broken local link ${match[1]} in ${path.relative(root,file)}`);
   }
 }
-assert.equal(pages,14);
+assert.equal(pages,15);
 assert.ok(!fs.existsSync(path.join(root,'CNAME')));
 console.log(`Verified ${pages} pages: local links, assets, language, preview indexing, domain isolation and brand restriction.`);

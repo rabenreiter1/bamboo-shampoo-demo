@@ -6,7 +6,7 @@ const BASE = '/bamboo-shampoo-demo';
 const ORIGIN = 'https://rabenreiter1.github.io';
 const out = path.resolve('docs');
 fs.mkdirSync(out, {recursive:true});
-fs.cpSync('assets', path.join(out,'assets'), {recursive:true});
+fs.cpSync('assets', path.join(out,'assets'), {recursive:true,filter:source=>path.relative('assets',source).split(path.sep)[0]!=='assembly'});
 const esc = text => String(text).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const icon = (name, cls='') => {
   const paths = { arrow:'<path d="M4 12h16M13 5l7 7-7 7"/>', bag:'<path d="M5 7h14l1 14H4L5 7Z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/>', close:'<path d="m6 6 12 12M6 18 18 6"/>', plus:'<path d="M12 5v14M5 12h14"/>', leaf:'<path d="M19 3C8 2 2 9 6 15s15 2 13-12Z"/><path d="m4 21 11-13"/>', circle:'<path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/>', menu:'<path d="M4 8h16M4 16h16"/>', down:'<path d="m6 9 6 6 6-6"/>', check:'<path d="m5 12 4 4L19 6"/>', minus:'<path d="M5 12h14"/>', globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/>' };
@@ -92,5 +92,6 @@ fs.writeFileSync(path.join(out,'robots.txt'),`User-agent: *\nAllow: /\nSitemap: 
 fs.writeFileSync(path.join(out,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routes.map(({lang,route})=>`<url><loc>${ORIGIN}${BASE}/${lang}/${route}</loc></url>`).join('')}</urlset>`);
 fs.writeFileSync(path.join(out,'.nojekyll'),'');
 console.log(`Built ${routes.length} localized pages + entry and 404. Preview has noindex; no domains connected.`);
+await import('./build-assembly.mjs');
 
 
