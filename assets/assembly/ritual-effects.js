@@ -23,6 +23,58 @@ const GEL_RADIUS = 23.2;
 const GEL_FLOOR_Y = 5.3;
 const GEL_VOLUME_MM3 = 250000;
 const GEL_HEIGHT = GEL_VOLUME_MM3 / (PI * GEL_RADIUS * GEL_RADIUS);
+// The refill remains clear PET. Colour and absorption belong to the liquid,
+// and the same grapefruit hue is used for its free surface, strand and drops.
+export const GEL_APPEARANCE = Object.freeze({
+  color: '#ffd8ca', attenuationColor: '#f36962', attenuationDistance: 40,
+  transmission: .94, roughness: .065, ior: 1.42, thickness: 28,
+  streamColor: '#ffd8ca', streamAttenuationDistance: 40, streamThickness: 3.4,
+});
+
+/** Schlick reflectance for a clear dielectric/air interface. */
+export function samplePetFresnel(cosine, ior = 1.57) {
+  const eta = Number.isFinite(ior) ? clamp(ior, 1, 2.333) : 1.57;
+  const f0 = ((eta - 1) / (eta + 1)) ** 2;
+  return f0 + (1 - f0) * (1 - clamp(cosine)) ** 5;
+}
+
+/**
+ * Thin PET has no white diffuse wash. The renderers use this reflection skin
+ * over the separately refracting shampoo because overlapping transmission
+ * prepasses do not capture one another. RGB contains only reflected PBR light;
+ * Schlick alpha controls the portion of the contents seen through the skin.
+ * It is a thin-interface approximation, not a second refraction simulation.
+ * Manufactured geometry, source IOR and source wall thickness are untouched.
+ */
+export function configurePetReflectionSkin({ THREE, material } = {}) {
+  if (!THREE?.MeshPhysicalMaterial || !material?.isMeshPhysicalMaterial) {
+    throw new Error('configurePetReflectionSkin requires THREE and the shared physical PET material.');
+  }
+  Object.assign(material, { transmission: 0, transparent: true, opacity: 1, depthWrite: false,
+    roughness: .045, metalness: 0, clearcoat: 0, premultipliedAlpha: false });
+  material.onBeforeCompile = shader => {
+    shader.fragmentShader = shader.fragmentShader
+      .replace('vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;',
+        'vec3 outgoingLight = totalSpecular;')
+      .replace('#include <opaque_fragment>', /* glsl */`
+        float petCosine = clamp( abs( dot( normal, geometryViewDir ) ), 0.0, 1.0 );
+        float petRatio = ( ior - 1.0 ) / ( ior + 1.0 );
+        float petF0 = petRatio * petRatio;
+        float petReflectance = max( 0.0001, petF0 + ( 1.0 - petF0 ) * pow( 1.0 - petCosine, 5.0 ) );
+        // PBR specular already includes its interface Fresnel factor. Divide
+        // once to obtain straight-alpha reflection colour, rather than apply
+        // Fresnel twice when this skin blends over the coloured liquid.
+        gl_FragColor = vec4( outgoingLight / petReflectance, petReflectance );
+      `);
+  };
+  material.customProgramCacheKey = () => 'clear-pet-specular-fresnel-skin-v1';
+  material.userData.reflectionSkin = { specularOnly: true, schlickAlpha: true,
+    ior: material.ior, normalReflectance: samplePetFresnel(1, material.ior),
+    sourceThicknessUnchanged: material.thickness, overlappingTransmissionAvoided: true,
+    approximation: 'Thin reflection interface with separately resolved liquid refraction; no white diffuse wall tint.' };
+  material.needsUpdate = true;
+  return material;
+}
 
 /** The geometric peel front and the exact remaining flat, bonded disk area. */
 export function samplePeelState(peel = 0) {
@@ -255,91 +307,264 @@ function directionArray(value) {
   return a.map(v => v / length);
 }
 
-/** Analytical gravity centreline and incompressible-area pressure expansion. */
+/**
+ * Distance from an entry point to the next boundary of the finite fill volume.
+ * The point is in the unscaled cylinder frame; the ray is a normalised physical
+ * direction in that frame. Scaling the Y axis drains the measured fill without
+ * stretching a fixed optical thickness. The quadratic is the standard
+ * ray/cylinder intersection; attenuation uses the resulting real millimetres.
+ * References: pbr-book.org/4ed/Shapes/Cylinders and KHR_materials_volume.
+ */
+export function sampleGelOpticalPath(point, refractedDirection, { scale = [1, 1, 1] } = {}) {
+  const p = vectorArray(point, [GEL_RADIUS, GEL_HEIGHT / 2, 0]);
+  const ray = directionArray(refractedDirection);
+  const s = vectorArray(scale, [1, 1, 1]).map(value => Math.max(.00001, Math.abs(value)));
+  const d = ray.map((value, index) => value / s[index]);
+  const a = d[0] * d[0] + d[2] * d[2];
+  const b = p[0] * d[0] + p[2] * d[2];
+  const c = p[0] * p[0] + p[2] * p[2] - GEL_RADIUS * GEL_RADIUS;
+  const side = a > 1e-10 ? (-b + Math.sqrt(Math.max(0, b * b - a * c))) / a : Infinity;
+  const axial = Math.abs(d[1]) > 1e-10 ? ((d[1] > 0 ? GEL_HEIGHT : 0) - p[1]) / d[1] : Infinity;
+  const distance = Math.min(side, axial);
+  return Number.isFinite(distance) ? Math.max(0, distance) : 0;
+}
+
+function useCylindricalVolumeOptics(THREE, material) {
+  // Three's physical material uses a nominal uniform thickness. This boundary
+  // has known dimensions, so trace the Snell-refracted ray to its actual exit
+  // instead. No painted tint, time uniform, or camera-dependent colour ramp.
+  const opticalRay = /* glsl */`
+    vec3 getVolumeTransmissionRay( const in vec3 n, const in vec3 v, const in float thickness,
+      const in float ior, const in mat4 modelMatrix ) {
+      vec3 ray = refract( -v, normalize( n ), 1.0 / ior );
+      if ( dot( ray, ray ) < 1e-10 ) return vec3( 0.0 );
+      ray = normalize( ray );
+      vec3 scaleSquared = max( vec3( dot( modelMatrix[0].xyz, modelMatrix[0].xyz ),
+        dot( modelMatrix[1].xyz, modelMatrix[1].xyz ), dot( modelMatrix[2].xyz, modelMatrix[2].xyz ) ), vec3( 1e-10 ) );
+      // Parent transforms are rotations/translations/scales, with no shear.
+      // These inverse basis dot products keep the ray parameter in world mm.
+      vec3 localRay = vec3( dot( ray, modelMatrix[0].xyz ), dot( ray, modelMatrix[1].xyz ),
+        dot( ray, modelMatrix[2].xyz ) ) / scaleSquared;
+      vec3 point = vGelVolumePosition;
+      float a = dot( localRay.xz, localRay.xz );
+      float b = dot( point.xz, localRay.xz );
+      float c = dot( point.xz, point.xz ) - ${GEL_RADIUS.toFixed(10)} * ${GEL_RADIUS.toFixed(10)};
+      float sideExit = a > 1e-10 ? ( -b + sqrt( max( 0.0, b * b - a * c ) ) ) / a : 1e20;
+      float axialExit = abs( localRay.y ) > 1e-10
+        ? ( ( localRay.y > 0.0 ? ${GEL_HEIGHT.toFixed(10)} : 0.0 ) - point.y ) / localRay.y : 1e20;
+      float distance = max( 0.002, min( sideExit, axialExit ) );
+      return ray * distance;
+    }
+  `;
+  const pars = THREE.ShaderChunk.transmission_pars_fragment
+    .replace('vec3 getVolumeTransmissionRay(', 'vec3 getNominalVolumeTransmissionRay(')
+    .replace('float applyIorToRoughness(', `${opticalRay}\nfloat applyIorToRoughness(`);
+  material.onBeforeCompile = shader => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vGelVolumePosition;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGelVolumePosition = position;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vGelVolumePosition;')
+      .replace('#include <transmission_pars_fragment>', pars);
+    useResolvedLiquidCoverage(shader);
+  };
+  material.customProgramCacheKey = () => 'grapefruit-finite-cylinder-optics-v2';
+  material.userData.optics = { rayExit: 'Snell-refracted finite-cylinder boundary', attenuation: 'Beer-Lambert world-mm path',
+    baseRadius: GEL_RADIUS, baseHeight: GEL_HEIGHT, scaleAware: true, timeUniform: false };
+}
+
+function useResolvedLiquidCoverage(shader) {
+  // The transmission shader has already integrated the RGB background sampled
+  // along the refracted ray. Its scalar transmissionAlpha is a CSS-background
+  // approximation; applying that again makes coloured absorption pastel and
+  // discards reflected softbox energy. A bounded liquid pixel has full surface
+  // coverage, with optical transparency provided by physical transmission.
+  // The renderer supplies the matching world RGB; MSAA retains silhouette AA.
+  shader.fragmentShader = shader.fragmentShader.replace('#include <transmission_fragment>',
+    '#include <transmission_fragment>\n#ifdef USE_TRANSMISSION\nmaterial.transmissionAlpha = 1.0;\n#endif');
+}
+
+/**
+ * A cohesive, gravity-stretched viscous strand. The nozzle section stays normal
+ * to the real dosing outlet; gravity takes over progressively rather than
+ * starting with an angular kink. Capillary necks and swellings move only with
+ * scroll. This is an authored analytical surface, not a CFD solver.
+ */
 export function sampleGelStream(t, state = {}) {
   t = clamp(t);
   const flow = clamp(state.flow), gush = clamp(state.gush), progress = clamp(state.progress);
   const origin = vectorArray(state.outletWorld, [0, 0, 0]), direction = directionArray(state.outletDirection);
   const length = (104 + gush * 14) * Math.pow(flow, .28);
-  const phase = progress * 125;
-  const neck = 6 * (1 - Math.exp(-t * 5));
-  const gravity = length * (.15 * t + .85 * t * t);
-  const bend = .4 * t * t * Math.sin(t * 7 + phase);
+  const phase = TAU * (progress - .475) * 17;
+  const neck = 7.2 * (1 - Math.exp(-t * 5.8));
+  const gravity = length * t * t;
+  const bend = .24 * t * t * Math.sin(t * 7 + phase);
   const pressureAreaMultiplier = 1 + 2.2 * gush;
-  const ripple = 1 + .09 * Math.sin(t * 17 - phase) * Math.sin(PI * t);
-  const taper = .86 - .27 * t + .04 * Math.sin(t * 9 + phase);
-  const end = t > .84 ? Math.sqrt(Math.max(.015, (1 - t) / .16)) : 1;
-  const radius = 1.55 * Math.sqrt(flow * pressureAreaMultiplier) * ripple * taper * end;
+  // Area varies inversely with the authored accelerating axial velocity. The
+  // pressure pulse changes area by exactly 3.2x, never the 6 mm outlet contour.
+  const gravityStretch = Math.pow(1 + 2.15 * t, -.25);
+  const capillaryArea = 1 + .18 * Math.sin(t * 19 - phase) * Math.sin(PI * t) ** 2;
+  const travellingNeck = .81 + .018 * Math.sin(phase);
+  const travellingBead = .884 + .016 * Math.sin(phase);
+  const necking = 1 - .31 * Math.exp(-(((t - travellingNeck) / .033) ** 2));
+  const bead = 1 + .34 * Math.exp(-(((t - travellingBead) / .04) ** 2));
+  // A spherical terminal cap closes the liquid surface. There is no open
+  // tube-shaped cut end, and its derivative supplies the correct shiny normal.
+  const terminal = clamp((t - .925) / .075);
+  const end = Math.sqrt(Math.max(0, 1 - terminal * terminal));
+  const radius = 1.62 * Math.sqrt(flow * pressureAreaMultiplier * capillaryArea)
+    * gravityStretch * necking * bead * end;
   return {
     x: origin[0] + direction[0] * neck + bend,
     y: origin[1] + direction[1] * neck - gravity,
     z: origin[2] + direction[2] * neck + bend * .35,
     radius, length, pressureAreaMultiplier,
+    ellipticity: .032 * Math.sin(t * 11 - phase) * Math.sin(PI * t),
   };
 }
 
-/** A fixed small set of droplets follows progress directly, including the tail. */
+/**
+ * Separated pearls start at the rounded strand tip and accelerate under world
+ * gravity. Birth and departure have zero-scale endpoints, so reversing a scrub
+ * cannot pop a full-sized sphere into the scene. A small final set survives the
+ * stopped strand. No emitted-particle history or wall-clock time is required.
+ */
 export function sampleGelDrop(index, state = {}) {
   const p = clamp(state.progress), flow = clamp(state.flow), gush = clamp(state.gush);
   const origin = vectorArray(state.outletWorld, [0, 0, 0]), direction = directionArray(state.outletDirection);
-  index = Math.max(0, Math.min(4, Math.floor(index)));
-  let phase, visible, dropDistance, scale;
+  index = Math.floor(clamp(index, 0, 4));
+  let phase, visible, dropDistance, scale, tip;
   if (p >= .65) {
     const start = .650 + index * .0013, end = .668 + index * .00035;
     phase = clamp((p - start) / (end - start));
-    visible = p >= start && p < end && p < .67;
-    dropDistance = 30 + 99 * phase * phase;
-    scale = (.65 + (4 - index) * .1) * Math.pow(Math.max(.05, 1 - phase), .23);
+    const birthFlow = 1 - smooth((start - .635) / .025);
+    tip = sampleGelStream(1, { ...state, progress: start, flow: birthFlow, gush: 0 });
+    const initialDistance = origin[1] - tip.y;
+    dropDistance = initialDistance + (129 - initialDistance) * phase * phase;
+    scale = (.76 + (4 - index) * .09) * smooth(phase / .095) * (1 - smooth((phase - .88) / .12));
+    visible = p >= start && p < end && p < .67 && scale > .00001;
   } else {
-    const raw = (p - .475) * 83 + index * .193;
-    phase = raw - Math.floor(raw);
-    visible = flow > .0001 && p >= .475 && p < .65 && phase > .12;
-    dropDistance = 88 + phase * 37;
-    scale = (.52 + index * .09) * Math.sqrt(flow) * Math.sqrt(1 + .8 * gush);
+    const raw = (p - .475) * 17 + index * .193;
+    const slot = raw - Math.floor(raw);
+    phase = clamp(slot / .36);
+    tip = sampleGelStream(1, state);
+    const initialDistance = origin[1] - tip.y;
+    dropDistance = initialDistance + Math.max(0, 129 - initialDistance) * phase * phase;
+    scale = (.66 + index * .055) * Math.sqrt(flow * (1 + .8 * gush))
+      * smooth(phase / .12) * (1 - smooth((phase - .87) / .13));
+    visible = flow > .0001 && p >= .475 && p < .65 && slot < .36 && scale > .00001;
   }
+  const axialScale = 1 + .72 * Math.exp(-phase * 3.4) + .1 * Math.sin(phase * TAU) * Math.exp(-phase * 4);
   return {
     visible, phase,
-    x: origin[0] + direction[0] * 5.8 + Math.sin(index * 2.71 + phase * 2) * .62,
-    y: origin[1] + direction[1] * 5.8 - dropDistance,
-    z: origin[2] + direction[2] * 5.8 + Math.cos(index * 1.82 + phase * 2) * .45,
-    radius: scale, axialScale: 1.25 + (1 - phase) * .55,
+    x: tip.x + direction[0] * phase * .7 + Math.sin(index * 2.71 + phase * 2) * .18 * phase,
+    y: origin[1] - dropDistance,
+    z: tip.z + direction[2] * phase * .7 + Math.cos(index * 1.82 + phase * 2) * .14 * phase,
+    radius: scale, axialScale, radialScale: 1 / Math.sqrt(axialScale),
   };
 }
 
-function createFillMesh(THREE, material, name) {
+/** Zero-mean capillary profile; the optical detail does not raise nominal fill. */
+export function sampleGelSurface(radius, angle = 0, state = {}) {
+  const r = clamp(radius), fraction = clamp(state.fraction ?? 1);
+  const height = sampleFill(fraction).height;
+  const contact = .24 * (r ** 12 - 1 / 7);
+  // Both angular modes integrate to zero, are finite at the centre, and die
+  // against the wall. The viscous free surface remains nearly still at rest.
+  const phase = clamp(state.progress) * TAU * 14;
+  const amplitude = .095 * clamp(state.flow) * (1 + .35 * clamp(state.gush));
+  const waves = amplitude * (1 - r * r) * (r * Math.sin(angle - phase)
+    + .28 * r * r * Math.sin(2 * angle + phase * .7));
+  return (contact + waves) * smooth(height / .6);
+}
+
+function createFreeSurfaceGeometry(THREE, radial = 18, angular = 96) {
+  const positions = new Float32Array((1 + radial * angular) * 3);
+  const uv = new Float32Array((1 + radial * angular) * 2), indices = [];
+  uv[0] = .5; uv[1] = .5;
+  for (let ring = 1; ring <= radial; ring++) for (let j = 0; j < angular; j++) {
+    const radius = GEL_RADIUS * ring / radial, angle = j / angular * TAU;
+    const index = 1 + (ring - 1) * angular + j;
+    positions[index * 3] = radius * Math.cos(angle);
+    positions[index * 3 + 2] = radius * Math.sin(angle);
+    uv[index * 2] = .5 + positions[index * 3] / (2 * GEL_RADIUS);
+    uv[index * 2 + 1] = .5 + positions[index * 3 + 2] / (2 * GEL_RADIUS);
+    if (ring === 1) indices.push(0, 1 + (j + 1) % angular, 1 + j);
+    else {
+      const a = index - angular, b = 1 + (ring - 2) * angular + (j + 1) % angular;
+      const c = index, d = 1 + (ring - 1) * angular + (j + 1) % angular;
+      indices.push(a, d, c, a, b, d);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geometry.setIndex(indices);
+  function update(state) {
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i], z = positions[i + 2];
+      positions[i + 1] = sampleGelSurface(Math.hypot(x, z) / GEL_RADIUS, Math.atan2(z, x), state);
+    }
+    // Preserve zero displaced volume in the tessellated mesh too. A steep
+    // contact profile sampled on finite rings has a small quadrature bias.
+    let area = 0, displacement = 0;
+    for (let i = 0; i < indices.length; i += 3) {
+      const a = indices[i] * 3, b = indices[i + 1] * 3, c = indices[i + 2] * 3;
+      const projectedArea = Math.abs((positions[b] - positions[a]) * (positions[c + 2] - positions[a + 2])
+        - (positions[c] - positions[a]) * (positions[b + 2] - positions[a + 2])) / 2;
+      area += projectedArea;
+      displacement += projectedArea * (positions[a + 1] + positions[b + 1] + positions[c + 1]) / 3;
+    }
+    const mean = displacement / area;
+    for (let i = 1; i < positions.length; i += 3) positions[i] -= mean;
+    geometry.attributes.position.needsUpdate = true;
+    geometry.computeVertexNormals(); geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+  }
+  update({ fraction: 1 });
+  geometry.attributes.normal.setUsage(THREE.DynamicDrawUsage);
+  return { geometry, update };
+}
+
+function createFillMesh(THREE, material, name, bulkMaterial = material) {
   const group = new THREE.Group(); group.name = name;
   // Keep the full geometry in physical millimetres. A unit-height cylinder
   // stretched148times also stretches the transmission ray's volume thickness,
   // which makes a clear fill sample distant bamboo and appear opaque amber.
   const cylinder = new THREE.CylinderGeometry(GEL_RADIUS, GEL_RADIUS, GEL_HEIGHT, 96, 1, true);
   cylinder.translate(0, GEL_HEIGHT / 2, 0);
-  const body = new THREE.Mesh(cylinder, material);
+  const body = new THREE.Mesh(cylinder, bulkMaterial);
   body.name = 'Measured_250ml_gel_volume'; body.position.y = GEL_FLOOR_Y; body.castShadow = false;
-  const surfaceGeometry = new THREE.CircleGeometry(GEL_RADIUS, 96);
-  surfaceGeometry.rotateX(-PI / 2);
+  const freeSurface = createFreeSurfaceGeometry(THREE);
+  const surfaceGeometry = freeSurface.geometry;
   const surface = new THREE.Mesh(surfaceGeometry, material); surface.name = 'Level_gel_free_surface'; surface.castShadow = false;
   const bottomGeometry = new THREE.CircleGeometry(GEL_RADIUS, 96);
   bottomGeometry.rotateX(PI / 2); bottomGeometry.translate(0, GEL_FLOOR_Y, 0);
   const bottom = new THREE.Mesh(bottomGeometry, material); bottom.name = 'Gel_bottom_surface'; bottom.castShadow = false;
   // A tiny contact meniscus catches grazing light when an insert is outside the
   // bamboo. It is a visual surface detail, separate from the measured volume.
-  const meniscusGeometry = new THREE.TorusGeometry(GEL_RADIUS - .17, .16, 6, 96);
+  const meniscusGeometry = new THREE.TorusGeometry(GEL_RADIUS - .14, .14, 8, 96);
   meniscusGeometry.rotateX(PI / 2);
   const meniscus = new THREE.Mesh(meniscusGeometry, material); meniscus.name = 'Subtle_contact_meniscus'; meniscus.castShadow = false;
   group.add(body, surface, bottom, meniscus);
-  function update(fraction) {
+  let previousProfile = '';
+  function update(fraction, state = {}) {
     const fill = sampleFill(fraction);
     group.visible = fill.fraction > .00001;
     body.scale.y = Math.max(.00001, fill.fraction);
     surface.position.y = fill.surfaceY;
-    meniscus.position.y = fill.surfaceY - .1;
+    const profile = { fraction: fill.fraction, progress: clamp(state.flow) > 0 ? clamp(state.progress) : 0,
+      flow: clamp(state.flow), gush: clamp(state.gush) };
+    const signature = JSON.stringify(profile);
+    if (signature !== previousProfile) { freeSurface.update(profile); previousProfile = signature; }
+    meniscus.position.y = fill.surfaceY + .072 * smooth(fill.height / .6);
+    meniscus.scale.y = smooth(fill.height / .6);
     group.userData.fillMilliliters = fill.volumeMilliliters;
   }
   update(1);
   return { group, update, geometries: [cylinder, surfaceGeometry, bottomGeometry, meniscusGeometry] };
 }
 
-function createStreamMesh(THREE, material, longitudinal = 44, radial = 14) {
+function createStreamMesh(THREE, material, longitudinal = 72, radial = 14) {
   const rows = longitudinal + 1, stride = radial + 1;
   const positions = new Float32Array(rows * stride * 3), normals = new Float32Array(positions.length), uv = new Float32Array(rows * stride * 2);
   const indices = [];
@@ -356,6 +581,7 @@ function createStreamMesh(THREE, material, longitudinal = 44, radial = 14) {
   geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); geometry.setIndex(indices);
   const mesh = new THREE.Mesh(geometry, material); mesh.name = 'World_gravity_viscous_shampoo_stream'; mesh.castShadow = false; mesh.frustumCulled = false;
   const tangent = new THREE.Vector3(), side = new THREE.Vector3(), binormal = new THREE.Vector3(), reference = new THREE.Vector3(0, 0, 1);
+  const around = new THREE.Vector3(), along = new THREE.Vector3(), normal = new THREE.Vector3();
   function update(state) {
     mesh.visible = state.flow > .00001;
     if (!mesh.visible) {
@@ -377,10 +603,27 @@ function createStreamMesh(THREE, material, longitudinal = 44, radial = 14) {
       side.crossVectors(tangent, reference).normalize(); binormal.crossVectors(tangent, side).normalize();
       for (let j = 0; j <= radial; j++) {
         const angle = j / radial * TAU, co = Math.cos(angle), si = Math.sin(angle), o = (i * stride + j) * 3;
-        const nx = side.x * co + binormal.x * si, ny = side.y * co + binormal.y * si, nz = side.z * co + binormal.z * si;
+        // Reciprocal axis factors retain cross-sectional area while the very
+        // small ovalisation produces wet, moving highlight ribbons.
+        const a = co * Math.exp(c.ellipticity), b = si * Math.exp(-c.ellipticity);
+        const nx = side.x * a + binormal.x * b, ny = side.y * a + binormal.y * b, nz = side.z * a + binormal.z * b;
         positions[o] = c.x + nx * c.radius; positions[o + 1] = c.y + ny * c.radius; positions[o + 2] = c.z + nz * c.radius;
-        normals[o] = nx; normals[o + 1] = ny; normals[o + 2] = nz;
       }
+    }
+    // A radial-only normal makes a tapered strand look like a striped plastic
+    // hose. Differentiate the deformed surface in both directions instead.
+    for (let i = 0; i < rows; i++) for (let j = 0; j <= radial; j++) {
+      const before = (i * stride + (j + radial - 1) % radial) * 3;
+      const after = (i * stride + (j + 1) % radial) * 3;
+      const up = (Math.max(0, i - 1) * stride + j) * 3;
+      const down = (Math.min(longitudinal, i + 1) * stride + j) * 3;
+      around.set(positions[after] - positions[before], positions[after + 1] - positions[before + 1], positions[after + 2] - positions[before + 2]);
+      along.set(positions[down] - positions[up], positions[down + 1] - positions[up + 1], positions[down + 2] - positions[up + 2]);
+      normal.crossVectors(around, along);
+      if (normal.lengthSq() < 1e-12) normal.copy(tangent);
+      normal.normalize();
+      const o = (i * stride + j) * 3;
+      normals[o] = normal.x; normals[o + 1] = normal.y; normals[o + 2] = normal.z;
     }
     geometry.attributes.position.needsUpdate = true; geometry.attributes.normal.needsUpdate = true;
   }
@@ -390,22 +633,34 @@ function createStreamMesh(THREE, material, longitudinal = 44, radial = 14) {
 export function createGel({ THREE } = {}) {
   if (!THREE?.BufferGeometry) throw new Error('createGel requires the shared THREE namespace.');
   const liquid = new THREE.MeshPhysicalMaterial({
-    color: '#ffe0a3', metalness: 0, roughness: .09, transmission: .88, opacity: 1,
-    thickness: 26, ior: 1.43, clearcoat: 1, clearcoatRoughness: .025,
-    attenuationColor: '#c67a14', attenuationDistance: 35, side: THREE.FrontSide,
+    color: GEL_APPEARANCE.color, metalness: 0, roughness: GEL_APPEARANCE.roughness,
+    transmission: GEL_APPEARANCE.transmission, opacity: 1,
+    thickness: GEL_APPEARANCE.thickness, ior: GEL_APPEARANCE.ior,
+    clearcoat: .25, clearcoatRoughness: .05, envMapIntensity: 1.1,
+    attenuationColor: GEL_APPEARANCE.attenuationColor,
+    attenuationDistance: GEL_APPEARANCE.attenuationDistance, side: THREE.FrontSide,
   });
-  liquid.name = 'Translucent_warm_amber_viscous_shampoo_volume';
-  const movingGel = liquid.clone(); movingGel.thickness = 2.8;
-  // A thin strand needs stronger absorption than the bulk to remain legible
-  // against the studio background. This is an authored appearance adjustment,
-  // not a measured chemical property; hue stays identical to the refill gel.
-  movingGel.color.set('#f3c36d'); movingGel.attenuationDistance = 3.2;
-  movingGel.name = 'Matching_amber_shampoo_stream_and_drops';
-  const oldFill = createFillMesh(THREE, liquid, 'Old_refill_250ml_gel_fill');
-  const newFill = createFillMesh(THREE, liquid, 'New_refill_250ml_gel_fill');
+  liquid.name = 'Translucent_grapefruit_coral_viscous_shampoo_volume';
+  liquid.onBeforeCompile = useResolvedLiquidCoverage;
+  liquid.customProgramCacheKey = () => 'grapefruit-resolved-background-coverage-v1';
+  liquid.userData.resolvedBackgroundCoverage = true;
+  const bulkLiquid = liquid.clone();
+  bulkLiquid.name = 'Grapefruit_volume_with_analytic_refracted_cylinder_chord';
+  useCylindricalVolumeOptics(THREE, bulkLiquid);
+  const movingGel = liquid.clone(); movingGel.thickness = GEL_APPEARANCE.streamThickness;
+  movingGel.onBeforeCompile = useResolvedLiquidCoverage;
+  movingGel.customProgramCacheKey = liquid.customProgramCacheKey;
+  // The strand is the same liquid, with the same absorption coefficient. Its
+  // shorter optical path produces a paler core and clear Fresnel edges instead
+  // of an opaque orange string. Lighting supplies the reflection contrast.
+  movingGel.color.set(GEL_APPEARANCE.streamColor);
+  movingGel.attenuationDistance = GEL_APPEARANCE.streamAttenuationDistance;
+  movingGel.name = 'Matching_grapefruit_shampoo_stream_and_drops';
+  const oldFill = createFillMesh(THREE, liquid, 'Old_refill_250ml_gel_fill', bulkLiquid);
+  const newFill = createFillMesh(THREE, liquid, 'New_refill_250ml_gel_fill', bulkLiquid);
   const streamGroup = new THREE.Group(); streamGroup.name = 'Shampoo_flow_in_world_gravity';
   const stream = createStreamMesh(THREE, movingGel); streamGroup.add(stream.mesh);
-  const dropGeometry = new THREE.SphereGeometry(1, 16, 10);
+  const dropGeometry = new THREE.SphereGeometry(1, 24, 16);
   const drops = Array.from({ length: 5 }, (_, i) => {
     const mesh = new THREE.Mesh(dropGeometry, movingGel); mesh.name = `Deterministic_gel_drop_${i + 1}`; mesh.castShadow = false;
     streamGroup.add(mesh); return mesh;
@@ -417,12 +672,13 @@ export function createGel({ THREE } = {}) {
     const signature = JSON.stringify(state);
     if (signature === previous) return;
     previous = signature;
-    oldFill.update(state.fillOld); newFill.update(state.fillNew); stream.update(state);
+    oldFill.update(state.fillOld, state); newFill.update(state.fillNew); stream.update(state);
     let anyDrop = false;
     for (let i = 0; i < drops.length; i++) {
       const sample = sampleGelDrop(i, state), mesh = drops[i]; mesh.visible = sample.visible;
       anyDrop ||= sample.visible; mesh.position.set(sample.x, sample.y, sample.z);
-      mesh.scale.set(sample.radius, sample.radius * sample.axialScale, sample.radius);
+      mesh.scale.set(sample.radius * sample.radialScale, sample.radius * sample.axialScale,
+        sample.radius * sample.radialScale);
     }
     streamGroup.visible = state.flow > .00001 || anyDrop;
     streamGroup.userData.effectState = { progress: state.progress, flow: state.flow, gush: state.gush,
@@ -435,20 +691,27 @@ export function createGel({ THREE } = {}) {
     fullFillHeight: GEL_HEIGHT, fullFillSurfaceY: GEL_FLOOR_Y + GEL_HEIGHT,
     areaPressureMultiplier: 3.2, maximumStreamLength: 118, maximumDropletGravityDistance: 129,
     stateOnly: true, worldGravity: [0, -1, 0], seededByProgress: true,
-    appearance: { color: '#ffe0a3', attenuationColor: '#c67a14', attenuationDistance: 35,
-      transmission: .88, roughness: .09, ior: 1.43, streamColor: '#f3c36d', streamAttenuationDistance: 3.2 },
+    appearance: { ...GEL_APPEARANCE },
+    bulkOptics: { rayExit: 'Snell-refracted finite-cylinder boundary', attenuation: 'Beer-Lambert world-mm path',
+      viewDependentPathLength: true, opaqueWallTint: false, resolvedBackgroundCoverage: true },
+    surfaceDetail: { meniscusHeight: .24, contactRadius: GEL_RADIUS, volumeMeanOffset: 0,
+      strandSegments: 72, strandRadialSegments: 14, roundedClosedTail: true,
+      normalsFollowDeformedSurface: true, volumePreservingDropStretch: true },
     assumptions: [
       'Gel appearance, flow rate,3.2times pressure area and trajectory are authored visual effects, not measured fluid data.',
       'The inner radius23.2mm follows the unmeasured0.3mm PET wall placeholder;250ml is the user-confirmed nominal fill.',
       'The hidden interior liquid remains an axial volume display during tilt; exterior flow follows world gravity.',
-      'Contact meniscus0.16mm is a visual reflection detail; nominal volume is computed from the cylindrical interior.',
+      'Bulk optical paths intersect the measured finite cylindrical volume after Snell refraction; the thin free surface retains the standard physical-material approximation.',
+      'The liquid shader resolves full geometric pixel coverage after physical transmission; the renderer must provide world-matching background RGB to avoid a second CSS background blend.',
+      'The zero-mean0.24mm concave meniscus and sub0.13mm surface waves are authored capillary details, not measured fluid data.',
+      'World-gravity strand acceleration, capillary necking, closed bead tip and separating volume-preserving droplet stretch are analytical scroll-driven surfaces, not a CFD simulation.',
     ],
   };
   return {
     streamGroup, oldFillGroup: oldFill.group, newFillGroup: newFill.group, update, metrics,
     dispose() {
       for (const geometry of [...oldFill.geometries, ...newFill.geometries, stream.geometry, dropGeometry]) geometry.dispose();
-      liquid.dispose(); movingGel.dispose();
+      liquid.dispose(); bulkLiquid.dispose(); movingGel.dispose();
     },
   };
 }
