@@ -123,7 +123,7 @@ test('cancellation removes stale baselines and preserves inspection', () => {
   close(state.zoom, 2.2);
 });
 
-test('pinch and gesture bounds are finite and respect zoom/progress limits', () => {
+test('zoom is bounded while virtual cycle position remains unbounded', () => {
   close(zoomFromWheel(1, -100), Math.exp(0.2));
   close(zoomFromWheel(1, 100), Math.exp(-0.2));
   close(zoomFromWheel(1, 1, 1), Math.exp(-0.032));
@@ -135,9 +135,9 @@ test('pinch and gesture bounds are finite and respect zoom/progress limits', () 
   let state = createGestureState();
   state = reduce(state, pointer('pointerdown', 1, 0, 0));
   state = reduce(state, pointer('pointermove', 1, 0, -100000));
-  assert.equal(state.progress, 1);
+  close(state.progress, 100000 / 9000);
   state = reduce(state, pointer('pointermove', 1, 0, 100000));
-  assert.equal(state.progress, 0);
+  close(state.progress, -100000 / 9000);
 });
 
 test('gesture reducer is immutable and deterministic when replayed', () => {
@@ -157,13 +157,24 @@ test('gesture reducer is immutable and deterministic when replayed', () => {
   assert.deepEqual(initial, snapshot);
 });
 
-function browserHarness() {
+function browserHarness({reduced = false} = {}) {
+  let clock = 0;
+  let changes = 0;
   const listeners = new Map();
   const viewListeners = new Map();
+  const documentListeners = new Map();
   const captures = new Set();
-  const view = {innerHeight: 800, addEventListener: (name, fn) => viewListeners.set(name, fn), removeEventListener: name => viewListeners.delete(name)};
+  const mediaListeners = new Map();
+  const reducedMotion = {matches: reduced,
+    addEventListener: (name, fn) => mediaListeners.set(name, fn),
+    removeEventListener: name => mediaListeners.delete(name)};
+  const view = {innerHeight: 800, matchMedia: () => reducedMotion,
+    addEventListener: (name, fn) => viewListeners.set(name, fn), removeEventListener: name => viewListeners.delete(name)};
+  const ownerDocument = {defaultView: view, hidden: false,
+    addEventListener: (name, fn) => documentListeners.set(name, fn),
+    removeEventListener: name => documentListeners.delete(name)};
   const canvas = {
-    ownerDocument: {defaultView: view, scrollingElement: {scrollHeight: 8000}},
+    ownerDocument,
     addEventListener: (name, fn) => listeners.set(name, fn),
     removeEventListener: name => listeners.delete(name),
     setPointerCapture: id => captures.add(id),
@@ -173,6 +184,8 @@ function browserHarness() {
   const values = {progress: 0.4, yaw: 1, zoom: 1};
   const writes = [];
   const input = createInspectionInput({
+    now: () => clock,
+    onChange: () => {changes++;},
     canvas,
     getProgress: () => values.progress, setProgress: value => {values.progress = value; writes.push('progress');},
     getYaw: () => values.yaw, setYaw: value => {values.yaw = value; writes.push('yaw');},
@@ -183,12 +196,14 @@ function browserHarness() {
     listeners.get(name)?.(event);
     return event;
   };
-  return {input, values, writes, send, listeners, viewListeners, captures};
+  return {input, values, writes, send, listeners, viewListeners, captures, ownerDocument, documentListeners,
+    reducedMotion, mediaListeners, get changes() {return changes;},
+    advance(ms) { clock += ms; return input.tick(clock); }, time(ms) { clock += ms; }};
 }
 
-test('browser adapter leaves wheel native, uses ctrl-wheel for zoom, and disposes captures/listeners', () => {
+test('browser adapter smooths virtual wheel, uses ctrl-wheel for zoom, and disposes captures/listeners', () => {
   const h = browserHarness();
-  assert.equal(h.send('wheel', {ctrlKey: false, deltaY: 200}).prevented, false);
+  assert.equal(h.send('wheel', {ctrlKey: false, deltaY: 200}).prevented, true);
   assert.equal(h.writes.length, 0);
   assert.equal(h.send('wheel', {ctrlKey: true, deltaY: -100, deltaMode: 0}).prevented, true);
   assert.deepEqual(h.writes, ['zoom']);
@@ -202,7 +217,7 @@ test('browser adapter leaves wheel native, uses ctrl-wheel for zoom, and dispose
   assert.equal(h.captures.size, 0);
 });
 
-test('browser adapter uses native scroll before new drag; blur cancellation leaves progress stable', () => {
+test('browser adapter adopts current cycle position before new drag; blur cancellation leaves progress stable', () => {
   const h = browserHarness();
   h.values.progress = 0.8;
   h.send('pointerdown');
@@ -214,4 +229,145 @@ test('browser adapter uses native scroll before new drag; blur cancellation leav
   h.send('pointermove', {clientY: -100});
   close(h.values.progress, progress);
   h.input.dispose();
+});
+
+test('wheel target settles to exactly the delivered delta without a synthetic release fling', () => {
+  const h = browserHarness();
+  h.send('wheel', {deltaY: 7200, deltaMode: 0});
+  assert.equal(h.input.getState().isMoving, true);
+  for (let i = 0; i < 300; i++) h.advance(1000 / 60);
+  close(h.values.progress, 1.4);
+  assert.equal(h.input.getState().isMoving, false);
+  assert.equal(h.input.getState().scrollVelocity, 0);
+  h.send('wheel', {deltaY: -21600});
+  for (let i = 0; i < 300; i++) h.advance(1000 / 60);
+  close(h.values.progress, -1.6);
+  h.input.dispose();
+});
+
+test('wheel reversal abandons outstanding forward travel promptly', () => {
+  const h = browserHarness();
+  h.send('wheel', {deltaY: 7200}); h.advance(20);
+  const before = h.values.progress;
+  h.send('wheel', {deltaY: -400}); h.advance(20);
+  assert.ok(h.values.progress < before);
+  h.input.dispose();
+});
+
+function releasedDrag(fps, horizontal = false) {
+  const h = browserHarness();
+  h.send('pointerdown'); h.time(20);
+  h.send('pointermove', horizontal ? {clientX: 140} : {clientY: 60});
+  h.time(20);
+  h.send('pointermove', horizontal ? {clientX: 180} : {clientY: 20});
+  h.send('pointerup');
+  const release = {...h.values};
+  for (let i = 0; i < fps; i++) h.advance(1000 / fps);
+  const result = {...h.values};
+  h.input.dispose();
+  return {release, result};
+}
+
+test('scroll and axial spin release coast identically at 30, 60 and 120 Hz', () => {
+  for (const horizontal of [false, true]) {
+    const reference = releasedDrag(30, horizontal);
+    assert.ok(horizontal ? reference.result.yaw > reference.release.yaw : reference.result.progress > reference.release.progress);
+    for (const fps of [60, 120]) {
+      const sample = releasedDrag(fps, horizontal);
+      close(sample.result.progress, reference.result.progress);
+      close(sample.result.yaw, reference.result.yaw);
+    }
+  }
+});
+
+test('paused release, cancellation, pinch and immediate seek cancel momentum', () => {
+  const h = browserHarness();
+  h.send('pointerdown'); h.time(20); h.send('pointermove', {clientX: 160});
+  h.time(100); h.send('pointerup');
+  assert.equal(h.input.getState().isMoving, false);
+  h.send('wheel', {deltaY: 1000});
+  h.input.seek(-3.75);
+  assert.equal(h.input.getState().isMoving, false);
+  close(h.values.progress, -3.75);
+  h.send('wheel', {deltaY: 1000});
+  h.send('pointerdown');
+  h.send('pointerdown', {pointerId: 2, clientX: 200});
+  assert.equal(h.input.getState().isMoving, false);
+  assert.equal(h.input.getState().mode, 'pinch');
+  h.send('pointercancel');
+  assert.equal(h.input.getState().scrollVelocity, 0);
+  h.input.dispose();
+});
+
+test('wheel line/page modes normalize and keyboard has no finite endpoint', () => {
+  const h = browserHarness();
+  h.input.seek(-2);
+  h.send('wheel', {deltaY: 2, deltaMode: 1});
+  close(h.input.getState().targetCyclePosition, -2 + 32 / 7200);
+  h.input.seek(3);
+  h.send('wheel', {deltaY: 2, deltaMode: 2});
+  close(h.input.getState().targetCyclePosition, 3 + 1600 / 7200);
+  h.input.cancelMomentum();
+  h.viewListeners.get('keydown')({key: 'ArrowUp', preventDefault() {}});
+  close(h.input.getState().targetCyclePosition, 3 - 80 / 7200);
+  h.input.dispose();
+});
+
+test('backgrounding discards the coasting tail instead of fast-forwarding on return', () => {
+  const h = browserHarness();
+  h.send('wheel', {deltaY: 3000}); h.advance(20);
+  const before = h.values.progress;
+  h.ownerDocument.hidden = true;
+  h.documentListeners.get('visibilitychange')();
+  h.advance(60000);
+  close(h.values.progress, before);
+  assert.equal(h.input.getState().isMoving, false);
+  h.ownerDocument.hidden = false;
+  h.documentListeners.get('visibilitychange')();
+  h.send('wheel', {deltaY: 100}); h.advance(20);
+  assert.ok(h.values.progress > before);
+  h.input.dispose();
+  assert.equal(h.documentListeners.size, 0);
+});
+
+test('root-owned RAF ticks never issue recursive render notifications', () => {
+  const h = browserHarness();
+  h.send('wheel', {deltaY: 1000});
+  const startChanges = h.changes;
+  for (let i = 0; i < 300; i++) h.advance(1000 / 60);
+  assert.equal(h.changes, startChanges);
+  assert.equal(h.input.getState().isMoving, false);
+  h.input.dispose();
+});
+
+test('fast reversed drag releases in its latest direction', () => {
+  for (const horizontal of [false, true]) {
+    const h = browserHarness();
+    h.send('pointerdown'); h.time(20);
+    h.send('pointermove', horizontal ? {clientX: 180} : {clientY: 20});
+    h.time(20);
+    h.send('pointermove', horizontal ? {clientX: 170} : {clientY: 30});
+    h.send('pointerup');
+    assert.ok(horizontal ? h.input.getState().yawVelocity < 0 : h.input.getState().scrollVelocity < 0);
+    const before = {...h.values}; h.advance(20);
+    assert.ok(horizontal ? h.values.yaw < before.yaw : h.values.progress < before.progress);
+    h.input.dispose();
+  }
+});
+
+test('reduced motion disables wheel smoothing and release coast; toggling cancels existing inertia', () => {
+  const h = browserHarness({reduced: true});
+  h.send('wheel', {deltaY: 7200});
+  close(h.values.progress, 1.4);
+  assert.equal(h.input.getState().isMoving, false);
+  h.send('pointerdown'); h.time(20); h.send('pointermove', {clientX: 180}); h.send('pointerup');
+  assert.equal(h.input.getState().isMoving, false);
+  h.reducedMotion.matches = false;
+  h.send('wheel', {deltaY: 1000});
+  assert.equal(h.input.getState().isMoving, true);
+  h.reducedMotion.matches = true;
+  h.mediaListeners.get('change')();
+  assert.equal(h.input.getState().isMoving, false);
+  h.input.dispose();
+  assert.equal(h.mediaListeners.size, 0);
 });

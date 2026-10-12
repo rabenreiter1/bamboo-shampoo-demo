@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeRitualState as at, retailFingerprint, TAU, MAX_TILT, SWIVEL_ANGLE } from '../assets/assembly/ritual-timeline.js';
+import { computeRitualState as at, computeCycleState, retailFingerprint, TAU, MAX_TILT, SWIVEL_ANGLE } from '../assets/assembly/ritual-timeline.js';
 
 const near = (a, b, epsilon = 1e-8) => assert.ok(Math.abs(a - b) < epsilon, `${a} differs from ${b}`);
 const numbers = (value) => typeof value === 'number' ? [value] : value && typeof value === 'object' ? Object.values(value).flatMap(numbers) : [];
@@ -12,7 +12,7 @@ test('factory-sealed start and finish have identical physical product state', ()
   assert.equal(at(1).newSeal.peel, 0);
   assert.equal(at(1).oldRefill.visible, false);
   assert.equal(at(1).newRefill.fill, 1);
-  near(at(1).yaw, TAU);
+  near(at(1).yaw, 2 * TAU);
 });
 
 test('10,001 progress samples are finite, deterministic and reversible', () => {
@@ -28,7 +28,7 @@ test('10,001 progress samples are finite, deterministic and reversible', () => {
 test('seal is accessible only after cap has lifted and parked; peel precedes return', () => {
   for (let p = .15; p < .27; p += .0002) {
     const s = at(p); near(s.cap.position[1], 44);
-    assert.ok(s.cap.position[0] >= 75 - 1e-8);
+    assert.ok(s.cap.position[0] <= -130 + 1e-8);
   }
   assert.equal(at(.15).seal.unfold, 0);
   assert.equal(at(.167).seal.unfold, 1);
@@ -53,7 +53,7 @@ test('outlet disengages before swivelling; pouring starts downward with one pres
   assert.equal(at(.56).cap.press, 1); assert.ok(at(.56).liquid.gush > .9);
   assert.equal(at(.595).cap.press, 0); assert.equal(at(.595).liquid.gush, 0);
   assert.equal(at(.595).liquid.flow, 1); assert.equal(at(.66).liquid.fillOld, 0);
-  near(at(.50).yaw, at(.65).yaw);
+  near(at(.65).yaw - at(.50).yaw, .15 * 2 * TAU);
 });
 
 test('old and replacement PET move axially until their bottom clears the bamboo rim', () => {
@@ -66,10 +66,46 @@ test('old and replacement PET move axially until their bottom clears the bamboo 
         near(x, 0); near(z, 0);
       }
     }
-    if (s.oldRefill.position[0] > .0001) assert.ok(p > .79);
-    if (p > .765 && p < .9) assert.ok(s.cap.position[0] > 60);
+    if (s.oldRefill.depart > .0001) assert.ok(p > .79);
+    if (p > .765 && p < .9) assert.ok(s.cap.position[0] < -100);
     assert.equal(s.newSeal.peel, 0);
   }
   assert.deepEqual(at(.9).newRefill.position, [0, 0, 0]);
   assert.deepEqual(at(.96).cap.position, [0, 0, 0]);
+});
+
+test('signed endless coordinates cross both seams with exactly two unwrapped turns per cycle', () => {
+  for (const q of [-18.5, -3.01, -.00001, 0, .00001, .31, .99999, 1, 1.00001, 25.37]) {
+    const a = computeCycleState(q), b = computeCycleState(q + 1);
+    near(a.progress, q - Math.floor(q));
+    assert.equal(a.cycleIndex, Math.floor(q));
+    near(b.yaw - a.yaw, 2 * TAU);
+    near(a.cap.position[1], b.cap.position[1]);
+    near(a.liquid.flow, b.liquid.flow);
+    near(a.cap.press, b.cap.press);
+  }
+  assert.deepEqual(retailFingerprint(computeCycleState(0)), retailFingerprint(computeCycleState(1)));
+  assert.deepEqual(computeCycleState(NaN), computeCycleState(0));
+});
+
+test('the seam has matching physical pose, angular velocity and stationary component derivatives', () => {
+  const e = 1e-6;
+  const left = computeCycleState(-e), seam = computeCycleState(0), right = computeCycleState(e);
+  near((seam.yaw - left.yaw) / e, (right.yaw - seam.yaw) / e);
+  assert.deepEqual(left.cap.position, right.cap.position);
+  assert.equal(left.cap.press, right.cap.press);
+  assert.equal(left.liquid.flow, right.liquid.flow);
+  assert.equal(left.liquid.fillNew, 1);
+  assert.equal(right.liquid.fillOld, 1);
+  assert.equal(left.newSeal.peel, right.seal.peel);
+  assert.equal(left.sealed && right.sealed, true);
+});
+
+test('discarded and incoming inserts never share the external travel window', () => {
+  for (let i = 0; i <= 10000; i++) {
+    const s = at(i / 10000);
+    if (s.newRefill.visible) assert.equal(s.oldRefill.visible, false);
+    if (s.oldRefill.depart > 0) assert.ok(s.oldRefill.position[1] + 5 > 174);
+    if (s.newRefill.visible && s.newRefill.approach > 0) near(s.newRefill.position[1], 174);
+  }
 });

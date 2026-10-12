@@ -25,7 +25,7 @@ The server runs on port 4173. GitHub Pages publishes the committed `docs/` direc
 
 ## 3D product approval page
 
-`assets/assembly/` contains source-derived tube and cap geometry, the unchanged original engraving SVG, and a fullscreen reversible use/refill cycle. Scroll opens the cap, progressively peels the film, opens the outlet, tilts and dispenses gel with one pressure dose, then replaces the empty insert and closes over a fresh intact seal. Horizontal drag spins the product; pinch or Ctrl-wheel zooms. No visible controls or autoplay are present.
+`assets/assembly/` contains source-derived tube and cap geometry, the unchanged original engraving SVG, and a fullscreen, endlessly reversible use/refill cycle. Scroll opens the cap, progressively peels the film, opens the outlet, tilts and dispenses amber shampoo with one silicone-roof pressure dose, then replaces the empty insert and closes over a fresh intact seal. Automatic axial rotation totals720° per cycle. Scroll and drag release coast smoothly; horizontal drag adds axial spin, and pinch or Ctrl-wheel zooms. Separate camera-aligned lanes prevent component collisions and carry discarded parts outside the frame. No visible controls or autoplay are present.
 
 ```sh
 npm run build:assembly

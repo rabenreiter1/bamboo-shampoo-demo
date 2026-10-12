@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import * as THREE from 'three';
 import { CAP_SOURCE } from '../assets/assembly/cap-data.js';
-import { createBody } from '../assets/assembly/body.js';
-import { createRitualCap } from '../assets/assembly/ritual-cap.js';
+import { createBody, shellRadiusAt } from '../assets/assembly/body.js';
+import { createRitualCap, siliconeRoofField } from '../assets/assembly/ritual-cap.js';
 import { createPeelSeal, createGel } from '../assets/assembly/ritual-effects.js';
 import { computeRitualState, TILT_AXIS } from '../assets/assembly/ritual-timeline.js';
 
@@ -115,7 +115,7 @@ test('cap and PET move sideways only after their actual geometry clears the bamb
     const progress = step / 2000, state = computeRitualState(progress);
     const oldMatrix = new THREE.Matrix4().compose(new THREE.Vector3(...state.oldRefill.position), new THREE.Quaternion().setFromEuler(new THREE.Euler(...state.oldRefill.rotation)), new THREE.Vector3(1, 1, 1));
     const point = new THREE.Vector3();
-    if (!firstOldLateral && Math.hypot(state.oldRefill.position[0], state.oldRefill.position[2]) > 0.00001) {
+    if (!firstOldLateral && state.oldRefill.depart > 0.00001) {
       let lowest = Infinity;
       for (let i = 0; i < localInlay.count; i++) lowest = Math.min(lowest, point.fromBufferAttribute(localInlay, i).applyMatrix4(oldMatrix).y);
       assert.ok(lowest > body.metrics.dimensions.shellHeight + 8, 'Old PET starts its disposal arc while still inside bamboo');
@@ -153,7 +153,10 @@ test('every flowing frame has a clear, unsealed outlet pointing down under axial
       ray.near = 0; ray.far = 8;
       assert.equal(ray.intersectObject(stopperPart, true).length, 0, 'The linked stopper still obstructs the dosing aperture');
       const localOutlet = cap.group.worldToLocal(outlet.clone());
-      near(localOutlet.x, 0); near(localOutlet.y, cap.metrics.roofTop + 0.004); near(localOutlet.z, cap.metrics.outletZ);
+      const field = siliconeRoofField(0, cap.metrics.outletZ, cap.metrics.buttonStroke * state.cap.press);
+      near(localOutlet.x, 0); near(localOutlet.y, cap.metrics.roofTop + 0.004 + field.displacement); near(localOutlet.z, cap.metrics.outletZ);
+      const normal = new THREE.Vector3(-field.dx, 1, -field.dz).normalize();
+      assert.ok(new THREE.Vector3(...cap.outlet.userData.localNormal).distanceTo(normal) < 0.00001);
       active++;
     }
   }
@@ -186,7 +189,13 @@ test('the actual gel stream stays attached to the outlet, clears its mouth and f
     const point = new THREE.Vector3();
     for (let i = 0; i < vertices.count; i++) {
       point.fromBufferAttribute(vertices, i).applyMatrix4(inverse);
-      assert.ok(point.y > body.metrics.dimensions.shellHeight, 'World-gravity stream cuts back through the bamboo tube');
+      const radius = Math.hypot(point.x, point.z);
+      const insideBamboo = point.y > 5 && point.y < 170 && radius >= 24 && radius <= shellRadiusAt(point.y);
+      assert.equal(insideBamboo, false, `Gel enters bamboo at p=${progress}, yaw=${manualYaw}, point=${point.toArray()}`);
+      const field = siliconeRoofField(point.x, point.z, cap.metrics.buttonStroke * computeRitualState(progress).cap.press);
+      const insideRoof = radius <= 29.5 && Math.hypot(point.x, point.z - cap.metrics.outletZ) > cap.metrics.outletDiameter / 2
+        && point.y > cap.metrics.roofUnderside + field.displacement && point.y < cap.metrics.roofTop + field.displacement;
+      assert.equal(insideRoof, false, 'Gel crosses the deformed solid silicone roof outside its aperture');
     }
     for (let i = 0; i < vertices.array.length; i++) assert.ok(Number.isFinite(vertices.array[i]));
   }
