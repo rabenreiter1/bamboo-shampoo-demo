@@ -1,5 +1,6 @@
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeJourney } from './journey.js';
+import { initializeJourney } from './journey.js?v=shop-20261013-reveal';
+import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-reveal';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;
@@ -78,6 +79,8 @@ const viewers=new Map(), mounting=new WeakMap(), sceneSnapshots=new WeakMap();le
 let sceneEpoch=0,pageActive=true;
 const scenes=[...document.querySelectorAll('[data-shop-scene]')];
 const rituals=[...document.querySelectorAll('[data-ritual-scroll]')];
+const productJourneys=new Map([...document.querySelectorAll('[data-product-journey]')].map(section=>[section,initializeProductJourney(section)]));
+if(!reduced.matches)for(const controller of productJourneys.values())controller.prepare();
 function staticRitual(section){
  section.classList.add('ritual-static');
  section.querySelectorAll('[data-ritual-step]').forEach(el=>{el.removeAttribute('aria-hidden');el.classList.add('is-active');});
@@ -95,6 +98,7 @@ function updateRitualCopy(section,progress){
 }
 async function mountScene(element){
  if(!pageActive||viewers.has(element)||mounting.has(element))return;
+ if(reduced.matches&&element.closest('[data-product-journey]')){element.dataset.sceneStatus='static';return;}
  if(element.closest('dialog') && (!element.closest('dialog').open || element.closest('[data-detour-panel]')?.hidden))return;
  const token={epoch:sceneEpoch};mounting.set(element,token);
  const current=()=>pageActive&&token.epoch===sceneEpoch&&mounting.get(element)===token;
@@ -103,28 +107,37 @@ async function mountScene(element){
   const {mountShopScene}=await sceneModule;
   if(!current())return;
   const section=element.closest('[data-ritual-scroll]');
+  const productJourney=productJourneys.get(element.closest('[data-product-journey]'));
   const mode=element.dataset.requestedMode||element.dataset.shopScene;
   const snapshot=sceneSnapshots.get(element);
   const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,
    progress:snapshot?.progress??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionProgress)||0:0),
    yaw:snapshot?.yaw??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionYaw)||0:0),
-   zoom:snapshot?.zoom||1,reveal:snapshot?1:undefined,poseProgress:snapshot?.pose||0,
+   zoom:snapshot?.zoom||1,reveal:snapshot||mode==='journey'?1:undefined,poseProgress:snapshot?.pose||0,opaque:true,
    inspection:element.hasAttribute('data-inspection'),paused:!!journey?.isLocked()&&element.closest('dialog')!==journey.getTopDialog(),
    background:getComputedStyle(element).getPropertyValue('--world-bg').trim()||undefined,
    label:element.getAttribute('aria-label'),instructions:de?
     'Pfeiltasten links und rechts drehen die Ansicht. Pos1 setzt die Drehung zurück.'+(element.hasAttribute('data-inspection')?' Plus und Minus zoomen. Der Regler bewegt die Animation.':' Scrollen bewegt die Seite.'):
-    'Left and right arrow keys rotate the view. Home resets rotation.'+(element.hasAttribute('data-inspection')?' Plus and minus zoom. The slider moves the animation.':' Scroll to move through the page.'),onState:state=>{
+    'Left and right arrow keys rotate the view. Home resets rotation.'+(element.hasAttribute('data-inspection')?' Plus and minus zoom. The slider moves the animation.':' Scroll to move through the page.'),onJourneyFrame:state=>{
+   if(!pageActive||token.epoch!==sceneEpoch||!productJourney||reduced.matches)return;
+   if(!productJourney.enhanced){productJourney.enhance(state);journey?.ready();scheduleScroll();}
+   else productJourney.render(state);
+  },onState:state=>{
    if(!pageActive||token.epoch!==sceneEpoch)return;
    if(section){if(state.status==='error')staticRitual(section);else updateRitualCopy(section,Math.max(0,Math.min(1,state.cyclePosition)));}
+   if(productJourney&&state.status==='error')productJourney.fallback();
   }});
   viewers.set(element,view);await view.ready;
   if(!current()||viewers.get(element)!==view){view.destroy();return;}
   if(section&&reduced.matches)staticRitual(section);
+  if(productJourney){if(reduced.matches)productJourney.fallback();else productJourney.enhance(view.getJourneyState());journey?.ready();}
   scheduleScroll();
  }catch(error){
   if(!current())return;
   element.dataset.sceneStatus='error';element.dataset.sceneRendered='false';element.dataset.sceneError=error?.message||'Model unavailable';
   const section=element.closest('[data-ritual-scroll]');if(section)staticRitual(section);
+  productJourneys.get(element.closest('[data-product-journey]'))?.fallback();
+  if(element.closest('[data-product-journey]'))journey?.ready();
  }finally{
   if(mounting.get(element)===token)mounting.delete(element);
  }
@@ -132,7 +145,7 @@ async function mountScene(element){
 const sceneObserver='IntersectionObserver'in window?new IntersectionObserver(entries=>{
  for(const entry of entries)if(entry.isIntersecting){sceneObserver.unobserve(entry.target);mountScene(entry.target);}
 },{rootMargin:'180px'}):null;
-scenes.filter(el=>!el.closest('dialog')).forEach(el=>sceneObserver?sceneObserver.observe(el):mountScene(el));
+scenes.filter(el=>!el.closest('dialog')).forEach(el=>sceneObserver&&!el.closest('[data-product-journey]')?sceneObserver.observe(el):mountScene(el));
 rituals.forEach(section=>{if(reduced.matches)staticRitual(section);});
 
 function setGallery(gallery,mode){
@@ -203,10 +216,15 @@ function renderScroll(){
  }
  for(const section of rituals){
   if(section.classList.contains('ritual-static'))continue;
-  const offset=headerHeight+(document.querySelector('main[data-journey]')?document.querySelector('[data-journey-nav]')?.offsetHeight||0:0);
-  const rect=section.getBoundingClientRect(),travel=rect.height-(innerHeight-offset);
+  const nav=document.querySelector('[data-journey-nav]');
+  const offset=headerHeight+(document.querySelector('main[data-journey]')&&!nav?.closest('[data-product-journey]')?nav?.offsetHeight||0:0);
+  const rect=section.getBoundingClientRect(),travel=rect.height-(section.querySelector('.ritual-sticky')?.getBoundingClientRect().height||innerHeight-offset);
   const progress=Math.max(0,Math.min(1,(offset-rect.top)/Math.max(1,travel)));
-  const view=viewers.get(section.querySelector('[data-shop-scene]'));if(view){view.setProgress(progress);updateRitualCopy(section,Math.max(0,Math.min(1,view.getState().cyclePosition)));}else updateRitualCopy(section,progress);
+  const view=viewers.get(section.querySelector('[data-shop-scene]'));if(view){view.setProgress(progress);updateRitualCopy(section,view.getProgress());}else updateRitualCopy(section,progress);
+ }
+ for(const [section,controller]of productJourneys){
+  if(!controller.enhanced)continue;
+  viewers.get(section.querySelector('[data-shop-scene]'))?.setProgress(controller.getProgress());
  }
  for(const layer of layers){
   if(reduced.matches||innerWidth<761){layer.style.transform='';continue;}
@@ -218,14 +236,21 @@ window.addEventListener('scroll',scheduleScroll,{passive:true});window.addEventL
 reduced.addEventListener('change',()=>{
  if(reduced.matches){document.documentElement.classList.remove('js-motion');document.querySelectorAll('[data-reveal]').forEach(el=>el.classList.add('is-visible'));rituals.forEach(staticRitual);}
  else rituals.forEach(section=>{if(section.querySelector('[data-shop-scene]').dataset.sceneStatus!=='error')section.classList.remove('ritual-static');});
+ for(const [section,controller]of productJourneys){
+  const element=section.querySelector('[data-shop-scene]'),view=viewers.get(element);
+  if(reduced.matches){controller.fallback();mounting.delete(element);view?.destroy();viewers.delete(element);sceneSnapshots.delete(element);element.dataset.sceneRendered='false';}
+  else if(view?.getJourneyState())controller.enhance(view.getJourneyState());
+  else mountScene(element);
+ }
  scheduleScroll();
 });
-window.addEventListener('pagehide',()=>{pageActive=false;sceneEpoch++;for(const [el,view]of viewers){const state=view.getState();sceneSnapshots.set(el,{progress:state.cyclePosition,yaw:state.manualYaw,zoom:state.framing?.zoom||1,pose:state.poseProgress});view.destroy();}viewers.clear();sceneObserver?.disconnect();});
-window.addEventListener('pageshow',event=>{pageActive=true;if(event.persisted){cart=readCart(cart);renderCart();scenes.filter(el=>!el.closest('dialog')||el.closest('dialog').open&&!el.closest('[data-detour-panel]')?.hidden).forEach(el=>{mounting.delete(el);if(sceneObserver&&!el.closest('dialog'))sceneObserver.observe(el);else mountScene(el);});scheduleScroll();}});
+window.addEventListener('pagehide',()=>{pageActive=false;sceneEpoch++;for(const controller of productJourneys.values())controller.suspend();for(const [el,view]of viewers){const state=view.getState();sceneSnapshots.set(el,{progress:view.getProgress(),yaw:state.manualYaw,zoom:state.framing?.zoom||1,pose:state.poseProgress});view.destroy();}viewers.clear();sceneObserver?.disconnect();});
+window.addEventListener('pageshow',event=>{pageActive=true;if(event.persisted){cart=readCart(cart);renderCart();for(const controller of productJourneys.values())controller.resume();scenes.filter(el=>!el.closest('dialog')||el.closest('dialog').open&&!el.closest('[data-detour-panel]')?.hidden).forEach(el=>{mounting.delete(el);if(sceneObserver&&!el.closest('dialog'))sceneObserver.observe(el);else mountScene(el);});scheduleScroll();}});
 function removeDetailScenes(){
  for(const el of scenes.filter(el=>el.closest('#journey-dialog'))){mounting.delete(el);viewers.get(el)?.destroy();viewers.delete(el);sceneSnapshots.delete(el);}
 }
 journey=initializeJourney({ui,reduced,
+ onReady:()=>{for(const [section,controller]of productJourneys)if(controller.enhanced)viewers.get(section.querySelector('[data-shop-scene]'))?.setProgress(controller.getProgress(),{immediate:true});},
  onChoice:choice=>{
   for(const el of scenes){
    const scent=el.closest('main.pdp-page')?.querySelector('[data-product-form]')?.dataset.id||choice.scent;
@@ -234,18 +259,21 @@ journey=initializeJourney({ui,reduced,
    el.closest('.product-gallery')?.querySelector('[data-gallery-view="refill"] img')?.setAttribute('src',`${base}/assets/shop-refill-${scent}.webp`);
    viewers.get(el)?.setWorld(scent,getComputedStyle(el).getPropertyValue('--world-bg').trim()||undefined);
   }
+  const themeWorld=document.querySelector('main [data-world],main.pdp-page');
+  const theme=themeWorld&&getComputedStyle(themeWorld).getPropertyValue('--world-bg').trim();
+  if(theme)document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme);
  },
  onModal:(paused,top)=>{for(const [el,view]of viewers)view.setPaused(paused&&el.closest('dialog')!==top);if(!paused)scheduleScroll();},
  onDetailClose:removeDetailScenes,
  onDetail:(type,options,choice)=>{
   const panel=document.querySelector(`[data-detour-panel="${type}"]`);
-  if(type==='materials')setGallery(panel.querySelector('.product-gallery'),options.trigger?.dataset.detourTarget==='dose'?'cap':'product');
-  const section=options.trigger?.closest('[data-ritual-scroll]')||rituals.find(el=>el.getBoundingClientRect().top<innerHeight&&el.getBoundingClientRect().bottom>0);
+  if(type==='materials')setGallery(panel.querySelector('.product-gallery'),'product');
+  const section=options.trigger?.closest('[data-ritual-scroll],[data-product-journey]')||[...productJourneys.keys(),...rituals].find(el=>el.getBoundingClientRect().top<innerHeight&&el.getBoundingClientRect().bottom>0);
   const source=section?viewers.get(section.querySelector('[data-shop-scene]'))?.getState():null;
   for(const el of panel?.querySelectorAll('[data-shop-scene]')||[]){
    if(el.hasAttribute('data-inspection')){
     const target=options.trigger?.dataset.detourTarget;
-    const progress=target==='dose'?.56:target==='refill'?.85:target==='closed'?0:source?.cyclePosition||0;
+    const progress=target==='dose'?.56:target==='refill'?.85:target==='closed'?0:source?.journey?.ritualProgress??source?.cyclePosition??0;
     el.dataset.inspectionProgress=String(progress);el.dataset.inspectionYaw=String(source?.manualYaw||0);
     const slider=panel.querySelector('[data-inspect-progress]');if(slider)slider.value=String(progress);
    }
@@ -257,5 +285,6 @@ journey=initializeJourney({ui,reduced,
   if(action==='reset'){view.setZoom(1);view.setYaw(0);}else view.setZoom(view.getState().framing?.zoom*(action==='in'?1.2:1/1.2)||1);
  }
 });
+if(reduced.matches&&productJourneys.size)journey.ready();
 document.querySelector('[data-inspect-progress]')?.addEventListener('input',event=>viewers.get(document.querySelector('[data-inspection]'))?.setProgress(Number(event.target.value),{immediate:true}));
 scheduleScroll();
