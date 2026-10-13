@@ -690,10 +690,17 @@ export function createGel({ THREE, scent } = {}) {
     streamGroup.add(mesh); return mesh;
   });
   let previous = '';
-  function update({ progress = 0, flow = 0, gush = 0, fillOld = 1, fillNew = 1, outletWorld, outletDirection } = {}) {
+  function update({ progress = 0, flow = 0, gush = 0, fillOld = 1, fillNew = 1, outletWorld, outletDirection, visible = true } = {}) {
     const state = { progress: clamp(progress), flow: clamp(flow), gush: clamp(gush), fillOld: clamp(fillOld), fillNew: clamp(fillNew),
       outletWorld: vectorArray(outletWorld, [0, 0, 0]), outletDirection: directionArray(outletDirection) };
     const signature = JSON.stringify(state);
+    // A shop can temporarily hide its interior behind the complete shell.
+    // Restore visibility before the geometry cache check: the identical full
+    // refill must not remain empty after switching product -> refill -> product.
+    oldFill.group.visible = visible && state.fillOld > .00001;
+    newFill.group.visible = visible && state.fillNew > .00001;
+    streamGroup.visible = visible && (state.flow > .00001 || drops.some(drop => drop.visible));
+    if (!visible) return;
     if (signature === previous) return;
     previous = signature;
     oldFill.update(state.fillOld, state); newFill.update(state.fillNew); stream.update(state);

@@ -1,8 +1,9 @@
+import { createScenePreviews } from './scene-preview.js?v=shop-20261013-jury3';
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeNavigation } from './navigation.js?v=shop-20261013-jury2';
-import { createSceneLoader } from './scene-loader.js?v=shop-20261013-jury2';
-import { initializeJourney } from './journey.js?v=shop-20261013-jury2';
-import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-jury2';
+import { initializeNavigation } from './navigation.js?v=shop-20261013-jury3';
+import { createSceneLoader } from './scene-loader.js?v=shop-20261013-jury3';
+import { initializeJourney } from './journey.js?v=shop-20261013-jury3';
+import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-jury3';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;
@@ -86,6 +87,7 @@ if(document.querySelector('[data-checkout-root]')){
 const viewers=new Map(), mounting=new WeakMap(), sceneSnapshots=new WeakMap();let sceneModule;
 let sceneEpoch=0,pageActive=true;
 const scenes=[...document.querySelectorAll('[data-shop-scene]')];
+const scenePreviews=createScenePreviews({elements:scenes,base,version:ui.version});
 const rituals=[...document.querySelectorAll('[data-ritual-scroll]')];
 const productJourneys=new Map([...document.querySelectorAll('[data-product-journey]')].map(section=>[section,initializeProductJourney(section)]));
 if(!reduced.matches)for(const controller of productJourneys.values())controller.prepare();
@@ -123,7 +125,7 @@ async function mountScene(element){
   const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,
    progress:snapshot?.progress??productJourney?.getProgress()??0,
    yaw:snapshot?.yaw??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionYaw)||0:0),
-   zoom:snapshot?.zoom||1,reveal:snapshot||mode==='journey'?1:undefined,poseProgress:snapshot?.pose||0,opaque:true,
+   zoom:snapshot?.zoom||1,reveal:1,poseProgress:snapshot?.pose||0,opaque:true,
    backdrop:campaignHero?'campaign':productArt?'detail':undefined,
    backdropWord:campaignHero?(campaignHero.classList.contains('campaign-hero--refill')?'REFILL':'BAMBOO'):productArt?.querySelector('.product-gallery__word')?.textContent,
    inspection:element.hasAttribute('data-inspection'),paused:!!journey?.isLocked()&&element.closest('dialog')!==journey.getTopDialog(),
@@ -162,9 +164,10 @@ rituals.forEach(section=>{if(reduced.matches)staticRitual(section);});
 function setGallery(gallery,mode){
  const element=gallery?.querySelector('[data-shop-scene]');if(!element)return;
  element.dataset.requestedMode=mode; element.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}.`);
- const poster=element.querySelector('img');if(poster){poster.src=`${base}/assets/shop-${mode==='refill'?`refill-${element.dataset.scent||'bamboo'}`:mode==='product'?'product-front':mode}.webp?v=${ui.version}`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
+ const matchedPreview=scenePreviews.update(element,mode);
+ const poster=element.querySelector('img');if(poster){if(!matchedPreview)poster.src=`${base}/assets/shop-${mode==='refill'?`refill-${element.dataset.scent||'bamboo'}`:mode==='product'?'product-front':mode}.webp?v=${ui.version}`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
  const view=viewers.get(element);if(view)view.setMode(mode);else sceneLoader.request(element);
- element.querySelector('canvas')?.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}. ${de?'Pfeiltasten links und rechts drehen die Ansicht.':'Left and right arrow keys rotate the view.'}`);
+ element.querySelector('.shop-product-canvas')?.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}. ${de?'Pfeiltasten links und rechts drehen die Ansicht.':'Left and right arrow keys rotate the view.'}`);
 }
 for(const form of document.querySelectorAll('[data-product-form]')){
  const quantity=form.elements.quantity, gallery=(form.closest('.product-layout')||form.closest('[data-detour-panel]'))?.querySelector('.product-gallery');
@@ -224,7 +227,7 @@ function renderScroll(){
   if(scene.dataset.artDirection!=='campaign')continue;
   const hero=scene.closest('.campaign-hero');if(!hero)continue;
   const rect=hero.getBoundingClientRect();
-  if(rect.bottom>0&&rect.top<innerHeight)viewers.get(scene)?.setPoseProgress(reduced.matches?0:Math.max(0,Math.min(1,-rect.top/Math.max(1,rect.height))));
+  if(rect.bottom>0&&rect.top<innerHeight){const pose=reduced.matches?0:Math.max(0,Math.min(1,-rect.top/Math.max(1,rect.height)));scenePreviews.setPose(scene,pose);viewers.get(scene)?.setPoseProgress(pose);}
  }
  for(const section of rituals){
   if(section.classList.contains('ritual-static'))continue;
@@ -264,7 +267,7 @@ journey=initializeJourney({ui,reduced,
   for(const el of scenes){
    const scent=el.closest('main.pdp-page')?.querySelector('[data-product-form]')?.dataset.id||choice.scent;
    el.dataset.scent=scent;
-   if(el.dataset.shopScene==='refill'||el.dataset.requestedMode==='refill')el.querySelector('img')?.setAttribute('src',`${base}/assets/shop-refill-${scent}.webp`);
+   if(!scenePreviews.update(el)&& (el.dataset.shopScene==='refill'||el.dataset.requestedMode==='refill'))el.querySelector('img')?.setAttribute('src',`${base}/assets/shop-refill-${scent}.webp?v=${ui.version}`);
    viewers.get(el)?.setWorld(scent,getComputedStyle(el).getPropertyValue('--world-bg').trim()||undefined);
   }
   const themeWorld=document.querySelector('main [data-world],main.pdp-page');

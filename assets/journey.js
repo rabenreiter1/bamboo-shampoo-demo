@@ -4,7 +4,7 @@ export const JOURNEY_CHAPTERS = ['discover', 'collection', 'ritual', 'questions'
 const scents = ['aloe', 'argan', 'bamboo'];
 const CHOICE_KEY = 'bamboo-journey-choice-v1';
 const RETURN_KEY = 'bamboo-journey-return-v1';
-const BOOKMARK_LAYOUT = 'collection-before-ritual-v1';
+export const BOOKMARK_LAYOUT = 'collection-before-ritual-v1';
 export function normalizeChoice(value, fallback = { scent: 'bamboo', format: 'shampoo' }) {
   return { scent: scents.includes(value?.scent) ? value.scent : fallback.scent,
     format: ['shampoo', 'refill'].includes(value?.format) ? value.format : fallback.format };

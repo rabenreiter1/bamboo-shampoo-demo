@@ -83,11 +83,13 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc, vers
   const image = (name, alt, eager = false, cls = '') => `<img class="${cls}" src="${asset(name)}" alt="${esc(alt)}" width="1024" height="1280" ${eager ? 'fetchpriority="high" loading="eager"' : 'loading="lazy"'} decoding="async">`;
 
   function viewer(lang, mode = 'product', scent = 'bamboo', cls = '', eager = false, direction = 'detail') {
-    const filename = mode === 'refill' ? `shop-refill-${scent}.webp` : mode === 'shell' ? 'shop-shell.webp' : mode === 'cap' ? 'shop-cap.webp' : 'shop-product-front.webp';
+    const matched = /(?:product-viewer|campaign-product)/.test(cls) && ['product','refill'].includes(mode);
+    const family = direction === 'campaign' ? 'campaign' : 'detail';
+    const filename = matched ? `shop-${family}-${mode === 'refill' ? `refill-${scent}` : 'product'}.webp` : mode === 'refill' ? `shop-refill-${scent}.webp` : mode === 'shell' ? 'shop-shell.webp' : mode === 'cap' ? 'shop-cap.webp' : 'shop-product-front.webp';
     const alt = L(lang,
       mode === 'refill' ? 'Transparenter PET-Einsatz mit gefülltem Shampoo und Siegelfolie' : mode === 'shell' ? 'Der offene Bambustubus mit Originalgravur, ohne Kappe und PET-Einsatz' : mode === 'cap' ? 'Silikon-Dosierkappe mit ringgelagerter Verschlusslasche' : 'Bamboo Shampoo: Bambushülle, Silikonkappe und gefüllter PET-Einsatz',
       mode === 'refill' ? 'Transparent PET insert filled with shampoo and sealed with film' : mode === 'shell' ? 'The open bamboo tube with original engraving, without cap or PET insert' : mode === 'cap' ? 'Silicone dosing cap with a ring-mounted closure' : 'Bamboo Shampoo: bamboo shell, silicone cap and filled PET insert');
-    return `<div class="shop-scene ${cls}" data-shop-scene="${mode}" data-art-direction="${direction}" data-scent="${scent}" role="group" aria-label="${esc(alt)}">${image(filename, alt, eager, 'shop-scene__fallback')}</div>`;
+    return `<div class="shop-scene ${cls}${matched ? ' scene-preview' : ''}" data-shop-scene="${mode}" data-art-direction="${direction}" data-scent="${scent}" role="group" aria-label="${esc(alt)}">${image(filename, alt, eager, 'shop-scene__fallback')}</div>`;
   }
 
   function scentCards(lang, format = 'shampoo', selected = orderedScents) {

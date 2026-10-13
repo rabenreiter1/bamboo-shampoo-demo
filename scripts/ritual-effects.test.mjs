@@ -10,6 +10,25 @@ import { createPeelSeal, createGel, samplePeelPoint, samplePeelState, sampleFold
 const near = (actual, expected, tolerance = 1e-5) => assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
 const finite = object => { for (const value of Object.values(object)) if (typeof value === 'number') assert.ok(Number.isFinite(value)); };
 
+test('a cached full refill restores its liquid after the shop hides the interior',()=>{
+  const gel=createGel({THREE,scent:'argan'});
+  const state={progress:0,flow:0,gush:0,fillOld:1,fillNew:1,outletWorld:[0,171,0],outletDirection:[0,1,0]};
+  gel.update(state);
+  const snapshot=Float32Array.from(gel.oldFillGroup.children[0].geometry.attributes.position.array);
+  for(let i=0;i<5;i++){
+    gel.update({...state,visible:false});
+    assert.equal(gel.oldFillGroup.visible,false);assert.equal(gel.newFillGroup.visible,false);
+    gel.update(state);
+    assert.equal(gel.oldFillGroup.visible,true);assert.equal(gel.newFillGroup.visible,true);
+    assert.equal(gel.oldFillGroup.userData.fillMilliliters,250);
+    assert.deepEqual(gel.oldFillGroup.children[0].geometry.attributes.position.array,snapshot);
+    assert.equal(gel.streamGroup.visible,false);
+  }
+  gel.update({...state,fillOld:0});gel.update({...state,fillOld:0,visible:false});gel.update({...state,fillOld:0});
+  assert.equal(gel.oldFillGroup.visible,false,'an empty animation state stays empty');
+  gel.dispose();
+});
+
 test('clear PET Fresnel reflection strengthens at the silhouette without a white diffuse wash', () => {
   const f0 = ((1.57 - 1) / (1.57 + 1)) ** 2;
   near(samplePetFresnel(1), f0); near(samplePetFresnel(0), 1);
