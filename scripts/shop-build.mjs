@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fragrances, formatPrice } from '../assets/catalog.js';
 import { createShopPages, shopCopy } from './shop-pages.mjs';
-const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261013-jury1';
+const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261013-jury2';
 const out=path.resolve('docs');
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 // Publish finished assets only; rejected concept models/artwork stay local.
@@ -25,7 +25,7 @@ const copy={
  en:{shop:'Shop',refillNav:'The refill',story:'Our idea',faq:'Questions & answers',home:'Home',bag:'Your bag',close:'Close',menu:'Open menu',skip:'Skip to content',preview:'Design preview · Ordering is not active',imprint:'Legal notice',privacy:'Privacy',explore:'Explore the shop',review:'Demo checkout',continue:'Keep exploring',empty:'Your next ritual is waiting.',emptyDesc:'Choose your scent. Keep the shell. Start something new.',subtotal:'Subtotal',shampoo:'Shampoo',refill:'Refill',remove:'Remove',quantity:'Quantity',toast:'Added to your bag',names:{aloe:'Aloe',argan:'Argan',bamboo:'Bamboo'},footer:'A shell that stays.<br>A ritual that goes on.',footerLine:'250 ml. Three scents. Again and again.',noticeTitle:'A first look at your new ritual.',noticeText:'Discover the products and experience the full demo checkout. No real orders, payments or customer details.',modelNote:'Product visualization · Original prototype engraving',drag:'Drag to rotate',priceNote:'Product prices from the briefing. Tax and shipping details follow before sales begin.'}
 };
 for(const lang of ['de','en'])Object.assign(copy[lang],{shampoo:shopCopy[lang].shampoo,refill:shopCopy[lang].refill,formatAdd:shopCopy[lang].formatAdd,formatNote:shopCopy[lang].formatNote,productGallery:shopCopy[lang].productGallery,filterResults:shopCopy[lang].filterResults,scentDescriptions:shopCopy[lang].scentDescriptions,scentWords:shopCopy[lang].scentWords});
-const pages=createShopPages({BASE,icon,fragrances,formatPrice,esc});
+const pages=createShopPages({BASE,icon,fragrances,formatPrice,esc,version:VERSION});
 const wordmark='<span class="wordmark-name">bamboo<span class="wordmark-dot">.</span></span><span class="wordmark-sub">SHAMPOO</span>';
 function header(lang,route){
  const t=copy[lang],home=`${BASE}/${lang}/`,other=lang==='de'?'en':'de';

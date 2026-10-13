@@ -1,12 +1,12 @@
 import * as THREE from '../assembly/vendor/three.module.js';
-import { createCampaignBackdrop, campaignLayout } from './campaign-backdrop.js?v=shop-20261013-jury1';
+import { createCampaignBackdrop, campaignLayout } from './campaign-backdrop.js?v=shop-20261013-jury2';
 import { createStudioEnvironment } from '../assembly/studio-environment.js?v=ritual-20261013-1';
 import { createBody, shellRadiusAt } from '../assembly/body.js?v=ritual-20261013-1';
 import { createRitualCap } from '../assembly/ritual-cap.js?v=ritual-20261013-1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from '../assembly/ritual-effects.js?v=ritual-20261013-journey';
 import { computeCycleState, TILT_AXIS, clamp } from '../assembly/ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from '../assembly/ritual-space.js?v=ritual-20261012-4';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-jury1';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-jury2';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
@@ -80,7 +80,8 @@ export function mountShopScene(container, options = {}) {
   if (!container?.appendChild || !container?.getBoundingClientRect) throw new TypeError('A shop viewer needs a container element.');
   const initialMode = MODES.has(options.mode) ? options.mode : 'product';
   const campaignBackdrop = options.backdrop === 'campaign';
-  const opaque = campaignBackdrop || options.opaque === true || initialMode === 'journey';
+  const hasBackdrop = campaignBackdrop || options.backdrop === 'detail';
+  const opaque = hasBackdrop || options.opaque === true || initialMode === 'journey';
   const artDirection = ['campaign', 'detail'].includes(options.artDirection) ? options.artDirection : 'studio';
   const campaign = artDirection === 'campaign';
   const worlds = { aloe: '#ebe4ff', argan: '#f7d9ce', bamboo: '#ddeaf4' };
@@ -692,10 +693,10 @@ export function mountShopScene(container, options = {}) {
       });
       scene = new THREE.Scene();
       if (opaque) scene.background = new THREE.Color(backgroundColor);
-      if (campaignBackdrop) {
+      if (hasBackdrop) {
         await document.fonts.load('700 160px Campaign');
         if (disposed) return;
-        backdrop = createCampaignBackdrop({ THREE, world }); scene.add(backdrop.mesh);
+        backdrop = createCampaignBackdrop({ THREE, world, word: options.backdropWord || 'BAMBOO', layout: options.backdrop }); scene.add(backdrop.mesh);
       }
       camera = new THREE.PerspectiveCamera(30, 1, .5, 5000);
       makeEnvironment();

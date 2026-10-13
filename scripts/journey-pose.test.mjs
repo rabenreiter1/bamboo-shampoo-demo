@@ -254,7 +254,7 @@ test('camera and component anchors are identical after backwards scrubbing and r
 
 test('the public journey paints the same explicit opaque world into clear and scene backgrounds', () => {
   const source = fs.readFileSync(new URL('../assets/shop-scene.js', import.meta.url),'utf8');
-  assert.match(source, /const opaque = campaignBackdrop \|\| options\.opaque === true \|\| initialMode === 'journey'/);
+  assert.match(source, /const opaque = hasBackdrop \|\| options\.opaque === true \|\| initialMode === 'journey'/);
   assert.match(source, /renderer\.setClearColor\(backgroundColor, opaque \? 1 : 0\)/);
   assert.match(source, /if \(opaque\) scene\.background = new THREE\.Color\(backgroundColor\)/);
   assert.match(source, /scene\.background\.set\(backgroundColor\)/);

@@ -60,6 +60,8 @@ body:not([data-page='home']):not([data-page='refill']) .header { background: #f4
 .hero-buy__arrow { inline-size: clamp(46px, 3vw, 58px); block-size: clamp(46px, 3vw, 58px); }
 .campaign-hero--home .campaign-scroll { font-size: clamp(11px, .78vw, 13px); }
 .campaign-hero--refill { min-block-size: 0; }
+.campaign-hero--refill .campaign-product--refill { inset: 0; }
+.campaign-hero--refill:has([data-scene-rendered='true']) > .campaign-word { opacity: 0; }
 .campaign-deck--refill { bottom: 40px; gap: var(--layout-gap); }
 .campaign-world-copy { max-inline-size: 36ch; }
 .campaign-world-copy > p:last-child { font-size: clamp(13px, .9vw, 16px); max-inline-size: 34ch; }
@@ -106,6 +108,10 @@ body:not([data-page='home']):not([data-page='refill']) .header { background: #f4
 }
 .product-gallery { top: calc(var(--header) + 16px); }
 .product-gallery__primary { block-size: clamp(430px, 66svh, 980px); }
+.product-gallery__word { top: 46%; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none; user-select: none; }
+.product-gallery__word[data-scent='aloe'] { font-size: clamp(140px, 23vw, 440px); color: #24515b3b; }
+.product-gallery__word[data-scent='argan'] { font-size: clamp(120px, 20vw, 380px); color: #6b3e483b; }
+.product-gallery__word[data-scent='bamboo'] { font-size: clamp(100px, 16.5vw, 300px); color: #4133563b; }
 .product-gallery__volume { font-size: clamp(9px, .65vw, 12px); }
 .product-config { max-inline-size: none; padding-block-start: 12px; }
 .product-config > div:first-child { max-inline-size: 58ch; }
@@ -452,6 +458,9 @@ body:not([data-page='home']):not([data-page='refill']) .header { background: #f4
   .product-layout { grid-template-columns: minmax(0, 1fr); gap: 25px; padding-block: 0 52px; }
   .product-gallery { position: relative; inset: auto; }
   .product-gallery__primary { block-size: clamp(340px, 56svh, 600px); }
+  .product-gallery__word[data-scent='aloe'] { font-size: 48vw; }
+  .product-gallery__word[data-scent='argan'] { font-size: 38.4vw; }
+  .product-gallery__word[data-scent='bamboo'] { font-size: 32vw; }
   .product-gallery__volume { font-size: 9px; }
   .product-format { margin-block-start: 13px; }
   .product-format .format-options { gap: 9px; }

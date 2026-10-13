@@ -70,12 +70,12 @@ export const shopCopy = {
   }
 };
 
-export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
+export function createShopPages({ BASE, icon, fragrances, formatPrice, esc, version = '' }) {
   const L = (lang, de, en) => lang === 'de' ? de : en;
   const path = (lang, route = '') => `${BASE}/${lang}/${route}`;
   const orderedScents = ['aloe', 'argan', 'bamboo'].filter(id => fragrances.includes(id));
   const price = (format, lang) => formatPrice(format === 'refill' ? 450 : 1250, lang);
-  const asset = name => `${BASE}/assets/${name}`;
+  const asset = name => `${BASE}/assets/${name}${version ? `?v=${version}` : ''}`;
   const contextualAttributes = href => href.startsWith('#') ? '' : 'data-native-route';
   const button = (href, label, modifier = '', attributes = contextualAttributes(href)) => `<a class="button ${modifier}" href="${href}" ${attributes}><span>${label}</span>${icon('arrow')}</a>`;
   const link = (href, label, attributes = contextualAttributes(href)) => `<a class="text-link" href="${href}" ${attributes}><span>${label}</span>${icon('arrow')}</a>`;
@@ -244,7 +244,7 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
 
   function productGallery(lang, id = 'bamboo', eager = false) {
     const t=shopCopy[lang];
-    return `<div class="product-gallery"><div class="product-gallery__primary">${viewer(lang,'product',id,'product-viewer',eager,'detail')}<span class="product-gallery__volume">250 ML</span></div><fieldset class="product-format"><legend class="sr-only">${L(lang,'Produkt wählen','Choose a product')}</legend><div class="format-options">${['shampoo','refill'].map(format=>`<label class="format-option"><input type="radio" form="product-form-${id}" name="format" value="${format}" ${format==='shampoo'?'checked':''}><span><span class="format-option__head"><strong>${t[format]}</strong><b>${price(format,lang)}</b></span><small>${format==='shampoo'?L(lang,'Das komplette Produkt','The complete product'):L(lang,'Der gefüllte Einsatz','The filled insert')}</small></span></label>`).join('')}</div></fieldset><p class="product-gallery__hint">${L(lang,'Ziehen zum Drehen','Drag to rotate')}</p></div>`;
+    return `<div class="product-gallery"><div class="product-gallery__primary"><span class="product-gallery__word" data-scent="${id}" aria-hidden="true">${t.names[id]}</span>${viewer(lang,'product',id,'product-viewer',eager,'detail')}<span class="product-gallery__volume">250 ML</span></div><fieldset class="product-format"><legend class="sr-only">${L(lang,'Produkt wählen','Choose a product')}</legend><div class="format-options">${['shampoo','refill'].map(format=>`<label class="format-option"><input type="radio" form="product-form-${id}" name="format" value="${format}" ${format==='shampoo'?'checked':''}><span><span class="format-option__head"><strong>${t[format]}</strong><b>${price(format,lang)}</b></span><small>${format==='shampoo'?L(lang,'Das komplette Produkt','The complete product'):L(lang,'Der gefüllte Einsatz','The filled insert')}</small></span></label>`).join('')}</div></fieldset><p class="product-gallery__hint">${L(lang,'Ziehen zum Drehen','Drag to rotate')}</p></div>`;
   }
 
   function product(lang, id) {

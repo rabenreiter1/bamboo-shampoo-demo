@@ -16,7 +16,7 @@ export function campaignLayout(width, height) {
     wordY: compact ? .39 : .43, fontSize: width * (compact ? .32 : landscape ? .29 : .34) };
 }
 
-export function createCampaignBackdrop({ THREE, world = 'bamboo' }) {
+export function createCampaignBackdrop({ THREE, world = 'bamboo', word = 'BAMBOO', layout = 'campaign' }) {
   const canvas = document.createElement('canvas'), context = canvas.getContext('2d');
   if (!context) throw new Error('The campaign backdrop needs a 2D canvas.');
   const makeTexture = () => {
@@ -59,10 +59,14 @@ export function createCampaignBackdrop({ THREE, world = 'bamboo' }) {
     wash.addColorStop(0,'#ffffff00'); wash.addColorStop(1,palette.accent);
     context.globalAlpha=.20; context.fillStyle=wash; context.fillRect(0,0,width,height);
     context.globalAlpha=1;
-    const layout=campaignLayout(width,height);
-    context.font=`700 ${layout.fontSize}px Campaign, Impact, sans-serif`;
+    const type=layout === 'detail'
+      ? { fontSize: width * .32 * 6 / Math.max(4, word.length), wordY: .46 }
+      : campaignLayout(width,height);
+    context.font=`700 ${type.fontSize}px Campaign, Impact, sans-serif`;
     context.textAlign='center'; context.textBaseline='middle'; context.fillStyle=palette.ink;
-    context.fillText('BAMBOO',width/2,height*layout.wordY,width*.975);
+    context.globalAlpha=layout === 'detail' ? .23 : 1;
+    context.fillText(word.toUpperCase(),width/2,height*type.wordY,width*.975);
+    context.globalAlpha=1;
     texture.needsUpdate=true;
   }
   return { mesh, resize(w,h){width=w;height=h;paint();}, setWorld(value){world=value;paint();},

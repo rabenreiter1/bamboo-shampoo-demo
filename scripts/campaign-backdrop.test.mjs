@@ -41,3 +41,26 @@ test('the campaign reserves space for navigation and purchase controls in phone 
     assert.ok(layout.maxY*height<=height-70);
   }
 });
+
+test('refill and scent lettering survives opaque rendering, world changes and resizing',()=>{
+  const previous=globalThis.document,calls=[];
+  const context={setTransform(){},fillRect(){},createRadialGradient(){return {addColorStop(){}};},
+    createLinearGradient(){return {addColorStop(){}};},
+    fillText(text,x,y,max){calls.push({text,x,y,max,font:this.font,alpha:this.globalAlpha});}};
+  globalThis.document={createElement(){return {width:1,height:1,getContext(){return context;}};}};
+  try{
+    for(const [word,layout] of [['REFILL','campaign'],['Aloe','detail'],['Argan','detail'],['Bamboo','detail']]){
+      const backdrop=createCampaignBackdrop({THREE,word,layout});
+      for(const [width,height] of [[320,440],[390,844],[844,390],[1440,900],[3440,1440]]){
+        backdrop.resize(width,height);backdrop.setWorld('argan');
+        const painted=calls.at(-1);
+        assert.equal(painted.text,word.toUpperCase());
+        assert.equal(painted.max,width*.975);
+        assert.ok(painted.y>0&&painted.y<height);
+        assert.equal(painted.alpha,layout==='detail'?.23:1);
+        assert.equal(context.globalAlpha,1,'type opacity must not tint the next world paint');
+      }
+      backdrop.dispose();
+    }
+  }finally{globalThis.document=previous;}
+});
