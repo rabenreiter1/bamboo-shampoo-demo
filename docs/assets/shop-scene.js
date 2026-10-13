@@ -5,7 +5,7 @@ import { createRitualCap } from '../assembly/ritual-cap.js?v=ritual-20261013-1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from '../assembly/ritual-effects.js?v=ritual-20261013-journey';
 import { computeCycleState, TILT_AXIS, clamp } from '../assembly/ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from '../assembly/ritual-space.js?v=ritual-20261012-4';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-reveal3';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-studio2';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
@@ -87,7 +87,7 @@ export function mountShopScene(container, options = {}) {
   };
   let staticCameraDirty = true;
   let appliedPoseProgress = NaN, appliedReveal = NaN;
-  let captionCopyHeight = 270, captionFooterHeight = 70;
+  let captionCopyHeight = 156, captionFooterHeight = 0;
   let warmupGeneration = 0, contextGeneration = 0, cancelWarmup = null, warmupPromise = null;
   let warming = false, shaderWarmupMilliseconds = 0;
   let renderPending = true;
@@ -351,8 +351,8 @@ export function mountShopScene(container, options = {}) {
     width = nextWidth; height = nextHeight;
     if (mode === 'journey') {
       const style = window.getComputedStyle(container.closest('.product-journey__sticky') || container);
-      captionCopyHeight = parseFloat(style.getPropertyValue('--journey-copy-height')) || (innerWidth >= 520 && innerWidth <= 760 ? 320 : 270);
-      captionFooterHeight = parseFloat(style.getPropertyValue('--journey-footer-height')) || 70;
+      captionCopyHeight = parseFloat(style.getPropertyValue('--journey-copy-height')) || (innerWidth <= 760 ? 156 : 132);
+      captionFooterHeight = parseFloat(style.getPropertyValue('--journey-footer-height')) || 0;
     }
     const coarse = window.matchMedia('(pointer: coarse)').matches;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse || width < 520 ? 1.3 : 1.65));

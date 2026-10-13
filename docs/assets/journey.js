@@ -52,8 +52,8 @@ export function initializeJourney({ ui, reduced, onChoice, onDetail, onDetailClo
     if (!chapters.length) return null;
     const y = modalLocked ? lockedScroll : window.scrollY;
     const line = y + headerHeight() + 50;
-    if (continuous?.classList.contains('is-loading') && line < absoluteRect(continuous).top + absoluteRect(continuous).height) {
-      return { chapter: 'discover', progress: 0, scroll: 0, lang: ui.lang, viewportHeight: innerHeight, viewportWidth: innerWidth };
+    if (continuous?.classList.contains('is-loading') && line >= absoluteRect(continuous).top && line < absoluteRect(continuous).top + absoluteRect(continuous).height) {
+      return { chapter: 'materials', progress: 0, scroll: y, lang: ui.lang, viewportHeight: innerHeight, viewportWidth: innerWidth };
     }
     const chapter = [...chapters].reverse().find(el => absoluteRect(el).top <= line) || chapters[0];
     const rect = absoluteRect(chapter);

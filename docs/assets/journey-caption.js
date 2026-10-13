@@ -1,4 +1,4 @@
-import { JOURNEY_PHASES } from './journey-pose.js?v=shop-20261013-reveal3';
+import { JOURNEY_PHASES } from './journey-pose.js?v=shop-20261013-studio2';
 
 const unit = value => Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 const smooth = value => { const p = unit(value); return p * p * p * (p * (p * 6 - 15) + 10); };
@@ -26,6 +26,7 @@ export function initializeProductJourney(section) {
   const markers = [...section.querySelectorAll('[data-journey-at]')];
   const labels = new Map();
   let enhanced = false, lastPhase = '', lastState = null, dimensions = null;
+  let wasPinned = false;
   let referenceWidth = 0, referenceStageHeight = 0;
   const header = () => document.querySelector('.header')?.offsetHeight || 64;
   const detailLabels = [...section.querySelectorAll('[data-component-label]')];
@@ -35,8 +36,7 @@ export function initializeProductJourney(section) {
     const rect = stage.getBoundingClientRect(), stickyRect = sticky.getBoundingClientRect();
     const width = document.documentElement.clientWidth;
     const sectionRect = section.getBoundingClientRect();
-    const keepPose = referenceStageHeight && referenceWidth !== width && lastState
-      && sectionRect.top <= header() + 1 && sectionRect.bottom >= header() + stickyRect.height - 1
+    const keepPose = referenceStageHeight && referenceWidth !== width && lastState && wasPinned
       && !document.querySelector('dialog[open]');
     // iPhone browser chrome can resize the visible stage while svh keeps the
     // story track stable. Keep its measured scroll duration until width changes.
@@ -135,7 +135,7 @@ export function initializeProductJourney(section) {
   }
   function fallback() {
     enhanced = false; section.classList.remove('is-enhanced', 'is-loading');
-    lastState = null; lastPhase = ''; dimensions = null; referenceStageHeight = 0;
+    lastState = null; lastPhase = ''; dimensions = null; referenceStageHeight = 0; wasPinned = false;
     for (const marker of markers) { marker.style.removeProperty('top'); marker.style.removeProperty('height'); }
     for (const caption of captions.values()) {
       caption.inert = false; caption.removeAttribute('aria-hidden'); caption.classList.remove('is-active', 'is-visible');
@@ -156,7 +156,11 @@ export function initializeProductJourney(section) {
     get enhanced() { return enhanced; },
     getProgress() {
       const rect = section.getBoundingClientRect();
-      return journeyScrollProgress(rect.top, rect.height, referenceStageHeight || sticky?.getBoundingClientRect().height || innerHeight, header());
+      const stageHeight = referenceStageHeight || sticky?.getBoundingClientRect().height || innerHeight;
+      // Keep the pre-resize pin state. A shortened orientation can put the old
+      // scroll pixels beyond the entire new track before resize is delivered.
+      if (referenceWidth === document.documentElement.clientWidth) wasPinned = rect.top <= header() + 1 && rect.bottom >= header() + stageHeight - 1;
+      return journeyScrollProgress(rect.top, rect.height, stageHeight, header());
     },
     suspend() { observer?.disconnect(); window.removeEventListener('resize', measure); },
     resume() { window.addEventListener('resize', measure, { passive: true }); observer?.observe(section); if (stage) observer?.observe(stage); measure(); },

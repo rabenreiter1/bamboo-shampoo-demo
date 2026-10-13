@@ -94,18 +94,18 @@ function apply(q, yaw = 0, zoom = 1, width = 1440, height = 900, layout = {}) {
 
 test('scrollbar width and header height cannot select a different camera layout from the CSS viewport', () => {
   for (const [width, height, layoutWidth, layoutHeight, expected] of [
-    [753, 952, 768, 1024, 'beside'],
-    [1009, 1294, 1024, 1366, 'beside'],
-    [685, 528, 700, 600, 'below'],
+    [753, 952, 768, 1024, 'studio'],
+    [1009, 1294, 1024, 1366, 'studio'],
+    [685, 528, 700, 600, 'studio'],
     [829, 318, 844, 390, 'beside'],
     [525, 256, 540, 320, 'beside'],
-    [305, 676, 320, 740, 'below'],
-    [505, 780, 520, 844, 'below'],
-    [585, 936, 600, 1000, 'below'],
+    [305, 676, 320, 740, 'studio'],
+    [505, 780, 520, 844, 'studio'],
+    [585, 936, 600, 1000, 'studio'],
   ]) {
     const { framing } = apply(.33, 0, 1, width, height, { layoutWidth, layoutHeight });
     assert.equal(framing.region.layout, expected, `${layoutWidth}×${layoutHeight} CSS viewport`);
-    if (expected === 'below') assert.ok(framing.region.maxY <= (height - (layoutWidth >= 520 && layoutWidth <= 760 ? 320 : 270) - 70 - 16) / height + 1e-8);
+    if (expected === 'studio') assert.ok(framing.region.maxY <= (height - (layoutWidth <= 760 ? 156 : 132) - 32) / height + 1e-8);
   }
 });
 function insideBamboo(p) {
@@ -199,7 +199,7 @@ test('the separated three parts remain inside the product region for mobile, sho
       for (const anchor of Object.values(anchors)) {
         assert.ok(anchor.x >= 0 && anchor.x <= 1 && anchor.y >= 0 && anchor.y <= 1);
       }
-      assert.equal(framing.region.layout, width > 760 || width > 600 && height < 560 ? 'beside' : 'below');
+      assert.equal(framing.region.layout, height <= 560 && width > height ? 'beside' : 'studio');
     }
   }
 });
