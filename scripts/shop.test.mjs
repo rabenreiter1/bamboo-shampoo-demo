@@ -20,6 +20,30 @@ const links = html => tags(html, 'link').map(attrs);
 const scriptData = (html, id) => JSON.parse(html.match(new RegExp(`<script[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)<\\/script>`))[1]);
 const unescape = value => value.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
 
+test('the homepage explains the early three-part reveal in one scene and preserves real shopping routes', () => {
+  for (const lang of locales) {
+    const main = readPage(lang).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
+    assert.equal(tags(main, 'div').filter(tag => attrs(tag)['data-shop-scene']).length, 1);
+    assert.ok(tags(main, 'div').some(tag => attrs(tag)['data-shop-scene'] === 'journey'));
+    const phases = tags(main, 'article').map(attrs).filter(tag => tag['data-journey-caption']);
+    assert.deepEqual(phases.map(tag => tag['data-journey-caption']), ['meet', 'shell', 'insert', 'cap', 'together', 'unseal', 'dose', 'refill', 'ready']);
+    assert.deepEqual(tags(main, 'details').map(attrs).filter(tag => tag['data-component']).map(tag => tag['data-component']), ['shell', 'insert', 'cap']);
+    assert.equal(tags(main, 'path').map(attrs).filter(tag => tag['data-journey-leader']).length, 3);
+    assert.doesNotMatch(main, /data-detour(?:=|-)/, 'main journey explanations and purchases do not open the old detail panels');
+    for (const scent of fragrances) assert.ok(tags(main, 'a').some(tag => attrs(tag).href === `${base}/${lang}/products/${scent}/` && /\sdata-native-route(?:\s|>)/.test(tag)), 'scent cards lead to actual product pages');
+    const ui = scriptData(readPage(lang), 'ui-copy');
+    assert.equal(ui.shampoo, 'Shampoo'); assert.equal(ui.refill, 'Refill');
+  }
+});
+
+test('product galleries offer only the complete shampoo and filled refill', () => {
+  for (const lang of locales) for (const scent of fragrances) {
+    const main = readPage(lang, `products/${scent}/`).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
+    assert.deepEqual(tags(main, 'button').map(attrs).filter(tag => tag['data-gallery-view']).map(tag => tag['data-gallery-view']), ['product', 'refill']);
+    assert.doesNotMatch(readPage(lang, `products/${scent}/`), /data-gallery-view="cap"/, 'the cap is never offered as a separate gallery product');
+  }
+});
+
 test('every shop route is directly readable with one semantic heading and localized document metadata', () => {
   for (const lang of locales) {
     const titles = new Set();
@@ -222,9 +246,12 @@ test('published 3D assets retain approved artwork and exclude rejected legacy re
   assert.equal(publishedViewer, sourceViewer.replaceAll('./assembly/', '../assembly/'), 'published shop viewer only adapts the approved module directory');
   const imports = [...publishedViewer.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)].map(match => match[1]);
   for (const specifier of imports) {
-    assert.ok(specifier.startsWith('../assembly/'), 'shop models come from the approved assembly');
+    assert.ok(specifier.startsWith('../assembly/') || specifier.split('?')[0] === './journey-pose.js', 'shop models come from the approved assembly, with the authored introduction as the only shop pose adapter');
     assert.ok(fs.existsSync(path.resolve(root, 'assets', specifier.split('?')[0])), `${specifier} resolves after publishing`);
   }
+  const poseSource = fs.readFileSync(path.join('assets', 'journey-pose.js'), 'utf8');
+  assert.equal(fs.readFileSync(path.join(root, 'assets', 'journey-pose.js'), 'utf8'), poseSource.replaceAll('./assembly/', '../assembly/'));
+  for (const match of poseSource.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)) assert.ok(match[1].startsWith('./assembly/'), 'intro adapts the approved operating timeline');
   for (const filename of ['shop-product.jpg', 'shop-refill.jpg', 'shop-cap.jpg']) {
     const image = fs.readFileSync(path.join(root, 'assets', filename));
     assert.ok(image.length > 2000, `${filename} contains an actual product render`);

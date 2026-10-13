@@ -9,6 +9,50 @@ const HOME = `https://example.test${BASE}/en/`;
 const production = fs.readFileSync(new URL('../assets/journey.js', import.meta.url), 'utf8');
 const saved = overrides => ({ chapter: 'ritual', progress: .4, scroll: 3366, lang: 'en', viewportHeight: 844, viewportWidth: 390, ...overrides });
 
+test('continuous homepage links use real product and story pages without material popups', () => {
+  const h = harness({ continuous: true });
+  h.chapters[0].height = 2000;
+  for (const route of ['products/aloe/', 'story/', 'refill/', 'faq/']) {
+    const link = new h.Element('a', { href: `${BASE}/en/${route}` }, h.chapters[1]);
+    assert.equal(h.click(link).defaultPrevented, false);
+    assert.equal(h.dialog.open, false);
+  }
+  const bookmark = JSON.parse(h.memory.get('bamboo-journey-return-v1'));
+  assert.equal(bookmark.chapter, 'discover');
+  assert.equal(bookmark.scroll, 312);
+  assert.equal(bookmark.progress, (312 + 68) / (2000 - (844 - 68)), 'embedded story nav does not add another header offset');
+});
+
+test('continuous homepage resumes only after the model has established the final scroll layout', async () => {
+  const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(saved())]]);
+  const h = harness({ continuous: true, memory, url: `${HOME}?resume=1#ritual`, scroll: 0 });
+  await Promise.resolve(); h.flushFrames();
+  assert.equal(h.window.scrollY, 0, 'static fallback geometry cannot restore the animated track prematurely');
+  h.api.ready(); await Promise.resolve(); h.flushFrames();
+  assert.equal(h.window.scrollY, 3366);
+  h.window.scrollY = 3512; h.api.ready(); await Promise.resolve(); h.flushFrames();
+  assert.equal(h.window.scrollY, 3512, 'subsequent ready notifications do not jump the user');
+});
+
+test('scent changes preserve the explicit refill format on native purchase links', () => {
+  const h = harness({ continuous: true });
+  const world = new h.Element('section', { 'data-world': 'bamboo' }, h.chapters[4]);
+  const shampoo = new h.Element('a', { 'data-world-link': '', href: `${BASE}/en/products/bamboo/` }, world);
+  const refill = new h.Element('a', { 'data-world-link': '', 'data-world-format': 'refill', href: `${BASE}/en/products/bamboo/?format=refill` }, world);
+  h.api.select({ scent: 'argan' });
+  assert.equal(shampoo.href, `https://example.test${BASE}/en/products/argan/`);
+  assert.equal(refill.href, `https://example.test${BASE}/en/products/argan/?format=refill`);
+});
+
+test('cold reload and noncached browser Back restore the continuous track after it is ready', async () => {
+  for (const navigationType of ['reload', 'back_forward']) {
+    const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(saved())]]);
+    const h = harness({ continuous: true, navigationType, memory, scroll: 0 });
+    await Promise.resolve(); h.flushFrames(); assert.equal(h.window.scrollY, 0);
+    h.api.ready(); await Promise.resolve(); h.flushFrames(); assert.equal(h.window.scrollY, 3366);
+  }
+});
+
 test('a same-viewport return preserves the raw position even for a short, fully traversed chapter', () => {
   const point = saved({ chapter: 'discover', progress: 1, scroll: 312 });
   assert.equal(positionFromBookmark(point, { top: 0, height: 844 }, 844, 126, 390), 312);
@@ -58,7 +102,7 @@ test('untrusted persisted positions must name a known chapter and finite bounded
 // separate queues, so a test cannot accidentally treat Back as synchronous.
 // This harness checks state/control behavior; it does not claim native focus
 // trapping, layout, browser touch arbitration, BFCache, or GPU validation.
-function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), main = true, storageBlocked = false } = {}) {
+function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), main = true, continuous = false, navigationType = 'navigate', storageBlocked = false } = {}) {
   const frames = new Map(), tasks = [], historyTasks = [], observers = [], stack = [];
   const listeners = new Map(); let frameId = 1;
   const location = new URL(url);
@@ -126,6 +170,7 @@ function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), m
   const header = new Element('header', { class: 'header' }, body); header.offsetHeight = 68;
   const nav = new Element('nav', { 'data-journey-nav': '' }, body); nav.offsetHeight = 58;
   const mainEl = main ? new Element('main', { 'data-journey': '' }, body) : null;
+  if (continuous && mainEl) new Element('section', { 'data-product-journey': '' }, mainEl);
   const specs = [['discover', 0, 850], ['materials', 1000, 1050], ['ritual', 2100, 4000], ['collection', 6200, 1400], ['questions', 7700, 800]];
   const chapters = specs.map(([id, top, height]) => { const el = new Element('section', { id, 'data-journey-chapter': id }, mainEl || body); el.top = top; el.height = height; return el; });
   const trigger = new Element('a', { href: `${BASE}/en/products/bamboo/`, 'data-detour': 'product' }, chapters[0]);
@@ -145,6 +190,7 @@ function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), m
     forward() { historyTasks.push(() => { if (index === entries.length - 1) return; index++; location.href = entries[index].url; emit('popstate'); }); },
   };
   const context = vm.createContext({ document, window, location, history, URL, URLSearchParams,
+    performance: { getEntriesByType: () => [{ type: navigationType }] },
     innerHeight: window.innerHeight, innerWidth: window.innerWidth,
     sessionStorage: {
       getItem(key) { if (storageBlocked) throw new Error('Storage unavailable'); return memory.get(key) ?? null; },

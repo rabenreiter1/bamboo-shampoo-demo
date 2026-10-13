@@ -23,9 +23,10 @@ export function validBookmark(value) {
     && value.progress >= 0 && value.progress <= 1 && Number.isFinite(value.scroll) && value.scroll >= 0;
 }
 
-export function initializeJourney({ ui, reduced, onChoice, onDetail, onDetailClose, onModal, onZoom }) {
+export function initializeJourney({ ui, reduced, onChoice, onDetail, onDetailClose, onModal, onZoom, onReady }) {
   const de = ui.lang === 'de', base = ui.base;
   const main = document.querySelector('main[data-journey]');
+  const continuous = main?.querySelector('[data-product-journey]');
   const dialog = document.querySelector('#journey-dialog');
   const chapters = main ? [...main.querySelectorAll('[data-journey-chapter]')] : [];
   const allDialogs = [...document.querySelectorAll('dialog')];
@@ -45,12 +46,15 @@ export function initializeJourney({ ui, reduced, onChoice, onDetail, onDetailClo
   };
   const pageScent = document.querySelector('main.pdp-page [data-product-form]')?.dataset.id;
   choice = normalizeChoice(pageScent ? { scent: pageScent, format: new URLSearchParams(location.search).get('format') } : storage.read(CHOICE_KEY));
-  const headerHeight = () => (document.querySelector('.header')?.offsetHeight || 68) + (main ? document.querySelector('[data-journey-nav]')?.offsetHeight || 0 : 0);
+  const headerHeight = () => (document.querySelector('.header')?.offsetHeight || 68) + (main && !continuous ? document.querySelector('[data-journey-nav]')?.offsetHeight || 0 : 0);
   const absoluteRect = element => { const r = element.getBoundingClientRect(); return { top: r.top + (modalLocked ? lockedScroll : window.scrollY), height: r.height }; };
   function bookmark() {
     if (!chapters.length) return null;
     const y = modalLocked ? lockedScroll : window.scrollY;
     const line = y + headerHeight() + 50;
+    if (continuous?.classList.contains('is-loading') && line < absoluteRect(continuous).top + absoluteRect(continuous).height) {
+      return { chapter: 'discover', progress: 0, scroll: 0, lang: ui.lang, viewportHeight: innerHeight, viewportWidth: innerWidth };
+    }
     const chapter = [...chapters].reverse().find(el => absoluteRect(el).top <= line) || chapters[0];
     const rect = absoluteRect(chapter);
     return { chapter: chapter.dataset.journeyChapter, progress: chapterPosition(rect, y, innerHeight, headerHeight()), scroll: y, lang: ui.lang,
@@ -69,7 +73,7 @@ export function initializeJourney({ ui, reduced, onChoice, onDetail, onDetailClo
       hero.classList.remove(...scents.map(id => `scent-${id}`)); hero.classList.add(`scent-${choice.scent}`);
       hero.querySelectorAll('[data-world-name]').forEach(el => el.textContent = ui.names[choice.scent]);
       hero.querySelectorAll('[data-world-description]').forEach(el => el.textContent = ui.scentDescriptions[choice.scent]);
-      hero.querySelectorAll('[data-world-link]').forEach(el => { el.href = `${base}/${ui.lang}/products/${choice.scent}/`; });
+      hero.querySelectorAll('[data-world-link]').forEach(el => { el.href = `${base}/${ui.lang}/products/${choice.scent}/${el.dataset.worldFormat === 'refill' ? '?format=refill' : ''}`; });
     }
     document.querySelectorAll('[data-world-scent]').forEach(el => el.setAttribute('aria-pressed', String(el.dataset.worldScent === choice.scent)));
     document.querySelectorAll('a[data-detour="product"][data-detour-format="refill"]:not([data-detour-scent])').forEach(el => {
@@ -184,6 +188,7 @@ export function initializeJourney({ ui, reduced, onChoice, onDetail, onDetailClo
   function typeForLink(target) {
     if (target.hasAttribute('data-native-route') || target.closest('.lang-switch')) return null;
     if (target.dataset.detour) return target.dataset.detour;
+    if (continuous) return null;
     if (!main || target.tagName !== 'A') return null;
     const url = new URL(target.href, location.href);
     if (url.origin !== location.origin) return null;
@@ -253,14 +258,27 @@ export function initializeJourney({ ui, reduced, onChoice, onDetail, onDetailClo
     if (validBookmark(saved)) link.href = `${base}/${ui.lang}/?resume=1#${saved.chapter}`;
   }
   select(choice, { persist: false }); updateChapters();
-  if (main && (staleDetail || new URLSearchParams(location.search).get('resume') === '1') && validBookmark(saved)) {
+  const navigationType = typeof performance !== 'undefined' ? performance.getEntriesByType('navigation')[0]?.type : null;
+  const shouldResume = main && (staleDetail || new URLSearchParams(location.search).get('resume') === '1'
+    || continuous && ['reload', 'back_forward'].includes(navigationType)) && validBookmark(saved);
+  let ready = false;
+  function readyJourney() {
+    if (ready) return; ready = true;
+    if (!main) return;
+    if (!shouldResume) {
+      const id = location.hash.slice(1);
+      if (continuous && JOURNEY_CHAPTERS.includes(id)) document.querySelector(`[data-journey-chapter="${id}"]`)?.scrollIntoView({ behavior: 'instant', block: 'start' });
+      onReady?.(); schedule(); return;
+    }
     const restore = () => {
       const section = document.querySelector(`[data-journey-chapter="${saved.chapter}"]`);
       if (section) window.scrollTo({ top: positionFromBookmark(saved, absoluteRect(section), innerHeight, headerHeight(), innerWidth), behavior: 'instant' });
+      onReady?.();
       schedule();
     };
     document.fonts.ready.then(() => requestAnimationFrame(restore));
   }
+  if (!continuous) readyJourney();
   return { open: openDetail, close: closeDetail, select, getChoice: () => ({ ...choice }), isLocked: () => modalLocked,
-    getTopDialog: () => modalOrder.at(-1) || null, update: schedule };
+    getTopDialog: () => modalOrder.at(-1) || null, update: schedule, ready: readyJourney };
 }
