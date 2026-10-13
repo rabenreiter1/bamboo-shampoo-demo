@@ -1,8 +1,8 @@
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeNavigation } from './navigation.js?v=shop-20261013-jury1';
-import { createSceneLoader } from './scene-loader.js?v=shop-20261013-jury1';
-import { initializeJourney } from './journey.js?v=shop-20261013-jury1';
-import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-jury1';
+import { initializeNavigation } from './navigation.js?v=shop-20261013-jury2';
+import { createSceneLoader } from './scene-loader.js?v=shop-20261013-jury2';
+import { initializeJourney } from './journey.js?v=shop-20261013-jury2';
+import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-jury2';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;
@@ -118,10 +118,14 @@ async function mountScene(element){
   const productJourney=productJourneys.get(element.closest('[data-product-journey]'));
   const mode=element.dataset.requestedMode||element.dataset.shopScene;
   const snapshot=sceneSnapshots.get(element);
+  const campaignHero=element.closest('.campaign-hero');
+  const productArt=element.closest('.product-gallery__primary');
   const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,
    progress:snapshot?.progress??productJourney?.getProgress()??0,
    yaw:snapshot?.yaw??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionYaw)||0:0),
-   zoom:snapshot?.zoom||1,reveal:snapshot||mode==='journey'?1:undefined,poseProgress:snapshot?.pose||0,opaque:true,backdrop:element.closest('.campaign-hero--home')?'campaign':undefined,
+   zoom:snapshot?.zoom||1,reveal:snapshot||mode==='journey'?1:undefined,poseProgress:snapshot?.pose||0,opaque:true,
+   backdrop:campaignHero?'campaign':productArt?'detail':undefined,
+   backdropWord:campaignHero?(campaignHero.classList.contains('campaign-hero--refill')?'REFILL':'BAMBOO'):productArt?.querySelector('.product-gallery__word')?.textContent,
    inspection:element.hasAttribute('data-inspection'),paused:!!journey?.isLocked()&&element.closest('dialog')!==journey.getTopDialog(),
    background:getComputedStyle(element).getPropertyValue('--world-bg').trim()||undefined,
    label:element.getAttribute('aria-label'),instructions:de?
@@ -158,7 +162,7 @@ rituals.forEach(section=>{if(reduced.matches)staticRitual(section);});
 function setGallery(gallery,mode){
  const element=gallery?.querySelector('[data-shop-scene]');if(!element)return;
  element.dataset.requestedMode=mode; element.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}.`);
- const poster=element.querySelector('img');if(poster){poster.src=`${base}/assets/shop-${mode==='refill'?`refill-${element.dataset.scent||'bamboo'}`:mode==='product'?'product-front':mode}.webp`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
+ const poster=element.querySelector('img');if(poster){poster.src=`${base}/assets/shop-${mode==='refill'?`refill-${element.dataset.scent||'bamboo'}`:mode==='product'?'product-front':mode}.webp?v=${ui.version}`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
  const view=viewers.get(element);if(view)view.setMode(mode);else sceneLoader.request(element);
  element.querySelector('canvas')?.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}. ${de?'Pfeiltasten links und rechts drehen die Ansicht.':'Left and right arrow keys rotate the view.'}`);
 }
