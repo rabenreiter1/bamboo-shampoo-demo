@@ -1,4 +1,4 @@
-import { campaignLayout } from './campaign-backdrop.js?v=shop-20261013-jury3';
+import { campaignLayout } from './campaign-backdrop.js?v=shop-20261013-jury4';
 
 // Shared by the photograph placement and live camera. No GPU or THREE import
 // is needed to place the first visible product before the renderer downloads.

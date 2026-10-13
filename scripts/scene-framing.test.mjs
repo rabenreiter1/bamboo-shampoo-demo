@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import * as THREE from 'three';
 import {staticSceneFrame,projectScenePoint,scenePreviewBox} from '../assets/scene-framing.js';
 import {campaignLayout} from '../assets/campaign-backdrop.js';
-import {scenePreviewAsset,createScenePreviews} from '../assets/scene-preview.js';
+import {scenePreviewAsset,createScenePreviews,paintScenePreviewWorld} from '../assets/scene-preview.js';
 
 test('the shared first-frame camera projects exactly like the live THREE camera',()=>{
   for(const [width,height] of [[320,440],[390,472],[390,844],[844,390],[768,700],[1440,900],[3440,1440]])
@@ -20,6 +20,20 @@ test('the shared first-frame camera projects exactly like the live THREE camera'
       const box=scenePreviewBox({width,height,mode,campaign,reserved});
       assert.ok(Object.values(box).every(Number.isFinite));assert.ok(box.width>0&&box.height>0);
     }
+});
+
+test('the preview world stays cached through pose updates and repaints after its font becomes ready',()=>{
+  let paints=0,fontReady=false;
+  const context={setTransform(){},fillRect(){},createRadialGradient(){return {addColorStop(){}};},
+    createLinearGradient(){return {addColorStop(){}};},fillText(){paints++;}};
+  const canvas={dataset:{},setAttribute(){},getContext:()=>context};let attached=false;
+  const doc={fonts:{check:()=>fontReady},createElement:()=>canvas};
+  const element={ownerDocument:doc,querySelector:()=>attached?canvas:null,appendChild:()=>{attached=true;},closest:()=>null};
+  const state={width:390,height:844,scent:'argan',campaign:true};
+  for(let i=0;i<60;i++)paintScenePreviewWorld(element,state);
+  assert.equal(paints,1,'scroll pose updates do not redraw a hidden full-screen bitmap');
+  fontReady=true;paintScenePreviewWorld(element,state);assert.equal(paints,2);
+  paintScenePreviewWorld(element,{...state,scent:'aloe'});assert.equal(paints,3);
 });
 
 test('mode and scent changes replace the matching preview and reframe it without a renderer',()=>{

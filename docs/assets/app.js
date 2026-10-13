@@ -1,9 +1,9 @@
-import { createScenePreviews } from './scene-preview.js?v=shop-20261013-jury3';
+import { createScenePreviews } from './scene-preview.js?v=shop-20261013-jury4';
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeNavigation } from './navigation.js?v=shop-20261013-jury3';
-import { createSceneLoader } from './scene-loader.js?v=shop-20261013-jury3';
-import { initializeJourney } from './journey.js?v=shop-20261013-jury3';
-import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-jury3';
+import { initializeNavigation } from './navigation.js?v=shop-20261013-jury4';
+import { createSceneLoader } from './scene-loader.js?v=shop-20261013-jury4';
+import { initializeJourney } from './journey.js?v=shop-20261013-jury4';
+import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-jury4';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;

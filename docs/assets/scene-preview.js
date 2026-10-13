@@ -1,5 +1,5 @@
-import { scenePreviewBox } from './scene-framing.js?v=shop-20261013-jury3';
-import { paintCampaignWorld } from './campaign-backdrop.js?v=shop-20261013-jury3';
+import { scenePreviewBox } from './scene-framing.js?v=shop-20261013-jury4';
+import { paintCampaignWorld } from './campaign-backdrop.js?v=shop-20261013-jury4';
 
 export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=element.ownerDocument}){
   if(!doc?.createElement)return false;
@@ -12,7 +12,10 @@ export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=
   const hero=element.closest('.campaign-hero');
   const word=hero?(hero.classList.contains('campaign-hero--refill')?'REFILL':'BAMBOO')
     :element.closest('.product-gallery__primary')?.querySelector('.product-gallery__word')?.textContent||'BAMBOO';
+  const signature=JSON.stringify([width,height,scent,word,campaign,doc.fonts?.check?.('700 160px Campaign')]);
+  if(canvas.dataset.previewWorldSignature===signature)return true;
   paintCampaignWorld(context,{width,height,world:scent,word,layout:campaign?'campaign':'detail',scale});
+  canvas.dataset.previewWorldSignature=signature;
   return true;
 }
 

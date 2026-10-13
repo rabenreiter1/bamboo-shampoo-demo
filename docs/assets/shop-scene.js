@@ -1,13 +1,13 @@
 import * as THREE from '../assembly/vendor/three.module.js';
-import { staticSceneFrame } from './scene-framing.js?v=shop-20261013-jury3';
-import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261013-jury3';
+import { staticSceneFrame } from './scene-framing.js?v=shop-20261013-jury4';
+import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261013-jury4';
 import { createStudioEnvironment } from '../assembly/studio-environment.js?v=ritual-20261013-1';
 import { createBody, shellRadiusAt } from '../assembly/body.js?v=ritual-20261013-1';
 import { createRitualCap } from '../assembly/ritual-cap.js?v=ritual-20261013-1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from '../assembly/ritual-effects.js?v=ritual-20261013-visibility-1';
 import { computeCycleState, TILT_AXIS, clamp } from '../assembly/ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from '../assembly/ritual-space.js?v=ritual-20261012-4';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-jury3';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-jury4';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
