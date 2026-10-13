@@ -4,7 +4,7 @@ German: https://rabenreiter1.github.io/bamboo-shampoo-demo/de/
 English: https://rabenreiter1.github.io/bamboo-shampoo-demo/en/
 Fullscreen 3D product ritual: https://rabenreiter1.github.io/bamboo-shampoo-demo/assembly/
 
-A bilingual storefront preview built around the approved 3D product. The homepage opens with the complete product in front of oversized BAMBOO lettering and a fragrance-coloured atmosphere. A separate pale studio section explains the construction, use and refill cycle through one scroll-controlled scene and one short caption at a time. Aloe has pale aqua liquid, Argan warm amber and Bamboo soft green; bulk, surface, stream, droplets and refill posters share each scent's palette. The standalone approval animation retains its grapefruit-coral appearance. The collection, product configuration, editorial story, FAQ, bag and selection review have dedicated routes and responsive layouts. It accepts no orders, payments or customer contact details.
+A bilingual storefront preview built around the approved 3D product. The homepage opens with the complete product in front of oversized BAMBOO lettering and a fragrance-coloured atmosphere. A separate pale studio section explains the construction, use and refill cycle through one scroll-controlled scene and one short caption at a time. Aloe has pale aqua liquid, Argan warm amber and Bamboo soft green; bulk, surface, stream, droplets and refill posters share each scent's palette. The standalone approval animation retains its grapefruit-coral appearance. The collection, product configuration, editorial story, FAQ, bag and simulated checkout have dedicated routes and responsive layouts. It accepts no orders, payments or customer contact details.
 
 Design and implementation evidence: [SHOP_REFERENCE_RESEARCH.md](SHOP_REFERENCE_RESEARCH.md) and [AI_DESIGN_PLAYBOOK.md](AI_DESIGN_PLAYBOOK.md). Reference observations, creator claims and implementation inferences are distinguished; no reference is claimed to be an AI-only build without evidence.
 
@@ -33,7 +33,7 @@ npm test
 npm run dev
 ```
 
-The server runs on port 4173. GitHub Pages publishes the committed `docs/` directory from `main`. Change copy and templates in `scripts/shop-pages.mjs`, shared layout and metadata in `scripts/shop-build.mjs`, styles in `assets/style.css`, interactions in `assets/app.js`, and product logic in `assets/catalog.js`. `scripts/build.mjs` is the full build entry. Rebuild before publishing changes.
+The server runs on port 4173. GitHub Pages publishes the committed `docs/` directory from `main`. Change copy and templates in `scripts/shop-pages.mjs`, shared layout and metadata in `scripts/shop-build.mjs`, styles in `assets/style.css` and the final responsive layer `assets/polish.css`, interactions in `assets/app.js`, and product logic in `assets/catalog.js`. `scripts/build.mjs` is the full build entry. Rebuild before publishing changes.
 
 ## Shop model integration
 
@@ -41,7 +41,7 @@ The server runs on port 4173. GitHub Pages publishes the committed `docs/` direc
 
 Viewers render only when visible and moving. Shader programs warm asynchronously with the still image visible; the homepage shows its opening caption during loading. Failed WebGL loading retains the image and exposes the written chapters. Reduced-motion and no-script users receive all nine homepage explanations without the long animated scroll section; the other lifecycle sections retain their five written steps. Page-exit and context-recovery paths dispose or rebuild GPU resources.
 
-The full build writes 22 localized content pages, six legacy fragrance redirects, the entry page, 404 and fullscreen animation. Product URLs are `/de/products/aloe/`, `/de/products/argan/` and `/de/products/bamboo/`, with matching English routes. `?format=refill` opens the refill configuration and stays selected through fragrance and language changes. Bag prices use integer cents and the review page collects no customer data.
+The full build writes 22 localized content pages, six legacy fragrance redirects, the entry page, 404 and fullscreen animation. Product URLs are `/de/products/aloe/`, `/de/products/argan/` and `/de/products/bamboo/`, with matching English routes. `?format=refill` opens the refill configuration and stays selected through fragrance and language changes. Bag prices use integer cents. The four-stage simulated checkout collects no customer data, makes no orders or payments, and retains only product/demo receipt details in sessionStorage for refresh recovery.
 
 ## 3D product approval page
 
@@ -60,9 +60,9 @@ The selective assembly build leaves existing shop files untouched. The complete 
 
 ## SEO and hosting
 
-Route-specific localized titles and descriptions, canonical URLs, reciprocal hreflang, social cards, breadcrumbs, collection metadata and a sitemap are included. The session-only review page is excluded from the sitemap. The preview deliberately uses `noindex` until approved for a real launch. No custom domain or DNS is configured. GitHub Pages hosts the design preview; a commerce backend is needed for real orders.
+Route-specific localized titles and descriptions, canonical URLs, reciprocal hreflang, social cards, breadcrumbs, collection metadata and a sitemap are included. The session-only demo checkout is excluded from the sitemap. The preview deliberately uses `noindex` until approved for a real launch. No custom domain or DNS is configured. GitHub Pages hosts the design preview; a commerce backend is needed for real orders.
 
-Fonts and images are self-hosted. No analytics, third-party embeds or marketing cookies. The demo bag, local scent/format choice and journey return bookmark use sessionStorage. Reduced-motion preferences disable animation and parallax; parallax is also disabled on small screens. Written fallbacks have content-driven height.
+Fonts and images are self-hosted. No analytics, third-party embeds or marketing cookies. The demo bag, local scent/format choice, product-only demo receipt and journey return bookmark use sessionStorage. Reduced-motion preferences disable animation and parallax; parallax is also disabled on small screens. Written fallbacks have content-driven height.
 
 The legal notice preserves the operator-provided source fragment verbatim. Regression checks lock both its hash and the hash of the original engraving.
 
@@ -89,3 +89,11 @@ Earlier generated packaging concepts and rejected engraving variants are not inc
 Barlow Condensed Bold 700 and Manrope are self-hosted under their included Open Font Licenses in `assets/`. Barlow's source is the official Google Fonts distribution. Retained earlier editorial fonts are also licensed under the included OFL. The favicon and interface graphics are original SVG/CSS.
 
 The revised selection/use release passes 140 regression tests and the 31-page checker. New 1536 × 1920 upright card and empty-shell images were captured from the unchanged approved factories and encoded as transparent WebP assets (approximately 90–100 kB each). GPU backdrop textures are reallocated on viewport changes. The original engraving, legal fragment and standalone assembly remain unchanged. Actual iPhone Safari rendering and hardware frame rates still require physical-device verification.
+
+## Jury polish
+
+The story’s empty bamboo tube is now an actual shell-only viewer with drag/coast and keyboard rotation. GPU construction is serialized near the viewport; first product renders omit hidden operative film/fluid resources until refill inspection needs them. Oversized render targets have a 3-million-pixel ceiling. First useful product posters are prioritized; native route navigation retains history and bookmarks, with bounded intent prefetch and progressive CSS page transitions. The four-step demo checkout supports review, editing, duplicate/stale submission guards and refresh-safe product-only receipts. No customer or actual payment fields are collected. Phone, tablet, landscape and ultrawide layouts share a final fluid responsive stylesheet.
+
+Loading now reserves the final scroll-track height, so a cold return can restore its saved pose without a later GPU-induced page jump. Catalogue filters remain in the URL across Back, bookmarks and the language switch; filtered grids expand across ultrawide screens. Cross-document transition opt-in is available synchronously in the document head.
+
+This release passes 184 automated tests and the 31-page checker. Chrome viewport review covered 320 × 568, 390 × 844, 768 × 1024, 844 × 390, 1024 × 768, 1440 × 900, 1920 × 1080, 2560 × 1440 and 3440 × 1440, with no horizontal document overflow in the inspected layouts. Browser verification included shell rotation, lazy refill inspection, a complete mixed-product demo checkout, quantities, review edits, empty state, refresh-safe confirmation, a fresh basket after completion, native Back with a saved filter, and journey returns at 38% and 80%, including a changed viewport and a bookmark beyond the animation. Physical iPhone/Safari behavior, native pinch gestures, field performance and a full screen-reader pass remain unverified.

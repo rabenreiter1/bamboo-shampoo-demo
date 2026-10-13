@@ -63,6 +63,7 @@ test('informational routes contain no inspection or explanation popup, and shell
     const story=readPage(lang,'story/');
     const firstComponent=story.match(/<article class="component-row"[^>]*>([\s\S]*?)<\/article>/)[1];
     assert.match(firstComponent,/shop-shell\.webp/); assert.doesNotMatch(firstComponent,/shop-product\.webp/);
+    assert.match(firstComponent,/data-shop-scene="shell"/, 'the actual empty tube is an interactive viewer');
   }
 });
 
@@ -109,6 +110,19 @@ test('canonical and reciprocal hreflang links stay on the GitHub preview for eve
     }
   }
   assert.equal(fs.existsSync(path.join(root, 'CNAME')), false);
+});
+
+test('navigation is consistent and the useful first product image is prioritized before 3D',()=>{
+ for(const lang of locales)for(const route of primaryRoutes){
+   const html=readPage(lang,route),header=html.match(/<header[^>]*>[\s\S]*?<\/header>/)[0];
+   for(const tag of tags(header,'a').filter(tag=>/\/(?:shop|refill|story)\//.test(attrs(tag).href||'')))assert.match(tag,/data-native-route/,'top-level navigation does not silently become a home section jump');
+   assert.ok(links(html).some(link=>link.rel==='stylesheet'&&/polish\.css/.test(link.href)));
+   assert.ok(html.indexOf('@view-transition{navigation:auto}') < html.indexOf('<link rel="stylesheet"'),'transition opt-in is available before external CSS arrives');
+ }
+ for(const lang of locales)for(const route of ['',...productRoutes]){
+   const html=readPage(lang,route);
+   assert.ok(links(html).some(link=>link.rel==='preload'&&link.as==='image'&&/shop-product-front\.webp/.test(link.href)),'the immediately useful source-derived poster is available before GPU warmup');
+ }
 });
 
 test('structured data follows the visible content routes without inventing purchasable offers or reviews', () => {
@@ -221,7 +235,9 @@ test('selection, review and motion remain accessible static previews without tra
     for (const tag of tags(html, 'input')) {
       const input = attrs(tag);
       assert.ok(!['email', 'tel', 'password'].includes(input.type), 'no customer contact or credential fields');
-      assert.ok(!/card|payment|address|email|phone|password/i.test(input.name || ''), 'no transaction fields');
+      if(input.name==='demo-payment'){
+        assert.equal(input.type,'radio');assert.ok(['card','wallet'].includes(input.value),'only preset simulated methods');
+      }else assert.ok(!/card|payment|address|email|phone|password/i.test(input.name || ''), 'no real transaction fields');
     }
     for (const tag of tags(html, 'script').filter(tag => attrs(tag).src)) assert.ok(attrs(tag).src.startsWith(`${base}/`), 'runtime scripts are self-hosted');
     assert.equal(tags(html, 'iframe').length, 0, 'the shop does not embed the infinite-scroll approval page');
@@ -231,8 +247,10 @@ test('selection, review and motion remain accessible static previews without tra
   }
   for (const lang of locales) {
     const review = readPage(lang, 'checkout/');
-    assert.match(review, /data-review-items/);
-    assert.match(review, /data-review-total/);
+    assert.match(review, /data-checkout-items/);
+    assert.match(review, /data-checkout-total/);
+    assert.match(review, /data-checkout-panel="complete"/);
+    assert.match(review, /data-checkout-submit disabled/);
     assert.match(review, lang === 'de' ? /keine\s+(?:Zahlungen|Bestellungen)|keine\s+Bestellung|kein\s+Checkout/i : /no\s+(?:payments|orders|checkout)|does\s+not\s+accept\s+orders/i);
     const refill = readPage(lang, 'refill/');
     assert.match(refill, /data-ritual-scroll/);

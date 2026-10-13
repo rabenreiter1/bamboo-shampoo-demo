@@ -69,9 +69,6 @@ export function initializeJourney({ ui, reduced, onChoice, onModal, onReady }) {
     if (!chapters.length) return null;
     const y = modalLocked ? lockedScroll : window.scrollY;
     const line = y + headerHeight() + 50;
-    if (continuous?.classList.contains('is-loading') && line >= absoluteRect(continuous).top && line < absoluteRect(continuous).top + absoluteRect(continuous).height) {
-      return { chapter: 'ritual', progress: 0, scroll: y, lang: ui.lang, viewportHeight: innerHeight, viewportWidth: innerWidth, layout: BOOKMARK_LAYOUT };
-    }
     const chapter = [...chapters].reverse().find(el => absoluteRect(el).top <= line) || chapters[0];
     const rect = absoluteRect(chapter);
     return { chapter: chapter.dataset.journeyChapter, progress: chapterPosition(rect, y, innerHeight, headerHeight()), scroll: y, lang: ui.lang,

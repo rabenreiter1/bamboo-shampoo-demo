@@ -54,6 +54,18 @@ test('cold reload and noncached browser Back restore the continuous track after 
   }
 });
 
+test('a detour during 3D loading retains its chapter position when returning on another screen size', () => {
+  const h = harness({ continuous: true, scroll: 3366 });
+  const waiting = h.document.querySelector('[data-product-journey]');
+  waiting.top = 2600; waiting.height = 4000; waiting.classList.add('is-loading');
+  h.click(h.trigger);
+  const point = JSON.parse(h.memory.get('bamboo-journey-return-v1'));
+  assert.equal(point.chapter, 'ritual');
+  assert.equal(point.progress, (3366 + 68 - 2600) / (4000 - (844 - 68)));
+  const restored = positionFromBookmark(point, { top: 2100, height: 3000 }, 568, 64, 320);
+  assert.ok(restored > 2100 - 64, 'the pending model does not reset a resized return to the chapter start');
+});
+
 test('a same-viewport return preserves the raw position even for a short, fully traversed chapter', () => {
   const point = saved({ chapter: 'discover', progress: 1, scroll: 312 });
   assert.equal(positionFromBookmark(point, { top: 0, height: 844 }, 844, 126, 390), 312);
