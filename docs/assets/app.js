@@ -1,6 +1,6 @@
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeJourney } from './journey.js?v=shop-20261013-reveal';
-import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-reveal';
+import { initializeJourney } from './journey.js?v=shop-20261013-reveal3';
+import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-reveal3';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;
