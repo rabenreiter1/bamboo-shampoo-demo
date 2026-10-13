@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fragrances, formatPrice } from '../assets/catalog.js';
 import { createShopPages, shopCopy } from './shop-pages.mjs';
-const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261013-reveal';
+const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261013-reveal2';
 const out=path.resolve('docs');
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 // Publish finished assets only; rejected concept models/artwork stay local.

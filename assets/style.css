@@ -1313,7 +1313,7 @@ html[data-selected-scent='argan'] body[data-page='home'] .header:not(.scrolled) 
   .product-journey.is-enhanced .journey-caption__body { font-size: 12px; }
 }
 
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 560px), (min-width: 761px) and (max-height: 700px) {
   .product-journey { --journey-copy-height: 180px; --journey-footer-height: 64px; }
   .product-journey.is-enhanced .journey-caption { top: 47px; left: var(--gutter); width: 35%; right: auto; max-height: calc(100% - 115px); }
   .product-journey.is-enhanced .journey-caption.is-active { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #1c1b2530 transparent; }
