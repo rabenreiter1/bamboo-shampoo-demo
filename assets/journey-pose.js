@@ -1,49 +1,34 @@
-import { computeCycleState, clamp, easeRange, TAU } from './assembly/ritual-timeline.js?v=ritual-20261012-4';
+import { computeCycleState, clamp, easeRange } from './assembly/ritual-timeline.js?v=ritual-20261012-4';
 
 // These are chapters in one native-scroll story, not autoplay timings. Every
 // component pose can be reconstructed directly from q in either direction.
 export const JOURNEY_PHASES = Object.freeze([
-  { id: 'meet', start: 0, end: .13 },
-  { id: 'shell', start: .13, end: .205 },
-  { id: 'insert', start: .205, end: .30 },
-  { id: 'cap', start: .30, end: .38 },
-  { id: 'together', start: .38, end: .48 },
-  { id: 'unseal', start: .48, end: .662 },
-  { id: 'dose', start: .662, end: .8544 },
-  { id: 'refill', start: .8544, end: .9792 },
-  { id: 'ready', start: .9792, end: 1 },
+  { id: 'closed', start: 0, end: .06 },
+  { id: 'uncap', start: .06, end: .15 },
+  { id: 'unseal', start: .15, end: .27 },
+  { id: 'recap', start: .27, end: .35 },
+  { id: 'dose', start: .35, end: .72 },
+  { id: 'remove', start: .72, end: .83 },
+  { id: 'refill', start: .83, end: .96 },
+  { id: 'ready', start: .96, end: 1 },
 ].map(Object.freeze));
 
 export const JOURNEY_CLEARANCES = Object.freeze({
-  capAxialLift: 44, capScreenLeft: 110, capScreenUp: 18,
-  insertAxialLift: 174, insertScreenRight: 96,
+  capAxialLift: 44, capScreenLeft: 130, capScreenUp: 20,
+  insertAxialLift: 174,
 });
 
-/** Shop-only introduction, followed by the unmodified approved use cycle. */
+/** The shop follows the approved opening/use/refill cycle from its first frame. */
 export function computeJourneyPose(value) {
   const q = clamp(Number.isFinite(value) ? value : 0);
   const chapter = JOURNEY_PHASES.findLast(item => q >= item.start);
-  const ritualProgress = clamp((q - .48) / .52);
-  const anatomy = {
-    capLift: easeRange(q, .13, .17) * (1 - easeRange(q, .470, .48)),
-    capPark: easeRange(q, .17, .195) * (1 - easeRange(q, .463, .470)),
-    insertLift: easeRange(q, .195, .26) - easeRange(q, .29, .315)
-      + easeRange(q, .38, .405) - easeRange(q, .428, .463),
-    insertPark: easeRange(q, .26, .29) - easeRange(q, .405, .428),
-  };
-  const state = computeCycleState(ritualProgress);
-  if (q < .48) {
-    state.cap.position = [0, JOURNEY_CLEARANCES.capAxialLift * anatomy.capLift, 0];
-    state.cap.park = anatomy.capPark;
-    state.oldRefill.position = [0, JOURNEY_CLEARANCES.insertAxialLift * anatomy.insertLift, 0];
-  }
   // One continuous 720-degree rotation spans the complete shop story. The
   // approved operating choreography does not depend on the inspection yaw.
-  state.yaw = 2 * TAU * q;
+  const state = computeCycleState(q);
   return { q, phase: chapter.id,
     phaseProgress: clamp((q - chapter.start) / (chapter.end - chapter.start)),
-    ritualProgress, anatomy, state,
-    roll: .10 * (1 - easeRange(q, .09, .13)) + .10 * easeRange(q, .9792, 1),
+    ritualProgress: q, state,
+    roll: .10 * (1 - easeRange(q, 0, .06)) + .10 * easeRange(q, .96, 1),
   };
 }
 
@@ -105,7 +90,7 @@ export function createJourneyCollarFlex({ cap, shellRadiusAt }) {
 }
 
 /**
- * The anatomy uses screen-aligned lanes after full axial clearance. They do
+ * The cap uses a screen-aligned lane after full axial clearance. Parts do
  * not orbit through neighbouring parts when the customer inspects the axis.
  * The reserved camera region leaves captions alongside/below the real model;
  * the canvas still paints the entire stage with one coherent background.
@@ -118,7 +103,7 @@ export function createJourneySpace({ THREE }) {
   const projection = new THREE.Matrix4(), frustum = new THREE.Frustum();
   const offset = new THREE.Vector3(), filmBounds = new THREE.Box3();
   const center = new THREE.Vector3(), wideCenter = new THREE.Vector3();
-  let frame, compactAnatomy = false;
+  let frame;
 
   function cameraRegion(width, height, copyHeight = width <= 760 ? 156 : 132, footerHeight = 0, stageHeight = height) {
     // A quiet caption lives below the product in the dedicated studio chapter.
@@ -130,19 +115,16 @@ export function createJourneySpace({ THREE }) {
   }
 
   function componentOffset(pose, name, target = new THREE.Vector3()) {
-    const { state, anatomy, q } = pose;
+    const { state } = pose;
     target.set(0, 0, 0);
     if (name === 'cap') {
-      target.addScaledVector(right, -(q < .48 ? compactAnatomy ? 74 : JOURNEY_CLEARANCES.capScreenLeft : 130) * state.cap.park)
-        .addScaledVector(up, (q < .48 ? JOURNEY_CLEARANCES.capScreenUp : 20) * state.cap.park);
-    } else if (name === 'insert' && q < .48) {
-      target.addScaledVector(right, (compactAnatomy ? 66 : JOURNEY_CLEARANCES.insertScreenRight) * anatomy.insertPark);
+      target.addScaledVector(right, -JOURNEY_CLEARANCES.capScreenLeft * state.cap.park)
+        .addScaledVector(up, JOURNEY_CLEARANCES.capScreenUp * state.cap.park);
     }
     return target;
   }
 
   function fitCamera({ pose, camera, tiltRig, zoom = 1, width, height, copyHeight, footerHeight, layoutWidth = width, layoutHeight = height }) {
-    compactAnatomy = layoutWidth <= 760 && layoutHeight > 560;
     const state = pose.state, matrix = tiltRig.matrixWorld;
     const points = [];
     const limits = [[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]];
@@ -159,21 +141,15 @@ export function createJourneySpace({ THREE }) {
     offset.set(0, 1, 0).transformDirection(matrix).multiplyScalar(state.cap.position[1]);
     offset.add(componentOffset(pose, 'cap'));
     cylinder(40, 149.9, 173.4, offset);
-    if (pose.q < .48) {
-      offset.set(0, 1, 0).transformDirection(matrix).multiplyScalar(state.oldRefill.position[1]);
-      offset.add(componentOffset(pose, 'insert'));
-      cylinder(29.5, 5, 170.6, offset);
-    } else {
-      const foil = state.framing.foil;
-      if (foil > 0) cylinder(29 + 35 * foil, 170, 170 + 64 * foil);
-      const pour = easeRange(state.progress, .445, .49) * (1 - easeRange(state.progress, .67, .72));
-      if (pour > 0) {
-        const roofCenter = new THREE.Vector3(0, 171 - 85, 0).applyMatrix4(matrix);
-        for (const x of [-25, 25]) for (const z of [-25, 25]) points.push(roofCenter.clone().add(new THREE.Vector3(x, -136 * pour, z)));
-      }
-      const exchange = easeRange(state.progress, .735, .785) * (1 - easeRange(state.progress, .90, .96));
-      if (exchange > 0) cylinder(29, 5, 170.5 + 174 * exchange);
+    const foil = state.framing.foil;
+    if (foil > 0) cylinder(29 + 35 * foil, 170, 170 + 64 * foil);
+    const pour = easeRange(state.progress, .445, .49) * (1 - easeRange(state.progress, .67, .72));
+    if (pour > 0) {
+      const roofCenter = new THREE.Vector3(0, 171 - 85, 0).applyMatrix4(matrix);
+      for (const x of [-25, 25]) for (const z of [-25, 25]) points.push(roofCenter.clone().add(new THREE.Vector3(x, -136 * pour, z)));
     }
+    const exchange = easeRange(state.progress, .735, .785) * (1 - easeRange(state.progress, .90, .96));
+    if (exchange > 0) cylinder(29, 5, 170.5 + JOURNEY_CLEARANCES.insertAxialLift * exchange);
     for (const p of points) for (let j = 0; j < 3; j++) {
       const value = p.dot(axes[j]);
       limits[j][0] = Math.min(limits[j][0], value); limits[j][1] = Math.max(limits[j][1], value);
@@ -203,7 +179,7 @@ export function createJourneySpace({ THREE }) {
     projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frustum.setFromProjectionMatrix(projection);
     wideCenter.copy(center).addScaledVector(right, -aimX * tanH * fittedDistance / .6)
       .addScaledVector(up, -aimY * tanV * fittedDistance / .6);
-    frame = { center: center.toArray(), viewCenter: viewCenter.toArray(), distance: fittedDistance, zoom, compactAnatomy,
+    frame = { center: center.toArray(), viewCenter: viewCenter.toArray(), distance: fittedDistance, zoom,
       cameraPosition: camera.position.toArray(), region, min: new THREE.Box3().setFromPoints(points).min.toArray(),
       max: new THREE.Box3().setFromPoints(points).max.toArray() };
     return frame;
@@ -238,9 +214,8 @@ export function createJourneySpace({ THREE }) {
       ['newRefill', newRefill, state.newRefill, state.newRefill.approach],
     ]) {
       group.position.fromArray(part.position); group.rotation.set(...part.rotation); group.updateMatrixWorld(true);
-      const travel = pose.q >= .48 ? exitDelta(pet, group.matrixWorld, camera, width) : new THREE.Vector3();
+      const travel = exitDelta(pet, group.matrixWorld, camera, width);
       offset.copy(travel).multiplyScalar(amount);
-      if (name === 'oldRefill') offset.add(componentOffset(pose, 'insert'));
       setOffset(group, part.position, offset, product);
       const worldBounds = pet.clone().applyMatrix4(group.matrixWorld), intersects = frustum.intersectsBox(worldBounds);
       group.visible = part.visible && (amount === 0 || intersects);
@@ -248,7 +223,7 @@ export function createJourneySpace({ THREE }) {
         worldBounds: { min: worldBounds.min.toArray(), max: worldBounds.max.toArray() } };
     }
     oldSeal.group.position.set(0, 0, 0); oldSeal.group.updateMatrixWorld(true); oldSeal.getLocalBounds(filmBounds);
-    const filmTravel = pose.q >= .48 ? exitDelta(filmBounds, oldSeal.group.matrixWorld, camera, width) : new THREE.Vector3();
+    const filmTravel = exitDelta(filmBounds, oldSeal.group.matrixWorld, camera, width);
     setOffset(oldSeal.group, [0, 0, 0], filmTravel.multiplyScalar(state.seal.exit), oldRefill);
     const worldFilm = filmBounds.clone().applyMatrix4(oldSeal.group.matrixWorld), intersects = frustum.intersectsBox(worldFilm);
     oldSeal.group.visible = state.seal.visible && (state.seal.exit === 0 || intersects);
@@ -267,9 +242,9 @@ export function createJourneySpace({ THREE }) {
     }
     return {
       shell: project(product, 0, 88, 29, product.children[0].visible),
-      insert: project(refill, 0, 93, 23.5, refill.visible && (pose.q < .48 ? pose.anatomy.insertPark > .02 : pose.state.framing.oldRefill || pose.state.framing.newRefill)),
+      insert: project(refill, 0, 93, 23.5, refill.visible && (pose.state.framing.oldRefill || pose.state.framing.newRefill)),
       cap: project(cap.group, 0, 171.8, 0, cap.group.visible),
-      film: project(seal.group, 0, 170.4, 0, refill.visible && seal.group.visible && pose.q >= .48 && pose.state.cap.park > .05),
+      film: project(seal.group, 0, 170.4, 0, refill.visible && seal.group.visible && pose.state.cap.park > .05),
       outlet: project(cap.outlet, 0, 0, 0, cap.group.visible && pose.state.cap.lift > .95),
     };
   }
