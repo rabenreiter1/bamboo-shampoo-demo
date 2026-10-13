@@ -2,7 +2,7 @@ import * as THREE from './assembly/vendor/three.module.js';
 import { createStudioEnvironment } from './assembly/studio-environment.js?v=ritual-20261013-1';
 import { createBody } from './assembly/body.js?v=ritual-20261013-1';
 import { createRitualCap } from './assembly/ritual-cap.js?v=ritual-20261013-1';
-import { createPeelSeal, createGel, configurePetReflectionSkin } from './assembly/ritual-effects.js?v=ritual-20261013-3';
+import { createPeelSeal, createGel, configurePetReflectionSkin } from './assembly/ritual-effects.js?v=ritual-20261013-journey';
 import { computeCycleState, TILT_AXIS, clamp } from './assembly/ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from './assembly/ritual-space.js?v=ritual-20261012-4';
 
@@ -42,7 +42,7 @@ const MODES = new Set(['product', 'refill', 'cap', 'ritual']);
 const STATIC_MODES = new Set(['product', 'refill', 'cap']);
 const ALT = {
   product: 'Bamboo Shampoo, 250 ml. Bamboo case with the original engraving and emerald silicone cap. Drag left or right to rotate; arrow keys also rotate.',
-  refill: 'A sealed 250 ml refill: a transparent PET insert, grapefruit-coral shampoo, visible headspace and a peelable film on its supporting flange. Drag left or right to rotate; arrow keys also rotate.',
+  refill: 'A sealed 250 ml refill: a transparent PET insert, scent-coloured shampoo, visible headspace and a peelable film on its supporting flange. Drag left or right to rotate; arrow keys also rotate.',
   cap: 'The complete emerald silicone cap, with its integral teardrop feature and circular captive closure bearing. Drag left or right to rotate; arrow keys also rotate.',
   ritual: 'Bamboo Shampoo opening, pouring and refill sequence. Page scrolling moves the sequence forwards or backwards. Drag horizontally to inspect the product.',
 };
@@ -65,19 +65,22 @@ export function mountShopScene(container, options = {}) {
   const campaign = artDirection === 'campaign';
   const worlds = { aloe: '#ebe4ff', argan: '#f7d9ce', bamboo: '#ddeaf4' };
   let world = Object.hasOwn(worlds, options.scent) ? options.scent : 'bamboo';
-  let poseProgress = 0, targetPoseProgress = 0, reveal = campaign ? 0 : 1;
-  let mode = initialMode, disposed = false, ready = false, rendered = false, error = null;
+  let poseProgress = clamp(finite(options.poseProgress),0,1), targetPoseProgress = poseProgress,
+    reveal = campaign ? clamp(finite(options.reveal),0,1) : 1;
+  let mode = initialMode, disposed = false, ready = false, rendered = false, error = null, paused = options.paused === true;
   let renderer, scene, camera, bodyLease, body, cap, oldSeal, newSeal, gel;
   let tiltRig, yawRig, product, oldRefill, newRefill, floor, environment, key;
   let resizeObserver, intersectionObserver, frame = 0, lastTick = 0, lastReport = -1000;
   let width = 0, height = 0, inView = true, observedInView = null, progress = finite(options.progress), targetProgress = progress;
   let manualYaw = finite(options.yaw), yawVelocity = 0, pointer = null, frames = 0, renderedMode = null;
+  const fingers = new Map(); let pinch = null;
   let framing = null, spatial = null, state = computeCycleState(progress);
   let staticCameraDirty = true;
   let warmupGeneration = 0, contextGeneration = 0, cancelWarmup = null, warmupPromise = null;
   let warming = false, shaderWarmupMilliseconds = 0;
   let renderPending = true;
-  const zoom = clamp(finite(options.zoom, 1), .6, 2);
+  const framePeriods=[];let previousMovingTimestamp=0;
+  let zoom = clamp(finite(options.zoom, 1), .6, 2.5);
   const media = window.matchMedia('(prefers-reduced-motion: reduce)');
   let reducedMotion = media.matches;
   const cleanups = [];
@@ -100,7 +103,7 @@ export function mountShopScene(container, options = {}) {
     inView = withinViewport(container.getBoundingClientRect());
     return inView;
   }
-  const active = () => !disposed && ready && !document.hidden && visibleNow() && width > 0 && height > 0;
+  const active = () => !disposed && !paused && ready && !document.hidden && visibleNow() && width > 0 && height > 0;
 
   function listen(target, type, handler, settings) {
     target.addEventListener(type, handler, settings);
@@ -127,8 +130,9 @@ export function mountShopScene(container, options = {}) {
       cyclePosition: progress, targetProgress, phase: mode === 'ritual' ? state.phase : `sealed-${mode}`,
       yaw: (mode === 'ritual' ? state.yaw : progress * Math.PI * 4) + manualYaw,
       manualYaw, reducedMotion, frames, framing, spatial, artDirection, world, poseProgress,
-      warming, shaderWarmupMilliseconds,
+      warming, shaderWarmupMilliseconds, paused, scent: gel?.scent || world,
       renderedMode, active: active(), inView, observedInView, renderPending, size: { width, height },
+      performance:framePeriods.length?{samples:framePeriods.length,medianFramePeriodMs:[...framePeriods].sort((a,b)=>a-b)[Math.floor(framePeriods.length/2)],p95FramePeriodMs:[...framePeriods].sort((a,b)=>a-b)[Math.floor(framePeriods.length*.95)]}:null,
       visibility: {
         shell: product?.children[0]?.visible ?? false, cap: cap?.group.visible ?? false,
         oldRefill: oldRefill?.visible ?? false, newRefill: newRefill?.visible ?? false,
@@ -137,7 +141,7 @@ export function mountShopScene(container, options = {}) {
       render: { calls: renderer?.info.render.calls || 0, triangles: renderer?.info.render.triangles || 0 },
       refillProjection,
       fillAppearance: fillMaterial ? { opacity: fillMaterial.opacity, transparent: fillMaterial.transparent,
-        transmission: fillMaterial.transmission, visible: fillMaterial.visible, color: `#${fillMaterial.color.getHexString()}` } : null,
+        transmission: fillMaterial.transmission, visible: fillMaterial.visible, color: `#${fillMaterial.color.getHexString()}`, scent: gel.scent } : null,
     };
   }
 
@@ -154,7 +158,7 @@ export function mountShopScene(container, options = {}) {
       sceneWarming: String(warming), shaderWarmupMs: shaderWarmupMilliseconds.toFixed(1),
       sceneDiagnostics: JSON.stringify({ renderedMode, active: value.active, inView, observedInView, size: value.size,
         framing, visibility: value.visibility, render: value.render,
-        refillProjection: value.refillProjection, fillAppearance: value.fillAppearance }),
+        refillProjection: value.refillProjection, fillAppearance: value.fillAppearance, performance:value.performance }),
     });
     if (options.onState) {
       try { options.onState(value); }
@@ -163,22 +167,26 @@ export function mountShopScene(container, options = {}) {
   }
 
   function stopMomentum() {
+    const captures = new Set(fingers.keys());
+    if (pointer) captures.add(pointer.id);
+    // Lost-capture events can fire while releasing. Clear every gesture first,
+    // so pause, blur, hiding and context loss cannot revive a stale pinch.
     yawVelocity = 0;
-    if (pointer) {
-      try { renderer?.domElement.releasePointerCapture(pointer.id); } catch { /* Capture may already be released by native scrolling. */ }
-      pointer = null;
+    pointer = null; fingers.clear(); pinch = null;
+    for (const id of captures) {
+      try { renderer?.domElement.releasePointerCapture(id); } catch { /* A native cancellation may have released it already. */ }
     }
     if (renderer) renderer.domElement.style.cursor = options.interactive === false ? 'default' : 'grab';
   }
 
   function cancelFrame() {
     if (frame) cancelAnimationFrame(frame);
-    frame = 0; lastTick = 0;
+    frame = 0; lastTick = 0; previousMovingTimestamp=0;
   }
 
   function requestRender() {
     renderPending = true;
-    if (disposed || !ready || document.hidden || !renderer || !camera) return;
+    if (disposed || paused || !ready || document.hidden || !renderer || !camera) return;
     const rect = container.getBoundingClientRect();
     inView = withinViewport(rect);
     if (!inView) { stopMomentum(); cancelFrame(); return; }
@@ -294,6 +302,7 @@ export function mountShopScene(container, options = {}) {
       manualYaw += yawVelocity * .30 * (1 - decay);
       yawVelocity *= decay; moving = true;
     } else if (!pointer) yawVelocity = 0;
+    if(moving){if(previousMovingTimestamp){const period=timestamp-previousMovingTimestamp;if(period>0){framePeriods.push(period);if(framePeriods.length>120)framePeriods.shift();}}previousMovingTimestamp=timestamp;}else previousMovingTimestamp=0;
     try { draw(); report(!moving); }
     catch (failure) { fail(failure); return; }
     if (moving) requestRender(); else lastTick = 0;
@@ -332,16 +341,28 @@ export function mountShopScene(container, options = {}) {
     }
   }
 
-  function setProgress(value) {
+  function setProgress(value, settings = {}) {
     if (disposed) return;
     targetProgress = finite(value);
-    if (!active() || reducedMotion) progress = targetProgress;
+    if (!active() || reducedMotion || settings.immediate) progress = targetProgress;
     requestRender();
   }
 
   function setYaw(value) {
     if (disposed) return;
     stopMomentum(); manualYaw = finite(value); requestRender();
+  }
+
+  function setZoom(value) {
+    if (disposed) return;
+    zoom = clamp(finite(value, 1), .6, 2.5); staticCameraDirty = true; requestRender();
+  }
+
+  function setPaused(value) {
+    if (disposed || paused === !!value) return;
+    paused = !!value; stopMomentum(); cancelFrame();
+    if (!paused) requestRender();
+    report(true);
   }
 
   // Commerce scenes keep a separate, bounded camera pose so their scroll
@@ -356,6 +377,7 @@ export function mountShopScene(container, options = {}) {
   function setWorld(value, background) {
     if (disposed || !Object.hasOwn(worlds, value)) return false;
     world = value;
+    gel?.setScent(value);
     renderer?.setClearColor(background || worlds[world], options.opaque === true ? 1 : 0);
     requestRender();
     return true;
@@ -372,13 +394,26 @@ export function mountShopScene(container, options = {}) {
 
   function installInput(canvas) {
     if (options.interactive === false) return;
+    const distance = () => { const [a,b]=[...fingers.values()]; return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0; };
     listen(canvas, 'pointerdown', event => {
-      if (event.button !== 0 || !event.isPrimary || !active()) return;
-      stopMomentum();
+      if (event.button !== 0 || !active()) return;
+      if (options.inspection) {
+        if (!fingers.size) stopMomentum();
+        fingers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+        try { canvas.setPointerCapture(event.pointerId); } catch { /* Already cancelled touch. */ }
+        if (fingers.size > 1) { yawVelocity=0;pointer=null;pinch={distance:distance(),zoom}; return; }
+      } else {
+        if (!event.isPrimary) return;
+        stopMomentum();
+      }
       pointer = { id: event.pointerId, x: event.clientX, y: event.clientY,
         lastX: event.clientX, lastTime: event.timeStamp, movedAt: event.timeStamp, axis: null };
     });
     listen(canvas, 'pointermove', event => {
+      if (options.inspection && fingers.has(event.pointerId)) {
+        fingers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+        if (pinch && fingers.size > 1) { event.preventDefault(); setZoom(pinch.zoom*distance()/Math.max(1,pinch.distance)); return; }
+      }
       if (!pointer || pointer.id !== event.pointerId) return;
       const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;
       if (!pointer.axis) {
@@ -403,6 +438,16 @@ export function mountShopScene(container, options = {}) {
       requestRender();
     }, { passive: false });
     const release = event => {
+      if (options.inspection) {
+        const tracked = fingers.delete(event.pointerId);
+        if (!tracked && pointer?.id !== event.pointerId) return;
+        if (pinch) {
+          pinch=null; yawVelocity=0; pointer=null;
+          if (fingers.size>1) pinch={distance:distance(),zoom};
+          if (fingers.size===1) { const [id,point]=[...fingers.entries()][0]; pointer={id,x:point.x,y:point.y,lastX:point.x,lastTime:event.timeStamp,movedAt:0,axis:null}; }
+          return;
+        }
+      }
       if (!pointer || pointer.id !== event.pointerId) return;
       const shouldCoast = event.type === 'pointerup' && pointer.axis === 'horizontal'
         && event.timeStamp - pointer.movedAt < 90 && !reducedMotion;
@@ -412,11 +457,16 @@ export function mountShopScene(container, options = {}) {
     listen(canvas, 'pointerup', release); listen(canvas, 'pointercancel', release);
     listen(canvas, 'lostpointercapture', release);
     listen(canvas, 'keydown', event => {
+      if (options.inspection && ['+','=','-'].includes(event.key)) { event.preventDefault(); setZoom(zoom*(event.key==='-'?1/1.2:1.2)); return; }
       if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
       event.preventDefault(); stopMomentum();
       manualYaw = event.key === 'Home' ? 0 : manualYaw + (event.key === 'ArrowRight' ? .28 : -.28);
       requestRender();
     });
+    if (options.inspection) listen(canvas,'wheel',event=>{
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();setZoom(zoom*Math.exp(-event.deltaY*.005));
+    },{passive:false});
   }
 
   function fail(failure) {
@@ -509,8 +559,9 @@ export function mountShopScene(container, options = {}) {
       const canvas = renderer.domElement;
       canvas.className = 'shop-product-canvas'; canvas.tabIndex = options.interactive === false ? -1 : 0;
       canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', options.label || ALT[mode]);
+      if (options.interactive !== false && options.instructions) canvas.setAttribute('aria-description', options.instructions);
       Object.assign(canvas.style, { display: 'block', width: '100%', height: '100%', opacity: '0',
-        touchAction: 'pan-y pinch-zoom', userSelect: 'none', cursor: options.interactive === false ? 'default' : 'grab' });
+        touchAction: options.inspection ? 'none' : 'pan-y pinch-zoom', userSelect: 'none', cursor: options.interactive === false ? 'default' : 'grab' });
       container.appendChild(canvas);
       listen(canvas, 'webglcontextlost', event => {
         event.preventDefault(); contextGeneration++; warmupGeneration++; cancelWarmup?.(); warming = false;
@@ -551,7 +602,7 @@ export function mountShopScene(container, options = {}) {
       if (disposed) { bodyLease?.release(); bodyLease = null; cap?.dispose(); cap = null; return; }
       for (const result of built) if (result.status === 'rejected') throw result.reason;
       if (renderer.getContext().isContextLost()) throw new Error('The 3D context was interrupted while the product was loading.');
-      oldSeal = createPeelSeal({ THREE }); newSeal = createPeelSeal({ THREE }); gel = createGel({ THREE });
+      oldSeal = createPeelSeal({ THREE }); newSeal = createPeelSeal({ THREE }); gel = createGel({ THREE, scent: world });
       tiltRig = new THREE.Group(); tiltRig.name = 'shop-approved-product-tilt';
       yawRig = new THREE.Group(); yawRig.name = 'shop-longitudinal-inspection';
       product = new THREE.Group(); product.name = 'shop-retail-product'; product.position.y = -85;
@@ -613,7 +664,7 @@ export function mountShopScene(container, options = {}) {
     container.dataset.sceneStatus = 'disposed'; container.dataset.sceneRendered = 'false';
   }
 
-  const api = { ready: null, setProgress, setYaw, setMode, setWorld, setPoseProgress, resize, destroy, getState, getMetrics: () => metrics };
+  const api = { ready: null, setProgress, setYaw, setZoom, setPaused, setMode, setWorld, setPoseProgress, resize, destroy, getState, getMetrics: () => metrics };
   report(true);
   api.ready = boot().then(() => api);
   // Consumers may use the status callback/fallback instead of awaiting ready.

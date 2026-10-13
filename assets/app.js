@@ -1,10 +1,12 @@
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
+import { initializeJourney } from './journey.js';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;
 const bag=document.querySelector('#bag-dialog'), notice=document.querySelector('#notice-dialog'), menu=document.querySelector('#menu-dialog');
 const KEY='bamboo-demo-bag-v1';
 const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+let journey;
 function readCart(fallback=[]){try{return sanitizeCart(JSON.parse(sessionStorage.getItem(KEY)||'[]'));}catch{return fallback;}}
 let cart=readCart();
 const icon=name=>`<svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${name==='bag'?'<path d="M5 7h14l1 14H4L5 7Z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/>':name==='minus'?'<path d="M5 12h14"/>':name==='plus'?'<path d="M5 12h14M12 5v14"/>':name==='check'?'<path d="m5 12 4 4L19 6"/>':'<path d="M4 12h16M13 5l7 7-7 7"/>'}</svg>`;
@@ -13,7 +15,7 @@ const show=dialog=>{if(dialog&&!dialog.open)dialog.showModal();};
 
 function itemMarkup(row){
  const key=productKey(row.scent,row.format);
- return `<article class="bag-item" data-key="${key}"><img src="${base}/assets/shop-${row.format==='refill'?'refill':'product'}.webp" alt="${ui.names[row.scent]} · ${ui[row.format]}" width="80" height="114"><div><div class="bag-item-head"><h3><a href="${base}/${lang}/products/${row.scent}/${row.format==='refill'?'?format=refill':''}">${ui.names[row.scent]}</a></h3><span>${formatPrice(prices[row.format]*row.quantity,lang)}</span></div><p>${ui[row.format]} · 250 ml</p><div class="bag-item-actions"><div class="quantity-control"><button type="button" data-bag-change="-1" aria-label="${de?'Menge reduzieren':'Decrease quantity'}" ${row.quantity===1?'disabled':''}>${icon('minus')}</button><input aria-label="${ui.quantity}: ${ui.names[row.scent]} ${ui[row.format]}" type="number" min="1" max="20" value="${row.quantity}" inputmode="numeric" data-bag-quantity><button type="button" data-bag-change="1" aria-label="${de?'Menge erhöhen':'Increase quantity'}" ${row.quantity===20?'disabled':''}>${icon('plus')}</button></div><button type="button" class="bag-remove" data-remove>${ui.remove}</button></div></div></article>`;
+ return `<article class="bag-item" data-key="${key}"><img src="${base}/assets/shop-${row.format==='refill'?`refill-${row.scent}`:'product'}.webp" alt="${ui.names[row.scent]} · ${ui[row.format]}" width="80" height="114"><div><div class="bag-item-head"><h3><a href="${base}/${lang}/products/${row.scent}/${row.format==='refill'?'?format=refill':''}" data-native-route>${ui.names[row.scent]}</a></h3><span>${formatPrice(prices[row.format]*row.quantity,lang)}</span></div><p>${ui[row.format]} · 250 ml</p><div class="bag-item-actions"><div class="quantity-control"><button type="button" data-bag-change="-1" aria-label="${de?'Menge reduzieren':'Decrease quantity'}" ${row.quantity===1?'disabled':''}>${icon('minus')}</button><input aria-label="${ui.quantity}: ${ui.names[row.scent]} ${ui[row.format]}" type="number" min="1" max="20" value="${row.quantity}" inputmode="numeric" data-bag-quantity><button type="button" data-bag-change="1" aria-label="${de?'Menge erhöhen':'Increase quantity'}" ${row.quantity===20?'disabled':''}>${icon('plus')}</button></div><button type="button" class="bag-remove" data-remove>${ui.remove}</button></div></div></article>`;
 }
 function renderCart(){
  const count=cart.reduce((n,r)=>n+r.quantity,0), total=formatPrice(cartTotal(cart),lang);
@@ -28,12 +30,14 @@ function save(){cart=sanitizeCart(cart);try{sessionStorage.setItem(KEY,JSON.stri
 function add(scent,format,quantity=1,open=false){
  if(!fragrances.includes(scent)||!Object.hasOwn(prices,format))return;
  const row=cart.find(r=>productKey(r.scent,r.format)===productKey(scent,format));
+ const before=row?.quantity||0;
  if(row)row.quantity=Math.min(20,row.quantity+clampQuantity(quantity));else cart.push({scent,format,quantity:clampQuantity(quantity)});
  save();
  const toast=document.querySelector('.toast');
  toast.textContent=`${ui.names[scent]} · ${ui[format]} — ${ui.toast}`;toast.classList.add('visible');
  clearTimeout(add.timer);add.timer=setTimeout(()=>toast.classList.remove('visible'),2800);
  if(open)show(bag);
+ return {added:(cart.find(r=>productKey(r.scent,r.format)===productKey(scent,format))?.quantity||0)-before};
 }
 function restoreItemFocus(container,key,selector){
  const remaining=container?.querySelector(`[data-key="${key}"]`);
@@ -70,7 +74,7 @@ for(const dialog of [bag,notice,menu])dialog?.addEventListener('click',event=>{
 });
 renderCart();
 
-const viewers=new Map(), mounting=new WeakMap();let sceneModule;
+const viewers=new Map(), mounting=new WeakMap(), sceneSnapshots=new WeakMap();let sceneModule;
 let sceneEpoch=0,pageActive=true;
 const scenes=[...document.querySelectorAll('[data-shop-scene]')];
 const rituals=[...document.querySelectorAll('[data-ritual-scroll]')];
@@ -78,15 +82,20 @@ function staticRitual(section){
  section.classList.add('ritual-static');
  section.querySelectorAll('[data-ritual-step]').forEach(el=>{el.removeAttribute('aria-hidden');el.classList.add('is-active');});
  const view=viewers.get(section.querySelector('[data-shop-scene]'));view?.setProgress(0);
+ section.querySelectorAll('[data-ritual-step]').forEach(el=>el.inert=false);
 }
 function updateRitualCopy(section,progress){
  if(section.classList.contains('ritual-static'))return;
  const step=progress<.15?0:progress<.35?1:progress<.72?2:progress<.96?3:4;
  section.style.setProperty('--progress',String(progress));section.dataset.ritualStep=String(step);
- section.querySelectorAll('[data-ritual-step]').forEach(el=>{const active=Number(el.dataset.ritualStep)===step;el.classList.toggle('is-active',active);el.setAttribute('aria-hidden',String(!active));});
+ section.querySelectorAll('[data-ritual-step]').forEach(el=>{const active=Number(el.dataset.ritualStep)===step;el.classList.toggle('is-active',active);el.setAttribute('aria-hidden',String(!active));el.inert=!active;});
+ const detail=section.querySelector('[data-ritual-detail]');
+ if(detail){detail.dataset.detour=step===0?'materials':step===1?'refill':step===2?'materials':'refill';detail.dataset.detourTarget=step===2?'dose':'current';
+  detail.querySelector('[data-ritual-detail-label]').textContent=de?(step===0?'Die drei Teile ansehen':step===1?'Folie & Rand ansehen':step===2?'Die Kappe genauer ansehen':'Das Refill genauer ansehen'):(step===0?'Explore the three parts':step===1?'Explore the seal & rim':step===2?'Explore the cap':'Explore the refill');}
 }
 async function mountScene(element){
  if(!pageActive||viewers.has(element)||mounting.has(element))return;
+ if(element.closest('dialog') && (!element.closest('dialog').open || element.closest('[data-detour-panel]')?.hidden))return;
  const token={epoch:sceneEpoch};mounting.set(element,token);
  const current=()=>pageActive&&token.epoch===sceneEpoch&&mounting.get(element)===token;
  try{
@@ -95,9 +104,16 @@ async function mountScene(element){
   if(!current())return;
   const section=element.closest('[data-ritual-scroll]');
   const mode=element.dataset.requestedMode||element.dataset.shopScene;
+  const snapshot=sceneSnapshots.get(element);
   const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,
+   progress:snapshot?.progress??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionProgress)||0:0),
+   yaw:snapshot?.yaw??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionYaw)||0:0),
+   zoom:snapshot?.zoom||1,reveal:snapshot?1:undefined,poseProgress:snapshot?.pose||0,
+   inspection:element.hasAttribute('data-inspection'),paused:!!journey?.isLocked()&&element.closest('dialog')!==journey.getTopDialog(),
    background:getComputedStyle(element).getPropertyValue('--world-bg').trim()||undefined,
-   label:element.getAttribute('aria-label'),onState:state=>{
+   label:element.getAttribute('aria-label'),instructions:de?
+    'Pfeiltasten links und rechts drehen die Ansicht. Pos1 setzt die Drehung zurück.'+(element.hasAttribute('data-inspection')?' Plus und Minus zoomen. Der Regler bewegt die Animation.':' Scrollen bewegt die Seite.'):
+    'Left and right arrow keys rotate the view. Home resets rotation.'+(element.hasAttribute('data-inspection')?' Plus and minus zoom. The slider moves the animation.':' Scroll to move through the page.'),onState:state=>{
    if(!pageActive||token.epoch!==sceneEpoch)return;
    if(section){if(state.status==='error')staticRitual(section);else updateRitualCopy(section,Math.max(0,Math.min(1,state.cyclePosition)));}
   }});
@@ -116,36 +132,20 @@ async function mountScene(element){
 const sceneObserver='IntersectionObserver'in window?new IntersectionObserver(entries=>{
  for(const entry of entries)if(entry.isIntersecting){sceneObserver.unobserve(entry.target);mountScene(entry.target);}
 },{rootMargin:'180px'}):null;
-scenes.forEach(el=>sceneObserver?sceneObserver.observe(el):mountScene(el));
+scenes.filter(el=>!el.closest('dialog')).forEach(el=>sceneObserver?sceneObserver.observe(el):mountScene(el));
 rituals.forEach(section=>{if(reduced.matches)staticRitual(section);});
-
-// Fragrance is one coherent campaign world, with a real route to the selected
-// product. A keyboard or touch user receives the same state as a pointer user.
-for(const hero of document.querySelectorAll('[data-world]')){
- const scene=hero.querySelector('[data-art-direction="campaign"]');
- for(const button of hero.querySelectorAll('[data-world-scent]'))button.addEventListener('click',()=>{
-  const scent=button.dataset.worldScent;if(!fragrances.includes(scent))return;
-  hero.dataset.world=scent;
-  hero.classList.remove(...fragrances.map(id=>`scent-${id}`));hero.classList.add(`scent-${scent}`);
-  hero.querySelectorAll('[data-world-scent]').forEach(el=>el.setAttribute('aria-pressed',String(el===button)));
-  hero.querySelectorAll('[data-world-name]').forEach(el=>el.textContent=ui.names[scent]);
-  hero.querySelectorAll('[data-world-description]').forEach(el=>el.textContent=ui.scentDescriptions[scent]);
-  hero.querySelectorAll('[data-world-link]').forEach(el=>el.href=`${base}/${lang}/products/${scent}/`);
-  if(scene){scene.dataset.scent=scent;viewers.get(scene)?.setWorld(scent,getComputedStyle(scene).getPropertyValue('--world-bg').trim()||undefined);}
- });
-}
 
 function setGallery(gallery,mode){
  const element=gallery?.querySelector('[data-shop-scene]');if(!element)return;
  element.dataset.requestedMode=mode; element.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}.`);
- const poster=element.querySelector('img');if(poster){poster.src=`${base}/assets/shop-${mode}.webp`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
+ const poster=element.querySelector('img');if(poster){poster.src=`${base}/assets/shop-${mode==='refill'?`refill-${element.dataset.scent||'bamboo'}`:mode}.webp`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
  const view=viewers.get(element);if(view)view.setMode(mode);else mountScene(element);
  element.querySelector('canvas')?.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}. ${de?'Pfeiltasten links und rechts drehen die Ansicht.':'Left and right arrow keys rotate the view.'}`);
  gallery.querySelectorAll('[data-gallery-view]').forEach(button=>{const selected=button.dataset.galleryView===mode;button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));});
 }
 document.querySelectorAll('[data-gallery-view]').forEach(button=>button.addEventListener('click',()=>setGallery(button.closest('.product-gallery'),button.dataset.galleryView)));
 for(const form of document.querySelectorAll('[data-product-form]')){
- const quantity=form.elements.quantity, gallery=form.closest('.product-layout')?.querySelector('.product-gallery');
+ const quantity=form.elements.quantity, gallery=(form.closest('.product-layout')||form.closest('[data-detour-panel]'))?.querySelector('.product-gallery');
  const update=(switchView=true)=>{
   const format=form.elements.format.value, scent=form.elements.scent.value;
   if(!Object.hasOwn(prices,format)||!fragrances.includes(scent))return;
@@ -157,13 +157,22 @@ for(const form of document.querySelectorAll('[data-product-form]')){
   form.querySelector('[data-quantity="-1"]').disabled=Number(quantity.value)<=1;
   form.querySelector('[data-quantity="1"]').disabled=Number(quantity.value)>=20;
   form.querySelectorAll('[data-scent-link]').forEach(link=>{const url=new URL(link.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');link.href=url.href;});
-  const language=document.querySelector('.lang-switch');if(language){const url=new URL(language.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');language.href=url.href;}
+  const language=!form.closest('dialog')&&document.querySelector('.lang-switch');if(language){const url=new URL(language.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');language.href=url.href;}
+  if(!form.closest('dialog')){const url=new URL(location.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');history.replaceState(history.state,'',url);}
   if(switchView)setGallery(gallery,format==='refill'?'refill':'product');
  };
- if(new URLSearchParams(location.search).get('format')==='refill')form.querySelector('[value="refill"]').checked=true;
+ if(!form.closest('dialog')&&new URLSearchParams(location.search).get('format')==='refill')form.querySelector('[value="refill"]').checked=true;
  form.addEventListener('change',event=>update(event.target.name==='format'));
+ form.addEventListener('journey-product-update',()=>update());
  for(const button of form.querySelectorAll('[data-quantity]'))button.addEventListener('click',()=>{quantity.value=String(clampQuantity(Number(quantity.value)+Number(button.dataset.quantity)));update(false);});
- form.addEventListener('submit',event=>{event.preventDefault();update(false);add(form.elements.scent.value,form.elements.format.value,Number(quantity.value),true);});
+ form.addEventListener('submit',event=>{event.preventDefault();update(false);
+  const scent=form.elements.scent.value,format=form.elements.format.value;
+  const result=add(scent,format,Number(quantity.value),!form.closest('#journey-dialog'));
+  const feedback=form.closest('[data-detour-panel]')?.querySelector('[data-detour-feedback]');
+  if(feedback&&result){feedback.hidden=false;feedback.querySelector('[data-product-status]').textContent=result.added?
+   `${result.added} × ${ui.names[scent]} · ${ui[format]} — ${ui.toast}`:
+   (de?'Deine Tasche enthält bereits 20 Stück dieser Auswahl.':'Your bag already contains 20 of this selection.');}
+ });
  update();
 }
 document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{
@@ -180,10 +189,11 @@ if(!reduced.matches&&'IntersectionObserver'in window){
 const layers=[...document.querySelectorAll('[data-parallax]')];let scrollFrame=0;
 function renderScroll(){
  scrollFrame=0;const header=document.querySelector('.header'),headerHeight=header?.offsetHeight||84;
+ if(document.querySelector('dialog[open]'))return;
  header?.classList.toggle('scrolled',window.scrollY>30);
  for(const form of document.querySelectorAll('[data-product-form]')){
   const buy=form.querySelector('.product-add-line'),dock=form.querySelector('[data-product-dock]');
-  if(buy&&dock){const shown=buy.getBoundingClientRect().bottom<0;dock.classList.toggle('is-active',shown);dock.inert=!shown;dock.setAttribute('aria-hidden',String(!shown));}
+  if(buy&&dock){const shown=!form.closest('dialog')&&buy.getBoundingClientRect().bottom<0;dock.classList.toggle('is-active',shown);dock.inert=!shown;dock.setAttribute('aria-hidden',String(!shown));}
  }
  for(const scene of scenes){
   if(scene.dataset.artDirection!=='campaign')continue;
@@ -193,8 +203,9 @@ function renderScroll(){
  }
  for(const section of rituals){
   if(section.classList.contains('ritual-static'))continue;
-  const rect=section.getBoundingClientRect(),travel=rect.height-(innerHeight-headerHeight);
-  const progress=Math.max(0,Math.min(1,(headerHeight-rect.top)/Math.max(1,travel)));
+  const offset=headerHeight+(document.querySelector('main[data-journey]')?document.querySelector('[data-journey-nav]')?.offsetHeight||0:0);
+  const rect=section.getBoundingClientRect(),travel=rect.height-(innerHeight-offset);
+  const progress=Math.max(0,Math.min(1,(offset-rect.top)/Math.max(1,travel)));
   const view=viewers.get(section.querySelector('[data-shop-scene]'));if(view){view.setProgress(progress);updateRitualCopy(section,Math.max(0,Math.min(1,view.getState().cyclePosition)));}else updateRitualCopy(section,progress);
  }
  for(const layer of layers){
@@ -209,6 +220,42 @@ reduced.addEventListener('change',()=>{
  else rituals.forEach(section=>{if(section.querySelector('[data-shop-scene]').dataset.sceneStatus!=='error')section.classList.remove('ritual-static');});
  scheduleScroll();
 });
-window.addEventListener('pagehide',()=>{pageActive=false;sceneEpoch++;for(const view of viewers.values())view.destroy();viewers.clear();sceneObserver?.disconnect();});
-window.addEventListener('pageshow',event=>{pageActive=true;if(event.persisted){cart=readCart(cart);renderCart();scenes.forEach(el=>{mounting.delete(el);if(sceneObserver)sceneObserver.observe(el);else mountScene(el);});scheduleScroll();}});
+window.addEventListener('pagehide',()=>{pageActive=false;sceneEpoch++;for(const [el,view]of viewers){const state=view.getState();sceneSnapshots.set(el,{progress:state.cyclePosition,yaw:state.manualYaw,zoom:state.framing?.zoom||1,pose:state.poseProgress});view.destroy();}viewers.clear();sceneObserver?.disconnect();});
+window.addEventListener('pageshow',event=>{pageActive=true;if(event.persisted){cart=readCart(cart);renderCart();scenes.filter(el=>!el.closest('dialog')||el.closest('dialog').open&&!el.closest('[data-detour-panel]')?.hidden).forEach(el=>{mounting.delete(el);if(sceneObserver&&!el.closest('dialog'))sceneObserver.observe(el);else mountScene(el);});scheduleScroll();}});
+function removeDetailScenes(){
+ for(const el of scenes.filter(el=>el.closest('#journey-dialog'))){mounting.delete(el);viewers.get(el)?.destroy();viewers.delete(el);sceneSnapshots.delete(el);}
+}
+journey=initializeJourney({ui,reduced,
+ onChoice:choice=>{
+  for(const el of scenes){
+   const scent=el.closest('main.pdp-page')?.querySelector('[data-product-form]')?.dataset.id||choice.scent;
+   el.dataset.scent=scent;
+   if(el.dataset.shopScene==='refill'||el.dataset.requestedMode==='refill')el.querySelector('img')?.setAttribute('src',`${base}/assets/shop-refill-${scent}.webp`);
+   el.closest('.product-gallery')?.querySelector('[data-gallery-view="refill"] img')?.setAttribute('src',`${base}/assets/shop-refill-${scent}.webp`);
+   viewers.get(el)?.setWorld(scent,getComputedStyle(el).getPropertyValue('--world-bg').trim()||undefined);
+  }
+ },
+ onModal:(paused,top)=>{for(const [el,view]of viewers)view.setPaused(paused&&el.closest('dialog')!==top);if(!paused)scheduleScroll();},
+ onDetailClose:removeDetailScenes,
+ onDetail:(type,options,choice)=>{
+  const panel=document.querySelector(`[data-detour-panel="${type}"]`);
+  if(type==='materials')setGallery(panel.querySelector('.product-gallery'),options.trigger?.dataset.detourTarget==='dose'?'cap':'product');
+  const section=options.trigger?.closest('[data-ritual-scroll]')||rituals.find(el=>el.getBoundingClientRect().top<innerHeight&&el.getBoundingClientRect().bottom>0);
+  const source=section?viewers.get(section.querySelector('[data-shop-scene]'))?.getState():null;
+  for(const el of panel?.querySelectorAll('[data-shop-scene]')||[]){
+   if(el.hasAttribute('data-inspection')){
+    const target=options.trigger?.dataset.detourTarget;
+    const progress=target==='dose'?.56:target==='refill'?.85:target==='closed'?0:source?.cyclePosition||0;
+    el.dataset.inspectionProgress=String(progress);el.dataset.inspectionYaw=String(source?.manualYaw||0);
+    const slider=panel.querySelector('[data-inspect-progress]');if(slider)slider.value=String(progress);
+   }
+   el.dataset.scent=choice.scent;mountScene(el);
+  }
+ },
+ onZoom:action=>{
+  const view=viewers.get(document.querySelector('[data-inspection]'));if(!view)return;
+  if(action==='reset'){view.setZoom(1);view.setYaw(0);}else view.setZoom(view.getState().framing?.zoom*(action==='in'?1.2:1/1.2)||1);
+ }
+});
+document.querySelector('[data-inspect-progress]')?.addEventListener('input',event=>viewers.get(document.querySelector('[data-inspection]'))?.setProgress(Number(event.target.value),{immediate:true}));
 scheduleScroll();

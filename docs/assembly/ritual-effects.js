@@ -24,12 +24,34 @@ const GEL_FLOOR_Y = 5.3;
 const GEL_VOLUME_MM3 = 250000;
 const GEL_HEIGHT = GEL_VOLUME_MM3 / (PI * GEL_RADIUS * GEL_RADIUS);
 // The refill remains clear PET. Colour and absorption belong to the liquid,
-// and the same grapefruit hue is used for its free surface, strand and drops.
+// with a coherent tint across its measured bulk, free surface, strand and drops.
+// Preserve the approved grapefruit appearance for the standalone inspection.
 export const GEL_APPEARANCE = Object.freeze({
   color: '#ffd8ca', attenuationColor: '#f36962', attenuationDistance: 40,
   transmission: .94, roughness: .065, ior: 1.42, thickness: 28,
   streamColor: '#ffd8ca', streamAttenuationDistance: 40, streamThickness: 3.4,
 });
+
+/** Authored scent colours; optical absorption, rather than PET paint, adds depth. */
+export const GEL_SCENT_APPEARANCES = Object.freeze({
+  grapefruit: Object.freeze({ scent: 'grapefruit', ...GEL_APPEARANCE }),
+  aloe: Object.freeze({ scent: 'aloe', ...GEL_APPEARANCE,
+    color: '#dcf7f0', streamColor: '#dcf7f0', attenuationColor: '#62c6b2',
+    attenuationDistance: 60, streamAttenuationDistance: 60 }),
+  argan: Object.freeze({ scent: 'argan', ...GEL_APPEARANCE,
+    color: '#fff0d6', streamColor: '#fff0d6', attenuationColor: '#e6a244',
+    attenuationDistance: 60, streamAttenuationDistance: 60 }),
+  bamboo: Object.freeze({ scent: 'bamboo', ...GEL_APPEARANCE,
+    color: '#e1f0e3', streamColor: '#e1f0e3', attenuationColor: '#9bc9a4',
+    attenuationDistance: 80, streamAttenuationDistance: 80 }),
+});
+
+/** Safe, immutable palette lookup. Unknown or absent scents retain grapefruit. */
+export function getGelAppearance(scent) {
+  const key = typeof scent === 'string' ? scent.trim().toLowerCase() : '';
+  return Object.hasOwn(GEL_SCENT_APPEARANCES, key)
+    ? GEL_SCENT_APPEARANCES[key] : GEL_SCENT_APPEARANCES.grapefruit;
+}
 
 /** Schlick reflectance for a clear dielectric/air interface. */
 export function samplePetFresnel(cosine, ior = 1.57) {
@@ -630,32 +652,34 @@ function createStreamMesh(THREE, material, longitudinal = 72, radial = 14) {
   return { mesh, geometry, update };
 }
 
-export function createGel({ THREE } = {}) {
+export function createGel({ THREE, scent } = {}) {
   if (!THREE?.BufferGeometry) throw new Error('createGel requires the shared THREE namespace.');
+  let appearance = getGelAppearance(scent);
   const liquid = new THREE.MeshPhysicalMaterial({
-    color: GEL_APPEARANCE.color, metalness: 0, roughness: GEL_APPEARANCE.roughness,
-    transmission: GEL_APPEARANCE.transmission, opacity: 1,
-    thickness: GEL_APPEARANCE.thickness, ior: GEL_APPEARANCE.ior,
+    color: appearance.color, metalness: 0, roughness: appearance.roughness,
+    transmission: appearance.transmission, opacity: 1,
+    thickness: appearance.thickness, ior: appearance.ior,
     clearcoat: .25, clearcoatRoughness: .05, envMapIntensity: 1.1,
-    attenuationColor: GEL_APPEARANCE.attenuationColor,
-    attenuationDistance: GEL_APPEARANCE.attenuationDistance, side: THREE.FrontSide,
+    attenuationColor: appearance.attenuationColor,
+    attenuationDistance: appearance.attenuationDistance, side: THREE.FrontSide,
   });
-  liquid.name = 'Translucent_grapefruit_coral_viscous_shampoo_volume';
+  liquid.name = 'Translucent_viscous_shampoo_free_surface';
   liquid.onBeforeCompile = useResolvedLiquidCoverage;
   liquid.customProgramCacheKey = () => 'grapefruit-resolved-background-coverage-v1';
   liquid.userData.resolvedBackgroundCoverage = true;
   const bulkLiquid = liquid.clone();
-  bulkLiquid.name = 'Grapefruit_volume_with_analytic_refracted_cylinder_chord';
+  bulkLiquid.name = 'Shampoo_volume_with_analytic_refracted_cylinder_chord';
   useCylindricalVolumeOptics(THREE, bulkLiquid);
-  const movingGel = liquid.clone(); movingGel.thickness = GEL_APPEARANCE.streamThickness;
+  const movingGel = liquid.clone(); movingGel.thickness = appearance.streamThickness;
   movingGel.onBeforeCompile = useResolvedLiquidCoverage;
   movingGel.customProgramCacheKey = liquid.customProgramCacheKey;
   // The strand is the same liquid, with the same absorption coefficient. Its
   // shorter optical path produces a paler core and clear Fresnel edges instead
   // of an opaque orange string. Lighting supplies the reflection contrast.
-  movingGel.color.set(GEL_APPEARANCE.streamColor);
-  movingGel.attenuationDistance = GEL_APPEARANCE.streamAttenuationDistance;
-  movingGel.name = 'Matching_grapefruit_shampoo_stream_and_drops';
+  movingGel.color.set(appearance.streamColor);
+  movingGel.attenuationDistance = appearance.streamAttenuationDistance;
+  movingGel.name = 'Matching_scented_shampoo_stream_and_drops';
+  for (const material of [liquid, bulkLiquid, movingGel]) material.userData.scent = appearance.scent;
   const oldFill = createFillMesh(THREE, liquid, 'Old_refill_250ml_gel_fill', bulkLiquid);
   const newFill = createFillMesh(THREE, liquid, 'New_refill_250ml_gel_fill', bulkLiquid);
   const streamGroup = new THREE.Group(); streamGroup.name = 'Shampoo_flow_in_world_gravity';
@@ -691,7 +715,7 @@ export function createGel({ THREE } = {}) {
     fullFillHeight: GEL_HEIGHT, fullFillSurfaceY: GEL_FLOOR_Y + GEL_HEIGHT,
     areaPressureMultiplier: 3.2, maximumStreamLength: 118, maximumDropletGravityDistance: 129,
     stateOnly: true, worldGravity: [0, -1, 0], seededByProgress: true,
-    appearance: { ...GEL_APPEARANCE },
+    appearance: { ...appearance },
     bulkOptics: { rayExit: 'Snell-refracted finite-cylinder boundary', attenuation: 'Beer-Lambert world-mm path',
       viewDependentPathLength: true, opaqueWallTint: false, resolvedBackgroundCoverage: true },
     surfaceDetail: { meniscusHeight: .24, contactRadius: GEL_RADIUS, volumeMeanOffset: 0,
@@ -699,6 +723,7 @@ export function createGel({ THREE } = {}) {
       normalsFollowDeformedSurface: true, volumePreservingDropStretch: true },
     assumptions: [
       'Gel appearance, flow rate,3.2times pressure area and trajectory are authored visual effects, not measured fluid data.',
+      'Aloe, Argan and Bamboo colours are authored scent palettes; absorption belongs to the shampoo rather than the clear PET.',
       'The inner radius23.2mm follows the unmeasured0.3mm PET wall placeholder;250ml is the user-confirmed nominal fill.',
       'The hidden interior liquid remains an axial volume display during tilt; exterior flow follows world gravity.',
       'Bulk optical paths intersect the measured finite cylindrical volume after Snell refraction; the thin free surface retains the standard physical-material approximation.',
@@ -707,8 +732,26 @@ export function createGel({ THREE } = {}) {
       'World-gravity strand acceleration, capillary necking, closed bead tip and separating volume-preserving droplet stretch are analytical scroll-driven surfaces, not a CFD simulation.',
     ],
   };
+  function setScent(nextScent) {
+    const next = getGelAppearance(nextScent);
+    if (next === appearance) return appearance.scent;
+    appearance = next;
+    // These are existing physical-material uniforms. Recolouring creates no
+    // materials, meshes or buffers and does not trigger shader recompilation.
+    for (const material of [liquid, bulkLiquid, movingGel]) {
+      material.color.set(next.color);
+      material.attenuationColor.set(next.attenuationColor);
+      material.attenuationDistance = next.attenuationDistance;
+      material.userData.scent = next.scent;
+    }
+    movingGel.color.set(next.streamColor);
+    movingGel.attenuationDistance = next.streamAttenuationDistance;
+    Object.assign(metrics.appearance, next);
+    return appearance.scent;
+  }
   return {
-    streamGroup, oldFillGroup: oldFill.group, newFillGroup: newFill.group, update, metrics,
+    streamGroup, oldFillGroup: oldFill.group, newFillGroup: newFill.group, update, metrics, setScent,
+    get scent() { return appearance.scent; },
     dispose() {
       for (const geometry of [...oldFill.geometries, ...newFill.geometries, stream.geometry, dropGeometry]) geometry.dispose();
       liquid.dispose(); bulkLiquid.dispose(); movingGel.dispose();

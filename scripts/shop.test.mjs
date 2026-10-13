@@ -145,7 +145,13 @@ test('all three 250 ml scents retain both formats, briefing prices and reachable
       assert.match(product, /250\s*ml/i);
       assert.ok(unescape(product).includes(formatPrice(1250, lang)), `${lang}/${scent} shampoo price`);
       assert.ok(unescape(product).includes(formatPrice(450, lang)), `${lang}/${scent} refill price`);
-      const inputs = tags(product, 'input').map(attrs);
+      // The shared, initially hidden journey dialog has its own product form.
+      // Verify the dedicated PDP independently so the dialog cannot mask a broken form.
+      const main = product.match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)?.[1];
+      assert.ok(main, `${lang}/${scent} dedicated product content`);
+      const forms = [...main.matchAll(/<form\b[^>]*\bdata-product-form\b[^>]*>([\s\S]*?)<\/form>/g)];
+      assert.equal(forms.length, 1, `${lang}/${scent} one dedicated product form`);
+      const inputs = tags(forms[0][1], 'input').map(attrs);
       assert.ok(inputs.some(input => input.name === 'scent' && input.value === scent), `${lang}/${scent} identifies its own scent`);
       assert.deepEqual(inputs.filter(input => input.name === 'format').map(input => input.value).sort(), ['refill', 'shampoo']);
       assert.ok(inputs.some(input => input.name === 'quantity' && input.type === 'number' && input.min === '1' && input.max === '20'));
@@ -174,6 +180,9 @@ test('selection, review and motion remain accessible static previews without tra
     }
     for (const tag of tags(html, 'script').filter(tag => attrs(tag).src)) assert.ok(attrs(tag).src.startsWith(`${base}/`), 'runtime scripts are self-hosted');
     assert.equal(tags(html, 'iframe').length, 0, 'the shop does not embed the infinite-scroll approval page');
+    for (const tag of tags(html, 'div').filter(tag => Object.hasOwn(attrs(tag), 'data-shop-scene'))) {
+      assert.equal(attrs(tag).role, 'group', 'interactive canvases are not hidden within an atomic image role');
+    }
   }
   for (const lang of locales) {
     const review = readPage(lang, 'checkout/');

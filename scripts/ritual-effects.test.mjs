@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto';
 import * as THREE from 'three';
 import { createPeelSeal, createGel, samplePeelPoint, samplePeelState, sampleFoldedTab,
   sampleFill, sampleGelStream, sampleGelDrop, sampleGelSurface, sampleGelOpticalPath,
-  configurePetReflectionSkin, samplePetFresnel, GEL_APPEARANCE } from '../assets/assembly/ritual-effects.js';
+  configurePetReflectionSkin, samplePetFresnel, GEL_APPEARANCE,
+  GEL_SCENT_APPEARANCES, getGelAppearance } from '../assets/assembly/ritual-effects.js';
 
 const near = (actual, expected, tolerance = 1e-5) => assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
 const finite = object => { for (const value of Object.values(object)) if (typeof value === 'number') assert.ok(Number.isFinite(value)); };
@@ -232,6 +233,119 @@ test('grapefruit absorption belongs to the measured liquid volume and disappears
   const bounds = new THREE.Box3().setFromObject(gel.newFillGroup, true);
   assert.ok(bounds.max.y < 170 - 10, 'A clear air space must separate gel from the sealed flange');
   gel.dispose();
+});
+
+test('scent palettes are immutable and unknown input preserves the approved grapefruit appearance', () => {
+  assert.equal(getGelAppearance('  ALOE '), GEL_SCENT_APPEARANCES.aloe);
+  for (const input of [undefined, null, '', 'unknown', '__proto__', 'constructor', 12, {}, []]) {
+    assert.equal(getGelAppearance(input), GEL_SCENT_APPEARANCES.grapefruit);
+  }
+  const { scent, ...fallback } = getGelAppearance();
+  assert.equal(scent, 'grapefruit'); assert.deepEqual(fallback, GEL_APPEARANCE);
+  assert.ok(Object.isFrozen(GEL_SCENT_APPEARANCES));
+  for (const appearance of Object.values(GEL_SCENT_APPEARANCES)) assert.ok(Object.isFrozen(appearance));
+  assert.throws(() => { GEL_SCENT_APPEARANCES.aloe.color = '#000000'; }, TypeError);
+});
+
+test('each scent colours the actual bulk, surface, stream and droplets with coherent translucent absorption', () => {
+  const expected = {
+    aloe: ['dcf7f0', '62c6b2', 60],
+    argan: ['fff0d6', 'e6a244', 60],
+    bamboo: ['e1f0e3', '9bc9a4', 80],
+  };
+  const absorptions = {};
+  for (const [scent, [color, attenuation, distance]] of Object.entries(expected)) {
+    const gel = createGel({ THREE, scent });
+    const materials = new Set();
+    for (const group of [gel.oldFillGroup, gel.newFillGroup, gel.streamGroup]) {
+      group.traverse(mesh => { if (mesh.isMesh) materials.add(mesh.material); });
+    }
+    assert.equal(materials.size, 3);
+    assert.equal(gel.scent, scent); assert.equal(gel.metrics.appearance.scent, scent);
+    for (const material of materials) {
+      assert.equal(material.color.getHexString(), color);
+      assert.equal(material.attenuationColor.getHexString(), attenuation);
+      assert.equal(material.userData.scent, scent);
+      near(material.attenuationDistance, distance); near(material.transmission, .94);
+      near(material.ior, 1.42); near(material.roughness, .065); near(material.opacity, 1);
+    }
+    const bulk = gel.oldFillGroup.getObjectByName('Measured_250ml_gel_volume');
+    const stream = gel.streamGroup.getObjectByName('World_gravity_viscous_shampoo_stream');
+    const absorb = path => ['r', 'g', 'b'].map(channel => Math.pow(bulk.material.attenuationColor[channel], path / distance));
+    absorptions[scent] = absorb(46.4);
+    // A thinner strand must transmit more light at every wavelength than the
+    // full-diameter refill, while retaining the same selected scent spectrum.
+    const thin = absorb(stream.material.thickness);
+    absorptions[scent].forEach((value, channel) => assert.ok(value < thin[channel] && thin[channel] < 1));
+    near(gel.oldFillGroup.userData.fillMilliliters, 250);
+    near(Math.PI * 23.2 ** 2 * gel.metrics.fullFillHeight / 1000, 250);
+    gel.dispose();
+  }
+  const [aloeRed, aloeGreen, aloeBlue] = absorptions.aloe;
+  assert.ok(aloeGreen > aloeBlue && aloeBlue > aloeRed, 'Aloe must read fresh turquoise-green');
+  const [arganRed, arganGreen, arganBlue] = absorptions.argan;
+  assert.ok(arganRed > arganGreen && arganGreen > arganBlue, 'Argan must read honey amber');
+  const [bambooRed, bambooGreen, bambooBlue] = absorptions.bamboo;
+  assert.ok(bambooGreen > bambooBlue && bambooBlue > bambooRed, 'Bamboo must read cool green');
+  assert.ok(Math.max(...absorptions.bamboo) - Math.min(...absorptions.bamboo)
+    < Math.max(...absorptions.aloe) - Math.min(...absorptions.aloe), 'Bamboo should be paler than Aloe');
+});
+
+test('live scent changes retain GPU resources, geometry, shader programs and reversible effect state', () => {
+  const gel = createGel({ THREE, scent: 'aloe' });
+  const independent = createGel({ THREE, scent: 'bamboo' });
+  const state = { progress: .565, flow: 1, gush: .6, fillOld: .31, fillNew: 1,
+    outletWorld: [18, 50, -12], outletDirection: [.25, -.97, 0] };
+  gel.update(state);
+  const meshes = [], materials = new Set();
+  for (const group of [gel.oldFillGroup, gel.newFillGroup, gel.streamGroup]) {
+    group.traverse(mesh => { if (mesh.isMesh) { meshes.push(mesh); materials.add(mesh.material); } });
+  }
+  const resources = meshes.map(mesh => ({ mesh, geometry: mesh.geometry, material: mesh.material,
+    index: mesh.geometry.index, attributes: { ...mesh.geometry.attributes } }));
+  const uniforms = [...materials].map(material => ({ material, color: material.color,
+    attenuationColor: material.attenuationColor, version: material.version,
+    compile: material.onBeforeCompile, programKey: material.customProgramCacheKey() }));
+  const geometryState = () => {
+    const hash = createHash('sha256');
+    for (const mesh of meshes) {
+      for (const attribute of Object.values(mesh.geometry.attributes)) {
+        hash.update(Buffer.from(attribute.array.buffer, attribute.array.byteOffset, attribute.array.byteLength));
+      }
+      hash.update(Buffer.from(mesh.geometry.index.array.buffer));
+      hash.update(JSON.stringify([mesh.position.toArray(), mesh.quaternion.toArray(), mesh.scale.toArray(), mesh.visible]));
+    }
+    return hash.digest('hex');
+  };
+  const before = geometryState(), appearanceReference = gel.metrics.appearance;
+  for (const input of ['argan', 'bamboo', 'missing', ' ALOE ']) {
+    const appearance = getGelAppearance(input);
+    assert.equal(gel.setScent(input), appearance.scent);
+    assert.equal(gel.scent, appearance.scent);
+    assert.equal(gel.metrics.appearance, appearanceReference);
+    assert.deepEqual(gel.metrics.appearance, appearance);
+    gel.update(state); // A held scroll position must still recolour immediately.
+    assert.equal(geometryState(), before);
+    for (const material of materials) {
+      assert.equal(material.color.getHexString(), appearance.color.slice(1));
+      assert.equal(material.attenuationColor.getHexString(), appearance.attenuationColor.slice(1));
+    }
+  }
+  for (const resource of resources) {
+    assert.equal(resource.mesh.geometry, resource.geometry); assert.equal(resource.mesh.material, resource.material);
+    assert.equal(resource.geometry.index, resource.index);
+    for (const [key, attribute] of Object.entries(resource.attributes)) assert.equal(resource.geometry.attributes[key], attribute);
+  }
+  for (const uniform of uniforms) {
+    assert.equal(uniform.material.color, uniform.color); assert.equal(uniform.material.attenuationColor, uniform.attenuationColor);
+    assert.equal(uniform.material.version, uniform.version); assert.equal(uniform.material.onBeforeCompile, uniform.compile);
+    assert.equal(uniform.material.customProgramCacheKey(), uniform.programKey);
+  }
+  assert.equal(independent.scent, 'bamboo');
+  assert.equal(independent.oldFillGroup.getObjectByName('Measured_250ml_gel_volume').material.color.getHexString(), 'e1f0e3');
+  gel.update({ progress: .9, fillOld: 0 }); gel.update(state);
+  assert.equal(geometryState(), before);
+  gel.dispose(); independent.dispose();
 });
 
 test('optical depth follows the real cylinder chord and finite drained volume', () => {
