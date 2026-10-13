@@ -1,6 +1,6 @@
-import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261013-jury3';
-import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261013-jury3';
-import {scenePreviewBox} from './scene-framing.js?v=shop-20261013-jury3';
+import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261013-jury4';
+import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261013-jury4';
+import {scenePreviewBox} from './scene-framing.js?v=shop-20261013-jury4';
 
 // Serialized into the static document and run before its first paint. The main
 // controller uses the same validators, image names and camera calculations.
