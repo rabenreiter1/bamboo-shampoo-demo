@@ -120,7 +120,7 @@ export function createJourneySpace({ THREE }) {
   const center = new THREE.Vector3(), wideCenter = new THREE.Vector3();
   let frame;
 
-  function cameraRegion(width, height, copyHeight = width <= 370 ? 270 : 224, footerHeight = 70, stageHeight = height) {
+  function cameraRegion(width, height, copyHeight = width >= 520 && width <= 760 ? 320 : 270, footerHeight = 70, stageHeight = height) {
     // Match the authored caption layout exactly: portrait tablets retain the
     // desktop text column; only the mobile breakpoint puts text below.
     const beside = width > 760 || (height <= 560 && width > height);

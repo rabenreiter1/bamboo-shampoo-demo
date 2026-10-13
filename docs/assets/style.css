@@ -1263,7 +1263,7 @@ html[data-selected-scent='argan'] body[data-page='home'] .header:not(.scrolled) 
 
 @media (max-width: 760px) {
   :root { --header: 64px; --journey-bar: 0px; }
-  .product-journey { --journey-copy-height: 224px; --journey-footer-height: 70px; }
+  .product-journey { --journey-copy-height: 270px; --journey-footer-height: 70px; }
   .product-journey__stage { height: 56svh; min-height: 300px; }
   .journey-caption { padding: 32px var(--gutter); }
   .journey-caption__kicker { gap: 9px; margin-bottom: 12px; font-size: 9px; letter-spacing: .08em; }
@@ -1299,6 +1299,10 @@ html[data-selected-scent='argan'] body[data-page='home'] .header:not(.scrolled) 
   .product-journey.is-enhanced .journey-track__line { position: absolute; top: -12px; right: 0; left: 0; height: 1px; }
   .product-journey.is-enhanced .product-journey__scroll-hint { display: none; }
   .product-journey.is-enhanced .product-journey__leaders { display: block; opacity: .6; }
+}
+
+@media (min-width: 520px) and (max-width: 760px) {
+  .product-journey { --journey-copy-height: 320px; }
 }
 
 @media (max-width: 370px) {

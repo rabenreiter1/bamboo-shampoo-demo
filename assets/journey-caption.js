@@ -1,4 +1,4 @@
-import { JOURNEY_PHASES } from './journey-pose.js?v=shop-20261013-reveal';
+import { JOURNEY_PHASES } from './journey-pose.js?v=shop-20261013-reveal3';
 
 const unit = value => Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 const smooth = value => { const p = unit(value); return p * p * p * (p * (p * 6 - 15) + 10); };

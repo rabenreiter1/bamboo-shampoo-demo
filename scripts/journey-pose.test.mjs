@@ -100,10 +100,12 @@ test('scrollbar width and header height cannot select a different camera layout 
     [829, 318, 844, 390, 'beside'],
     [525, 256, 540, 320, 'beside'],
     [305, 676, 320, 740, 'below'],
+    [505, 780, 520, 844, 'below'],
+    [585, 936, 600, 1000, 'below'],
   ]) {
     const { framing } = apply(.33, 0, 1, width, height, { layoutWidth, layoutHeight });
     assert.equal(framing.region.layout, expected, `${layoutWidth}×${layoutHeight} CSS viewport`);
-    if (expected === 'below') assert.ok(framing.region.maxY <= (height - (layoutWidth <= 370 ? 270 : 224) - 70 - 16) / height + 1e-8);
+    if (expected === 'below') assert.ok(framing.region.maxY <= (height - (layoutWidth >= 520 && layoutWidth <= 760 ? 320 : 270) - 70 - 16) / height + 1e-8);
   }
 });
 function insideBamboo(p) {
