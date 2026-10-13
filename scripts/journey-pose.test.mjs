@@ -10,8 +10,8 @@ import { createPeelSeal } from '../assets/assembly/ritual-effects.js';
 
 const near = (a, b, tolerance = 1e-7) => assert.ok(Math.abs(a - b) < tolerance, `${a} != ${b}`);
 
-test('chapters form one uninterrupted, bounded scroll story with an early three-part reveal', () => {
-  assert.deepEqual(JOURNEY_PHASES.map(chapter => chapter.id), ['meet','shell','insert','cap','together','unseal','dose','refill','ready']);
+test('chapters explain the closed product through opening, dispensing and replacing its refill', () => {
+  assert.deepEqual(JOURNEY_PHASES.map(chapter => chapter.id), ['closed','uncap','unseal','recap','dose','remove','refill','ready']);
   near(JOURNEY_PHASES[0].start, 0); near(JOURNEY_PHASES.at(-1).end, 1);
   for (let i = 0; i < JOURNEY_PHASES.length; i++) {
     const chapter = JOURNEY_PHASES[i];
@@ -24,12 +24,12 @@ test('chapters form one uninterrupted, bounded scroll story with an early three-
   near(computeJourneyPose(100).q, 1);
 });
 
-test('the subsequent opening/refill operations are the approved cycle, with one continuous 720-degree yaw', () => {
-  for (let i = 0; i <= 520; i++) {
-    const q = .48 + .52 * i / 520, pose = computeJourneyPose(q);
-    const approved = computeCycleState(pose.ritualProgress);
-    const state = { ...pose.state, yaw: approved.yaw };
-    assert.deepEqual(state, approved);
+test('every frame is the exact approved use cycle, with one continuous 720-degree yaw', () => {
+  for (let i = 0; i <= 1000; i++) {
+    const q = i / 1000, pose = computeJourneyPose(q);
+    const approved = computeCycleState(q);
+    assert.deepEqual(pose.state, approved);
+    assert.equal(pose.ritualProgress, q);
     near(pose.state.yaw, 2 * TAU * q);
   }
   near(computeJourneyPose(1).state.yaw - computeJourneyPose(0).state.yaw, 2 * TAU);
@@ -38,26 +38,31 @@ test('the subsequent opening/refill operations are the approved cycle, with one 
   near(ending.roll, beginning.roll);
 });
 
-test('axial clearance precedes every lateral move, and PET is seated before the cap returns', () => {
+test('the cap clears axially before moving aside and the replacement sits before the cap returns', () => {
   const d = JOURNEY_CLEARANCES;
   let previous = computeJourneyPose(0);
   for (let i = 1; i <= 2400; i++) {
-    const pose = computeJourneyPose(.48 * i / 2400), a = pose.anatomy;
-    if (a.capPark !== previous.anatomy.capPark) near(a.capLift, 1);
-    if (a.insertPark !== previous.anatomy.insertPark) near(a.insertLift, 1);
-    if (a.insertLift !== previous.anatomy.insertLift && a.insertPark > 1e-8) near(a.insertPark, 1);
-    if (pose.q > .463 && a.capPark < previous.anatomy.capPark) near(a.insertLift, 0);
-    if (pose.q > .470 && a.capLift < previous.anatomy.capLift) {
-      near(a.capPark, 0); near(a.insertLift, 0); near(a.insertPark, 0);
+    const pose = computeJourneyPose(i / 2400), state = pose.state;
+    if (state.cap.park > 1e-8) near(state.cap.position[1], d.capAxialLift);
+    if (state.oldRefill.depart > previous.state.oldRefill.depart) near(state.oldRefill.position[1], d.insertAxialLift);
+    if (state.newRefill.position[1] < previous.state.newRefill.position[1]) near(state.newRefill.approach, 0);
+    if (pose.q > .9 && state.cap.park < previous.state.cap.park) near(state.newRefill.position[1], 0);
+    if (state.cap.position[1] < previous.state.cap.position[1]) {
+      near(state.cap.park, 0);
+      near((pose.q < .5 ? state.oldRefill : state.newRefill).position[1], 0);
     }
-    for (const value of Object.values(a)) assert.ok(value >= -1e-10 && value <= 1 + 1e-10);
-    assert.equal(pose.state.seal.peel, 0); assert.equal(pose.state.cap.swivel, 0); assert.equal(pose.state.cap.press, 0);
+    if (state.oldRefill.position[1] > 0 && state.oldRefill.visible) near(state.cap.park, 1);
+    if (state.newRefill.visible && state.newRefill.position[1] > 0) near(state.cap.park, 1);
     previous = pose;
   }
   assert.ok(5 + d.insertAxialLift > 170);
   assert.ok(149.9 + d.capAxialLift > 170.5);
   assert.ok(d.capScreenLeft > 40 + 29);
-  assert.ok(d.insertScreenRight > 29 + 29);
+  for (const q of [0,.03,.05]) {
+    const state = computeJourneyPose(q).state;
+    assert.equal(state.sealed,true); near(state.cap.park,0); near(state.cap.position[1],0);
+    near(state.oldRefill.position[1],0); near(state.seal.peel,0); near(state.liquid.fillOld,1);
+  }
 });
 
 const [body, cap] = await Promise.all([createBody({ THREE }), createRitualCap({ THREE })]);
@@ -134,23 +139,24 @@ for (const y of [5,5.3,170,170.3]) for (let r = 0; r <= 29; r += .5) {
   for (let i = 0; i < 24; i++) petSamples.push(new THREE.Vector3(r*Math.cos(i*TAU/24),y,r*Math.sin(i*TAU/24)));
 }
 
-test('real PET and complete cap surfaces do not intersect bamboo or each other throughout the new reveal', () => {
+test('real PET and complete cap surfaces remain clear throughout opening, use and refill exchange', () => {
   for (let i = 0; i <= 400; i++) {
-    const q = .48*i/400; apply(q, .73, 1, 390, 844);
+    const q = i/400, { pose } = apply(q, .73, 1, 390, 844);
     const invProduct = product.matrixWorld.clone().invert(), invCap = cap.group.matrixWorld.clone().invert();
     const collarPositions = collar.geometry.attributes.position;
     for (let j = 0; j < collarPositions.count; j++) {
       point.fromBufferAttribute(collarPositions,j).applyMatrix4(collar.matrixWorld).applyMatrix4(invProduct);
       assert.ok(!insideBamboo(point), `Silicone collar enters bamboo at q=${q}`);
     }
-    for (const sample of petSamples) {
-      point.copy(sample).applyMatrix4(oldRefill.matrixWorld);
+    for (const group of [oldRefill,newRefill]) if (group.visible) for (const sample of petSamples) {
+      point.copy(sample).applyMatrix4(group.matrixWorld);
       assert.ok(!insideBamboo(point.clone().applyMatrix4(invProduct)), `PET enters bamboo at q=${q}`);
-      assert.ok(!insideCap(point.clone().applyMatrix4(invCap)), `PET enters cap at q=${q}`);
+      assert.ok(!insideCap(point.clone().applyMatrix4(invCap),pose.state.cap.press), `PET enters cap at q=${q}`);
     }
-    const petBox = new THREE.Box3(new THREE.Vector3(-29,5,-29),new THREE.Vector3(29,170.3,29)).applyMatrix4(oldRefill.matrixWorld);
+    const refill = newRefill.visible ? newRefill : oldRefill;
+    const petBox = new THREE.Box3(new THREE.Vector3(-29,5,-29),new THREE.Vector3(29,170.3,29)).applyMatrix4(refill.matrixWorld);
     if (petBox.intersectsBox(new THREE.Box3().setFromObject(cap.group))) {
-      const invPET = oldRefill.matrixWorld.clone().invert();
+      const invPET = refill.matrixWorld.clone().invert();
       cap.group.traverse(mesh => {
         const positions = mesh.geometry?.attributes.position;
         if (!positions) return;
@@ -180,20 +186,23 @@ test('the silicone collar stretches only enough for actual lips and resets to ex
   flex.update(44); near(flex.expansion, 0);
 });
 
-test('the separated three parts remain inside the product region for mobile, short landscape and desktop', () => {
+test('the operational product stays inside the reserved camera region on phones, tablets and desktop', () => {
   for (const [width,height] of [[320,700],[390,844],[700,390],[768,1024],[1024,1366],[844,390],[1440,900]]) {
-    for (const q of [0,.17,.205,.245,.26,.28,.315,.35,.40,.425,.445,.475,.48,.58,.75,.9,.94,.98,1]) {
-      const { framing, anchors } = apply(q, .42, 1, width, height), r = framing.region;
+    for (const inspectionYaw of [0,.42,Math.PI*.9,Math.PI*1.7]) {
+    for (const q of [0,.06,.08,.12,.15,.17,.205,.235,.26,.27,.31,.35,.4,.445,.49,.55,.66,.72,.75,.77,.79,.86,.875,.9,.94,.98,1]) {
+      const { framing, anchors } = apply(q, inspectionYaw, 1, width, height), r = framing.region;
       const groups = [product.children[0], cap.group];
-      if (q < .48) groups.push(oldRefill);
-      for (const group of groups) group.traverse(mesh => {
+      if (oldRefill.visible && q < .246) groups.push(oldRefill);
+      else if (q >= .765 && q <= .79) groups.push(oldRefill);
+      if (newRefill.visible && q >= .86) groups.push(newRefill);
+      for (const group of groups) group.traverseVisible(mesh => {
         const positions = mesh.geometry?.attributes.position;
         if (!positions) return;
         for (let i = 0; i < positions.count; i += 101) {
           point.fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld).project(camera);
           const x = (point.x+1)/2, y = (1-point.y)/2;
           assert.ok(x >= r.minX-.002 && x <= r.maxX+.002 && y >= r.minY-.002 && y <= r.maxY+.002,
-            `${group.name} crosses caption region q=${q}, ${width}×${height}, x=${x},y=${y}`);
+            `${group.name} crosses caption region q=${q}, yaw=${inspectionYaw}, ${width}×${height}, x=${x},y=${y}`);
         }
       });
       for (const anchor of Object.values(anchors)) {
@@ -201,13 +210,14 @@ test('the separated three parts remain inside the product region for mobile, sho
       }
       assert.equal(framing.region.layout, height <= 560 && width > height ? 'beside' : 'studio');
     }
+    }
   }
 });
 
 test('approved film and refill lanes remain clear under the reserved journey camera for axial inspection', () => {
   for (const [width,height] of [[320,700],[390,844],[844,390],[1440,900]]) for (const zoom of [.6,1,2.5])
   for (let yawIndex = 0; yawIndex < 6; yawIndex++) for (const p of [.15,.18,.21,.24,.248,.265,.27,.765,.775,.79,.80,.825,.83,.84,.86,.875,.9,.96]) {
-    const q = .48+.52*p, { pose, spatial } = apply(q,yawIndex*Math.PI/3,zoom,width,height);
+    const { pose, spatial } = apply(p,yawIndex*Math.PI/3,zoom,width,height);
     const invCap = cap.group.matrixWorld.clone().invert(), invProduct = product.matrixWorld.clone().invert();
     for (const group of [oldRefill,newRefill]) if (group.visible) for (let i=0; i<petSamples.length; i+=7) {
       point.copy(petSamples[i]).applyMatrix4(group.matrixWorld);
@@ -244,7 +254,7 @@ test('camera and component anchors are identical after backwards scrubbing and r
 
 test('the public journey paints the same explicit opaque world into clear and scene backgrounds', () => {
   const source = fs.readFileSync(new URL('../assets/shop-scene.js', import.meta.url),'utf8');
-  assert.match(source, /const opaque = options\.opaque === true \|\| initialMode === 'journey'/);
+  assert.match(source, /const opaque = campaignBackdrop \|\| options\.opaque === true \|\| initialMode === 'journey'/);
   assert.match(source, /renderer\.setClearColor\(backgroundColor, opaque \? 1 : 0\)/);
   assert.match(source, /if \(opaque\) scene\.background = new THREE\.Color\(backgroundColor\)/);
   assert.match(source, /scene\.background\.set\(backgroundColor\)/);

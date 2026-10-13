@@ -20,17 +20,18 @@ const links = html => tags(html, 'link').map(attrs);
 const scriptData = (html, id) => JSON.parse(html.match(new RegExp(`<script[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)<\\/script>`))[1]);
 const unescape = value => value.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
 
-test('the graphic product hero precedes a dedicated, uncluttered how-it-works scene', () => {
+test('the graphic hero leads to scent selection and then the complete use cycle', () => {
   for (const lang of locales) {
     const main = readPage(lang).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
     assert.equal(tags(main, 'div').filter(tag => attrs(tag)['data-shop-scene']).length, 2);
     assert.match(main, /campaign-hero--home/);
     assert.match(main, /<h1 class="campaign-word">BAMBOO/);
-    assert.ok(main.indexOf('campaign-hero--home') < main.indexOf('data-product-journey'));
+    assert.ok(main.indexOf('campaign-hero--home') < main.indexOf('id="collection"'));
+    assert.ok(main.indexOf('id="collection"') < main.indexOf('data-product-journey'));
     assert.ok(tags(main, 'div').some(tag => attrs(tag)['data-shop-scene'] === 'journey'));
     const phases = tags(main, 'article').map(attrs).filter(tag => tag['data-journey-caption']);
-    assert.deepEqual(phases.map(tag => tag['data-journey-caption']), ['meet', 'shell', 'insert', 'cap', 'together', 'unseal', 'dose', 'refill', 'ready']);
-    const guide = main.slice(main.indexOf('<section class="product-journey'), main.indexOf('<section class="section-shell home-collection'));
+    assert.deepEqual(phases.map(tag => tag['data-journey-caption']), ['closed','uncap','unseal','recap','dose','remove','refill','ready']);
+    const guide = main.slice(main.indexOf('<section id="ritual"'), main.indexOf('<section class="section-shell faq-tease'));
     assert.doesNotMatch(guide, /<details|data-world-scent|data-world-link|data-journey-leader|<em>/, 'the explanation has no accordions, buying controls or mixed headline styles');
     assert.doesNotMatch(main, /data-detour(?:=|-)/, 'main journey explanations and purchases do not open the old detail panels');
     for (const scent of fragrances) assert.ok(tags(main, 'a').some(tag => attrs(tag).href === `${base}/${lang}/products/${scent}/` && /\sdata-native-route(?:\s|>)/.test(tag)), 'scent cards lead to actual product pages');
@@ -39,11 +40,29 @@ test('the graphic product hero precedes a dedicated, uncluttered how-it-works sc
   }
 });
 
-test('product galleries offer only the complete shampoo and filled refill', () => {
+test('one form-owned priced selector below each model chooses shampoo or refill', () => {
   for (const lang of locales) for (const scent of fragrances) {
     const main = readPage(lang, `products/${scent}/`).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
-    assert.deepEqual(tags(main, 'button').map(attrs).filter(tag => tag['data-gallery-view']).map(tag => tag['data-gallery-view']), ['product', 'refill']);
-    assert.doesNotMatch(readPage(lang, `products/${scent}/`), /data-gallery-view="cap"/, 'the cap is never offered as a separate gallery product');
+    assert.doesNotMatch(main,/data-gallery-view/, 'there is no second image-only selector');
+    const choices=tags(main,'input').map(attrs).filter(tag=>tag.name==='format');
+    assert.deepEqual(choices.map(tag=>tag.value),['shampoo','refill']);
+    assert.ok(choices.every(tag=>tag.form===`product-form-${scent}`),'both choices belong to the actual purchasing form');
+    assert.equal(tags(main,'form').filter(tag=>attrs(tag).id===`product-form-${scent}`).length,1);
+    assert.ok(main.indexOf('product-format')>main.indexOf('data-shop-scene="product"'));
+    const selector=main.match(/<fieldset class="product-format">([\s\S]*?)<\/fieldset>/)[1];
+    assert.match(selector,/12,50|12\.50/); assert.match(selector,/4,50|4\.50/);
+  }
+});
+
+test('informational routes contain no inspection or explanation popup, and shell artwork shows only the tube',()=>{
+  for(const lang of locales)for(const route of primaryRoutes){
+    const html=readPage(lang,route);
+    assert.doesNotMatch(html,/journey-dialog|data-detour(?:=|-)|data-inspection|notice-dialog/);
+  }
+  for(const lang of locales){
+    const story=readPage(lang,'story/');
+    const firstComponent=story.match(/<article class="component-row"[^>]*>([\s\S]*?)<\/article>/)[1];
+    assert.match(firstComponent,/shop-shell\.webp/); assert.doesNotMatch(firstComponent,/shop-product\.webp/);
   }
 });
 
@@ -172,13 +191,12 @@ test('all three 250 ml scents retain both formats, briefing prices and reachable
       assert.match(product, /250\s*ml/i);
       assert.ok(unescape(product).includes(formatPrice(1250, lang)), `${lang}/${scent} shampoo price`);
       assert.ok(unescape(product).includes(formatPrice(450, lang)), `${lang}/${scent} refill price`);
-      // The shared, initially hidden journey dialog has its own product form.
-      // Verify the dedicated PDP independently so the dialog cannot mask a broken form.
+      // The single selector is next to the model and belongs to the form by ID.
       const main = product.match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)?.[1];
       assert.ok(main, `${lang}/${scent} dedicated product content`);
       const forms = [...main.matchAll(/<form\b[^>]*\bdata-product-form\b[^>]*>([\s\S]*?)<\/form>/g)];
       assert.equal(forms.length, 1, `${lang}/${scent} one dedicated product form`);
-      const inputs = tags(forms[0][1], 'input').map(attrs);
+      const inputs = tags(main, 'input').map(attrs).filter(input=>!input.form||input.form===`product-form-${scent}`);
       assert.ok(inputs.some(input => input.name === 'scent' && input.value === scent), `${lang}/${scent} identifies its own scent`);
       assert.deepEqual(inputs.filter(input => input.name === 'format').map(input => input.value).sort(), ['refill', 'shampoo']);
       assert.ok(inputs.some(input => input.name === 'quantity' && input.type === 'number' && input.min === '1' && input.max === '20'));
@@ -249,7 +267,7 @@ test('published 3D assets retain approved artwork and exclude rejected legacy re
   assert.equal(publishedViewer, sourceViewer.replaceAll('./assembly/', '../assembly/'), 'published shop viewer only adapts the approved module directory');
   const imports = [...publishedViewer.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)].map(match => match[1]);
   for (const specifier of imports) {
-    assert.ok(specifier.startsWith('../assembly/') || specifier.split('?')[0] === './journey-pose.js', 'shop models come from the approved assembly, with the authored introduction as the only shop pose adapter');
+    assert.ok(specifier.startsWith('../assembly/') || ['./journey-pose.js','./campaign-backdrop.js'].includes(specifier.split('?')[0]), 'approved models use the scroll adapter and coherent campaign backdrop');
     assert.ok(fs.existsSync(path.resolve(root, 'assets', specifier.split('?')[0])), `${specifier} resolves after publishing`);
   }
   const poseSource = fs.readFileSync(path.join('assets', 'journey-pose.js'), 'utf8');

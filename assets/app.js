@@ -1,10 +1,10 @@
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeJourney } from './journey.js?v=shop-20261013-studio2';
-import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-studio2';
+import { initializeJourney } from './journey.js?v=shop-20261013-flow3';
+import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-flow3';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;
-const bag=document.querySelector('#bag-dialog'), notice=document.querySelector('#notice-dialog'), menu=document.querySelector('#menu-dialog');
+const bag=document.querySelector('#bag-dialog'), menu=document.querySelector('#menu-dialog');
 const KEY='bamboo-demo-bag-v1';
 const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
 let journey;
@@ -50,7 +50,6 @@ document.addEventListener('click',event=>{
  const target=event.target.closest('button,a');if(!target)return;
  if(target.hasAttribute('data-open-bag'))show(bag);
  if(target.hasAttribute('data-open-menu'))show(menu);
- if(target.hasAttribute('data-open-notice')){bag?.close();show(notice);}
  if(target.hasAttribute('data-close'))target.closest('dialog')?.close();
  if(target.closest('#menu-dialog')&&target.tagName==='A')menu.close();
  if(target.hasAttribute('data-add')||target.hasAttribute('data-quick-add')){
@@ -70,7 +69,7 @@ document.addEventListener('change',event=>{
  const item=event.target.closest('[data-key]'),key=item?.dataset.key,container=item?.parentElement;
  const row=cart.find(r=>productKey(r.scent,r.format)===key);if(row){row.quantity=clampQuantity(event.target.value);save();restoreItemFocus(container,key,'[data-bag-quantity]');}
 });
-for(const dialog of [bag,notice,menu])dialog?.addEventListener('click',event=>{
+for(const dialog of [bag,menu])dialog?.addEventListener('click',event=>{
  if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();
 });
 renderCart();
@@ -113,7 +112,7 @@ async function mountScene(element){
   const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,
    progress:snapshot?.progress??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionProgress)||0:0),
    yaw:snapshot?.yaw??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionYaw)||0:0),
-   zoom:snapshot?.zoom||1,reveal:snapshot||mode==='journey'?1:undefined,poseProgress:snapshot?.pose||0,opaque:!element.closest('.campaign-hero--home'),
+   zoom:snapshot?.zoom||1,reveal:snapshot||mode==='journey'?1:undefined,poseProgress:snapshot?.pose||0,opaque:true,backdrop:element.closest('.campaign-hero--home')?'campaign':undefined,
    inspection:element.hasAttribute('data-inspection'),paused:!!journey?.isLocked()&&element.closest('dialog')!==journey.getTopDialog(),
    background:getComputedStyle(element).getPropertyValue('--world-bg').trim()||undefined,
    label:element.getAttribute('aria-label'),instructions:de?
@@ -154,9 +153,7 @@ function setGallery(gallery,mode){
  const poster=element.querySelector('img');if(poster){poster.src=`${base}/assets/shop-${mode==='refill'?`refill-${element.dataset.scent||'bamboo'}`:mode}.webp`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
  const view=viewers.get(element);if(view)view.setMode(mode);else mountScene(element);
  element.querySelector('canvas')?.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}. ${de?'Pfeiltasten links und rechts drehen die Ansicht.':'Left and right arrow keys rotate the view.'}`);
- gallery.querySelectorAll('[data-gallery-view]').forEach(button=>{const selected=button.dataset.galleryView===mode;button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));});
 }
-document.querySelectorAll('[data-gallery-view]').forEach(button=>button.addEventListener('click',()=>setGallery(button.closest('.product-gallery'),button.dataset.galleryView)));
 for(const form of document.querySelectorAll('[data-product-form]')){
  const quantity=form.elements.quantity, gallery=(form.closest('.product-layout')||form.closest('[data-detour-panel]'))?.querySelector('.product-gallery');
  const update=(switchView=true)=>{
@@ -174,17 +171,14 @@ for(const form of document.querySelectorAll('[data-product-form]')){
   if(!form.closest('dialog')){const url=new URL(location.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');history.replaceState(history.state,'',url);}
   if(switchView)setGallery(gallery,format==='refill'?'refill':'product');
  };
- if(!form.closest('dialog')&&new URLSearchParams(location.search).get('format')==='refill')form.querySelector('[value="refill"]').checked=true;
+ if(new URLSearchParams(location.search).get('format')==='refill')for(const input of form.elements.format)input.checked=input.value==='refill';
+ for(const input of form.elements.format)input.addEventListener('change',()=>update());
  form.addEventListener('change',event=>update(event.target.name==='format'));
  form.addEventListener('journey-product-update',()=>update());
  for(const button of form.querySelectorAll('[data-quantity]'))button.addEventListener('click',()=>{quantity.value=String(clampQuantity(Number(quantity.value)+Number(button.dataset.quantity)));update(false);});
  form.addEventListener('submit',event=>{event.preventDefault();update(false);
   const scent=form.elements.scent.value,format=form.elements.format.value;
-  const result=add(scent,format,Number(quantity.value),!form.closest('#journey-dialog'));
-  const feedback=form.closest('[data-detour-panel]')?.querySelector('[data-detour-feedback]');
-  if(feedback&&result){feedback.hidden=false;feedback.querySelector('[data-product-status]').textContent=result.added?
-   `${result.added} × ${ui.names[scent]} · ${ui[format]} — ${ui.toast}`:
-   (de?'Deine Tasche enthält bereits 20 Stück dieser Auswahl.':'Your bag already contains 20 of this selection.');}
+  add(scent,format,Number(quantity.value));
  });
  update();
 }
@@ -246,9 +240,6 @@ reduced.addEventListener('change',()=>{
 });
 window.addEventListener('pagehide',()=>{pageActive=false;sceneEpoch++;for(const controller of productJourneys.values())controller.suspend();for(const [el,view]of viewers){const state=view.getState();sceneSnapshots.set(el,{progress:view.getProgress(),yaw:state.manualYaw,zoom:state.framing?.zoom||1,pose:state.poseProgress});view.destroy();}viewers.clear();sceneObserver?.disconnect();});
 window.addEventListener('pageshow',event=>{pageActive=true;if(event.persisted){cart=readCart(cart);renderCart();for(const controller of productJourneys.values())controller.resume();scenes.filter(el=>!el.closest('dialog')||el.closest('dialog').open&&!el.closest('[data-detour-panel]')?.hidden).forEach(el=>{mounting.delete(el);if(sceneObserver&&!el.closest('dialog'))sceneObserver.observe(el);else mountScene(el);});scheduleScroll();}});
-function removeDetailScenes(){
- for(const el of scenes.filter(el=>el.closest('#journey-dialog'))){mounting.delete(el);viewers.get(el)?.destroy();viewers.delete(el);sceneSnapshots.delete(el);}
-}
 journey=initializeJourney({ui,reduced,
  onReady:()=>{for(const [section,controller]of productJourneys)if(controller.enhanced)viewers.get(section.querySelector('[data-shop-scene]'))?.setProgress(controller.getProgress(),{immediate:true});},
  onChoice:choice=>{
@@ -256,7 +247,6 @@ journey=initializeJourney({ui,reduced,
    const scent=el.closest('main.pdp-page')?.querySelector('[data-product-form]')?.dataset.id||choice.scent;
    el.dataset.scent=scent;
    if(el.dataset.shopScene==='refill'||el.dataset.requestedMode==='refill')el.querySelector('img')?.setAttribute('src',`${base}/assets/shop-refill-${scent}.webp`);
-   el.closest('.product-gallery')?.querySelector('[data-gallery-view="refill"] img')?.setAttribute('src',`${base}/assets/shop-refill-${scent}.webp`);
    viewers.get(el)?.setWorld(scent,getComputedStyle(el).getPropertyValue('--world-bg').trim()||undefined);
   }
   const themeWorld=document.querySelector('main [data-world],main.pdp-page');
@@ -264,27 +254,6 @@ journey=initializeJourney({ui,reduced,
   if(theme)document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme);
  },
  onModal:(paused,top)=>{for(const [el,view]of viewers)view.setPaused(paused&&el.closest('dialog')!==top);if(!paused)scheduleScroll();},
- onDetailClose:removeDetailScenes,
- onDetail:(type,options,choice)=>{
-  const panel=document.querySelector(`[data-detour-panel="${type}"]`);
-  if(type==='materials')setGallery(panel.querySelector('.product-gallery'),'product');
-  const section=options.trigger?.closest('[data-ritual-scroll],[data-product-journey]')||[...productJourneys.keys(),...rituals].find(el=>el.getBoundingClientRect().top<innerHeight&&el.getBoundingClientRect().bottom>0);
-  const source=section?viewers.get(section.querySelector('[data-shop-scene]'))?.getState():null;
-  for(const el of panel?.querySelectorAll('[data-shop-scene]')||[]){
-   if(el.hasAttribute('data-inspection')){
-    const target=options.trigger?.dataset.detourTarget;
-    const progress=target==='dose'?.56:target==='refill'?.85:target==='closed'?0:source?.journey?.ritualProgress??source?.cyclePosition??0;
-    el.dataset.inspectionProgress=String(progress);el.dataset.inspectionYaw=String(source?.manualYaw||0);
-    const slider=panel.querySelector('[data-inspect-progress]');if(slider)slider.value=String(progress);
-   }
-   el.dataset.scent=choice.scent;mountScene(el);
-  }
- },
- onZoom:action=>{
-  const view=viewers.get(document.querySelector('[data-inspection]'));if(!view)return;
-  if(action==='reset'){view.setZoom(1);view.setYaw(0);}else view.setZoom(view.getState().framing?.zoom*(action==='in'?1.2:1/1.2)||1);
- }
 });
 if(reduced.matches&&productJourneys.size)journey.ready();
-document.querySelector('[data-inspect-progress]')?.addEventListener('input',event=>viewers.get(document.querySelector('[data-inspection]'))?.setProgress(Number(event.target.value),{immediate:true}));
 scheduleScroll();

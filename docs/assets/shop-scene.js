@@ -1,11 +1,12 @@
 import * as THREE from '../assembly/vendor/three.module.js';
+import { createCampaignBackdrop, campaignLayout } from './campaign-backdrop.js?v=shop-20261013-flow3';
 import { createStudioEnvironment } from '../assembly/studio-environment.js?v=ritual-20261013-1';
 import { createBody, shellRadiusAt } from '../assembly/body.js?v=ritual-20261013-1';
 import { createRitualCap } from '../assembly/ritual-cap.js?v=ritual-20261013-1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from '../assembly/ritual-effects.js?v=ritual-20261013-journey';
 import { computeCycleState, TILT_AXIS, clamp } from '../assembly/ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from '../assembly/ritual-space.js?v=ritual-20261012-4';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-studio2';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-flow3';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
@@ -64,7 +65,8 @@ const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(
 export function mountShopScene(container, options = {}) {
   if (!container?.appendChild || !container?.getBoundingClientRect) throw new TypeError('A shop viewer needs a container element.');
   const initialMode = MODES.has(options.mode) ? options.mode : 'product';
-  const opaque = options.opaque === true || initialMode === 'journey';
+  const campaignBackdrop = options.backdrop === 'campaign';
+  const opaque = campaignBackdrop || options.opaque === true || initialMode === 'journey';
   const artDirection = ['campaign', 'detail'].includes(options.artDirection) ? options.artDirection : 'studio';
   const campaign = artDirection === 'campaign';
   const worlds = { aloe: '#ebe4ff', argan: '#f7d9ce', bamboo: '#ddeaf4' };
@@ -73,7 +75,7 @@ export function mountShopScene(container, options = {}) {
   let poseProgress = clamp(finite(options.poseProgress),0,1), targetPoseProgress = poseProgress,
     reveal = campaign ? clamp(finite(options.reveal),0,1) : 1;
   let mode = initialMode, disposed = false, ready = false, rendered = false, error = null, paused = options.paused === true;
-  let renderer, scene, camera, bodyLease, body, cap, oldSeal, newSeal, gel, collarFlex;
+  let renderer, scene, camera, bodyLease, body, cap, oldSeal, newSeal, gel, collarFlex, backdrop;
   let tiltRig, yawRig, product, oldRefill, newRefill, floor, environment, key;
   let resizeObserver, intersectionObserver, frame = 0, lastTick = 0, lastReport = -1000;
   let width = 0, height = 0, inView = true, observedInView = null,
@@ -232,15 +234,20 @@ export function mountShopScene(container, options = {}) {
     const center = new THREE.Vector3();
     for (let j = 0; j < axes.length; j++) center.addScaledVector(axes[j], (limits[j][0] + limits[j][1]) / 2);
     const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), tanH = tanV * camera.aspect;
+    const region = campaignBackdrop ? campaignLayout(width,height) : {minX:0,maxX:1,minY:0,maxY:1};
+    const minX=2*region.minX-1, maxX=2*region.maxX-1, minY=1-2*region.maxY, maxY=1-2*region.minY;
+    const aimX=(minX+maxX)/2, aimY=(minY+maxY)/2;
     let distance = 0;
     for (const p of points) {
       fitVector.copy(p).sub(center);
-      distance = Math.max(distance, fitVector.dot(direction) + Math.abs(fitVector.dot(up)) / tanV,
-        fitVector.dot(direction) + Math.abs(fitVector.dot(right)) / tanH);
+      const x=fitVector.dot(right),y=fitVector.dot(up),depth=fitVector.dot(direction);
+      distance=Math.max(distance,depth+y/(tanV*(y>=0?maxY-aimY:minY-aimY)),
+        depth+x/(tanH*(x>=0?maxX-aimX:minX-aimX)));
     }
     distance = Math.max(100, distance * 1.12);
-    camera.position.copy(center).addScaledVector(direction, distance / zoom);
-    camera.up.set(0, 1, 0); camera.lookAt(center); camera.updateMatrixWorld();
+    const aim=center.clone().addScaledVector(right,-aimX*tanH*distance/zoom).addScaledVector(up,-aimY*tanV*distance/zoom);
+    camera.position.copy(aim).addScaledVector(direction, distance / zoom);
+    camera.up.set(0, 1, 0); camera.lookAt(aim); camera.updateMatrixWorld();
     framing = { center: center.toArray(), distance, zoom, cameraPosition: camera.position.toArray() };
     staticCameraDirty = false;
   }
@@ -270,7 +277,7 @@ export function mountShopScene(container, options = {}) {
     if (journey) collarFlex.update(state.cap.position[1]);
     for (const [group, pose] of [[oldRefill, state.oldRefill], [newRefill, state.newRefill]]) {
       group.position.fromArray(pose.position); group.rotation.set(...pose.rotation);
-      group.visible = animated ? pose.visible : group === oldRefill && mode !== 'cap';
+      group.visible = animated ? pose.visible : group === oldRefill && mode === 'refill';
     }
     oldSeal.update({ ...(animated ? state.seal : { unfold: 0, peel: 0, exit: 0 }), externalExit: true });
     newSeal.update(state.newSeal); newSeal.group.visible = animated && state.newSeal.visible;
@@ -291,8 +298,13 @@ export function mountShopScene(container, options = {}) {
     product.updateWorldMatrix(true, true);
     cap.outlet.getWorldPosition(outletWorld); cap.outlet.getWorldQuaternion(outletQuaternion);
     outletDirection.set(0, 1, 0).applyQuaternion(outletQuaternion);
-    gel.update({ progress: animated ? state.progress : 0,
+    if(animated || mode==='refill') gel.update({ progress: animated ? state.progress : 0,
       ...(animated ? state.liquid : { flow: 0, gush: 0, fillOld: 1, fillNew: 1 }), outletWorld, outletDirection });
+    else {
+      // The sealed exterior hides all PET/fluid. Avoid its transmission prepass
+      // and buffer updates in the hero; opening and refill views retain them.
+      gel.oldFillGroup.visible=false; gel.newFillGroup.visible=false; gel.streamGroup.visible=false;
+    }
     floor.position.y = campaign ? -101 : mode === 'refill' ? -80.4 : -85.4;
     floor.material.opacity = .105 * (1 - (animated ? state.framing.pouring : 0));
     floor.visible = mode !== 'cap' && floor.material.opacity > .001;
@@ -357,6 +369,7 @@ export function mountShopScene(container, options = {}) {
     const coarse = window.matchMedia('(pointer: coarse)').matches;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse || width < 520 ? 1.3 : 1.65));
     renderer.setSize(width, height, false);
+    backdrop?.resize(width,height);
     camera.aspect = width / height; camera.updateProjectionMatrix();
     staticCameraDirty = true;
   }
@@ -417,6 +430,7 @@ export function mountShopScene(container, options = {}) {
   function setWorld(value, background) {
     if (disposed || !Object.hasOwn(worlds, value)) return false;
     world = value;
+    backdrop?.setWorld(value);
     gel?.setScent(value);
     backgroundColor = background || worlds[world];
     renderer?.setClearColor(backgroundColor, opaque ? 1 : 0);
@@ -531,6 +545,7 @@ export function mountShopScene(container, options = {}) {
   }
 
   function disposeResources() {
+    backdrop?.dispose(); backdrop = null;
     oldSeal?.dispose(); newSeal?.dispose(); gel?.dispose(); cap?.dispose(); cap = null;
     bodyLease?.release(); bodyLease = null;
     environment?.dispose(); floor?.geometry.dispose(); floor?.material.dispose(); key?.shadow.dispose();
@@ -631,6 +646,11 @@ export function mountShopScene(container, options = {}) {
       });
       scene = new THREE.Scene();
       if (opaque) scene.background = new THREE.Color(backgroundColor);
+      if (campaignBackdrop) {
+        await document.fonts.load('700 160px Campaign');
+        if (disposed) return;
+        backdrop = createCampaignBackdrop({ THREE, world }); scene.add(backdrop.mesh);
+      }
       camera = new THREE.PerspectiveCamera(30, 1, .5, 5000);
       makeEnvironment();
       scene.add(new THREE.HemisphereLight('#f5f3ff', '#647385', .25));

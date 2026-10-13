@@ -75,7 +75,6 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
   const orderedScents = ['aloe', 'argan', 'bamboo'].filter(id => fragrances.includes(id));
   const price = (format, lang) => formatPrice(format === 'refill' ? 450 : 1250, lang);
   const asset = name => `${BASE}/assets/${name}`;
-  const detour = (kind, scent = '', format = '', target = '') => `data-detour="${kind}"${scent ? ` data-detour-scent="${scent}"` : ''}${format ? ` data-detour-format="${format}"` : ''}${target ? ` data-detour-target="${target}"` : ''}`;
   const contextualAttributes = href => href.startsWith('#') ? '' : 'data-native-route';
   const button = (href, label, modifier = '', attributes = contextualAttributes(href)) => `<a class="button ${modifier}" href="${href}" ${attributes}><span>${label}</span>${icon('arrow')}</a>`;
   const link = (href, label, attributes = contextualAttributes(href)) => `<a class="text-link" href="${href}" ${attributes}><span>${label}</span>${icon('arrow')}</a>`;
@@ -99,7 +98,7 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
         <a class="product-card__art" href="${href}" data-native-route aria-label="${esc(`${t.names[id]} ${label}, 250 ml — ${L(lang, 'ansehen', 'view')}`)}">
           <div class="product-card__meta"><span>${label.toUpperCase()}</span><span>250 ML</span></div>
           <span class="product-card__world" aria-hidden="true">${t.names[id]}</span>
-          ${image(format === 'refill' ? `shop-refill-${id}.webp` : 'shop-product.webp', `${t.names[id]} ${label} · 250 ml`)}
+          ${image(format === 'refill' ? `shop-refill-${id}.webp` : 'shop-product-front.webp', `${t.names[id]} ${label} · 250 ml`)}
           <span class="product-card__scent">${t.scentWords[id]}</span>
           <span class="product-card__arrow" aria-hidden="true">${icon('arrow')}</span>
         </a>
@@ -157,58 +156,44 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
         <div class="campaign-switch" role="group" aria-label="${L(lang, 'Duft wählen', 'Choose your scent')}">${orderedScents.map(id => `<button class="world-choice scent-${id}" type="button" data-world-scent="${id}" aria-pressed="${id === 'bamboo'}"><span class="world-choice__swatch" aria-hidden="true"></span><span>${t.names[id]}</span></button>`).join('')}</div>
         <a class="hero-buy" href="${path(lang, 'products/bamboo/')}" data-world-link data-native-route><span><strong>${L(lang, 'Shampoo wählen', 'Choose shampoo')}</strong><small>${price('shampoo', lang)}</small></span><span class="hero-buy__arrow">${icon('arrow')}</span></a>
       </div>
-      <a class="campaign-scroll" href="#materials"><span>${L(lang, 'So funktioniert’s', 'How it works')}</span>${icon('down')}</a>
+      <a class="campaign-scroll" href="#collection"><span>${L(lang, 'Deinen Duft entdecken', 'Find your scent')}</span>${icon('down')}</a>
     </section>`;
   }
 
   function productJourney(lang) {
     const phases = lang === 'de' ? [
-      { id: 'meet', tag: 'SO FUNKTIONIERT’S', title: 'Drei Teile. Ein Bamboo.', body: 'Scroll weiter. Entdecke, wie alles zusammenkommt.' },
-      { id: 'shell', tag: '01 / BAMBUS', title: 'Die Hülle bleibt.', body: 'Bambus außen. Platz für dein Shampoo innen.', component: 'shell' },
-      { id: 'insert', tag: '02 / PET-EINSATZ', title: 'Innen frisch.', body: '250 ml Shampoo. Versiegelt, bis du die Folie abziehst.', component: 'insert' },
-      { id: 'cap', tag: '03 / SILIKON', title: 'Flexibel gedacht.', body: 'Die Mitte ist Teil der Kappe. Beim Drücken biegt sich die Oberfläche.', component: 'cap' },
-      { id: 'together', tag: 'DAS KOMPLETTE PRODUKT', title: 'Passt. Zusammen.', body: 'Einsatz rein. Kappe drauf. Dein Bamboo ist komplett.' },
-      { id: 'unseal', tag: 'DAS ERSTE ÖFFNEN', title: 'Auf. Abziehen.', body: 'Kappe abnehmen, Folie vollständig abziehen, Kappe wieder aufsetzen.' },
-      { id: 'dose', tag: 'DEIN TÄGLICHES RITUAL', title: 'Drücken. Dosieren.', body: 'Lasche zur Seite drehen. Die Silikonmitte drücken. Shampoo fließt.' },
-      { id: 'refill', tag: 'DAS NÄCHSTE REFILL', title: 'Frisch nachgelegt.', body: 'Leerer Einsatz raus. Neues Refill rein. Hülle und Kappe bleiben.' },
-      { id: 'ready', tag: 'DER KREIS SCHLIESST SICH', title: 'Bereit für morgen.', body: 'Derselbe Bamboo. Ein frischer Anfang.' }
+      { id: 'closed', tag: 'DEIN BAMBOO. BEREIT FÜR DICH.', title: 'Alles drin.', body: '250 ml Shampoo. Versiegelt, bis du es öffnest.' },
+      { id: 'uncap', tag: '01 / ÖFFNEN', title: 'Kappe ab.', body: 'Die Silikonkappe abnehmen. Darunter liegt die Siegelfolie.' },
+      { id: 'unseal', tag: '02 / ABZIEHEN', title: 'Ein frischer Anfang.', body: 'Die Lasche greifen und die Folie vollständig vom Rand abziehen.' },
+      { id: 'recap', tag: '03 / AUFSETZEN', title: 'Kappe drauf.', body: 'Die Kappe wieder aufsetzen. Sie sitzt bündig auf dem Bambustubus.' },
+      { id: 'dose', tag: '04 / DOSIEREN', title: 'Drehen. Drücken. Los.', body: 'Verschlusslasche öffnen und zur Seite drehen. Neigen und die flexible Silikonmitte drücken.' },
+      { id: 'remove', tag: '05 / WECHSELN', title: 'Leer? Einfach raus.', body: 'Kappe abnehmen. Den leeren PET-Einsatz herausziehen. Dein Bambustubus bleibt.' },
+      { id: 'refill', tag: '06 / NACHLEGEN', title: 'Frisch geht weiter.', body: 'Ein neues, versiegeltes Refill einsetzen. Deine Kappe verwendest du weiter.' },
+      { id: 'ready', tag: 'KEEP. REFILL. REPEAT.', title: 'Wieder bereit.', body: 'Dieselbe Hülle. Dieselbe Kappe. Dein nächstes Ritual.' }
     ] : [
-      { id: 'meet', tag: 'HOW IT WORKS', title: 'Three parts. One Bamboo.', body: 'Keep scrolling. See how it all comes together.' },
-      { id: 'shell', tag: '01 / BAMBOO', title: 'The shell stays.', body: 'Bamboo outside. Room for your shampoo inside.', component: 'shell' },
-      { id: 'insert', tag: '02 / PET INSERT', title: 'Fresh inside.', body: '250 ml shampoo. Sealed until you peel the film.', component: 'insert' },
-      { id: 'cap', tag: '03 / SILICONE', title: 'Made to flex.', body: 'The centre is part of the cap. Pressing it bends the surface.', component: 'cap' },
-      { id: 'together', tag: 'THE COMPLETE PRODUCT', title: 'Everything fits.', body: 'Insert in. Cap on. Your Bamboo is complete.' },
-      { id: 'unseal', tag: 'THE FIRST OPENING', title: 'Open. Peel.', body: 'Take the cap off, peel the film completely, put the cap back on.' },
-      { id: 'dose', tag: 'YOUR DAILY RITUAL', title: 'Press. Pour.', body: 'Turn the closure aside. Press the silicone centre. Shampoo flows.' },
-      { id: 'refill', tag: 'YOUR NEXT REFILL', title: 'A fresh refill.', body: 'Empty insert out. Fresh refill in. Keep the shell and cap.' },
-      { id: 'ready', tag: 'FULL CIRCLE', title: 'Ready for tomorrow.', body: 'The same Bamboo. A fresh beginning.' }
+      { id: 'closed', tag: 'YOUR BAMBOO. READY FOR YOU.', title: 'All in.', body: '250 ml shampoo. Sealed until you open it.' },
+      { id: 'uncap', tag: '01 / OPEN', title: 'Cap off.', body: 'Lift off the silicone cap. The film seal sits underneath.' },
+      { id: 'unseal', tag: '02 / PEEL', title: 'A fresh beginning.', body: 'Take the tab and peel the film completely off the rim.' },
+      { id: 'recap', tag: '03 / REPLACE', title: 'Cap on.', body: 'Put the cap back on. It fits flush against the bamboo tube.' },
+      { id: 'dose', tag: '04 / DISPENSE', title: 'Turn. Press. Go.', body: 'Open the closure and turn it aside. Tilt and press the flexible silicone centre.' },
+      { id: 'remove', tag: '05 / CHANGE', title: 'Empty? Lift it out.', body: 'Take the cap off. Remove the empty PET insert. Keep your bamboo tube.' },
+      { id: 'refill', tag: '06 / REFILL', title: 'Fresh goes on.', body: 'Put in a fresh, sealed refill. Keep using the same cap.' },
+      { id: 'ready', tag: 'KEEP. REFILL. REPEAT.', title: 'Ready again.', body: 'The same shell. The same cap. Your next ritual.' }
     ];
-    const intervals = { meet: [0, .13], shell: [.13, .205], insert: [.205, .30], cap: [.30, .38], together: [.38, .48], unseal: [.48, .662], dose: [.662, .8544], refill: [.8544, .9792], ready: [.9792, 1] };
-    const caption = (phase, index) => `<article class="journey-caption journey-caption--${phase.id}" data-journey-caption="${phase.id}" data-phase-start="${intervals[phase.id][0]}" data-phase-end="${intervals[phase.id][1]}" style="--static-order:${index + 3};">
-      <p class="journey-caption__kicker">${phase.tag}</p>
-      <h2 class="journey-caption__title"><span class="journey-caption__line"><span>${phase.title}</span></span></h2>
-      <p class="journey-caption__body">${phase.body}</p>
-    </article>`;
-    return `<section class="product-journey product-journey--guide scent-bamboo" data-product-journey data-world="bamboo" data-world-kind="product" aria-label="${L(lang, 'So funktioniert Bamboo Shampoo', 'How Bamboo Shampoo works')}">
-      <div class="product-journey__marker" id="materials" data-journey-chapter="materials" data-journey-at="0" data-journey-until="0.48" style="--marker-start:0;--marker-length:.48;--marker-order:0;" aria-hidden="true"></div>
-      <div class="product-journey__marker" id="ritual" data-journey-chapter="ritual" data-journey-at="0.48" data-journey-until="1" style="--marker-start:.48;--marker-length:.52;--marker-order:8;" aria-hidden="true"></div>
-      <div class="product-journey__sticky">
-        <div class="product-journey__stage" data-shop-scene="journey" data-art-direction="journey" data-scent="bamboo" role="group" aria-label="${L(lang, '3D-Aufbau und Anwendung: Bambushülle, gefüllter PET-Einsatz und Silikonkappe', '3D construction and use: bamboo shell, filled PET insert and silicone cap')}">${image('shop-product.webp', L(lang, 'Das komplette Bamboo Shampoo', 'The complete Bamboo Shampoo'), false, 'shop-scene__fallback')}</div>
-        <div class="guide-heading"><span>${L(lang, 'SO FUNKTIONIERT’S', 'HOW IT WORKS')}</span><a href="#collection">${L(lang, 'Zum Shop', 'Shop')}${icon('arrow')}</a></div>
-        <div class="product-journey__captions">${phases.map(caption).join('')}</div>
-        <div class="guide-progress" aria-hidden="true"><span></span></div>
-      </div>
-    </section>`;
+    const intervals={ closed:[0,.06], uncap:[.06,.15], unseal:[.15,.27], recap:[.27,.35], dose:[.35,.72], remove:[.72,.83], refill:[.83,.96], ready:[.96,1] };
+    const caption=phase=>`<article class="journey-caption journey-caption--${phase.id}" data-journey-caption="${phase.id}" data-phase-start="${intervals[phase.id][0]}" data-phase-end="${intervals[phase.id][1]}"><p class="journey-caption__kicker">${phase.tag}</p><h2 class="journey-caption__title"><span class="journey-caption__line"><span>${phase.title}</span></span></h2><p class="journey-caption__body">${phase.body}</p></article>`;
+    return `<section id="ritual" class="product-journey product-journey--guide scent-bamboo" data-product-journey data-journey-chapter="ritual" data-world="bamboo" data-world-kind="product" aria-label="${L(lang,'So funktioniert Bamboo Shampoo','How Bamboo Shampoo works')}"><div class="product-journey__sticky"><div class="product-journey__stage" data-shop-scene="journey" data-art-direction="journey" data-scent="bamboo" role="group" aria-label="${L(lang,'Öffnen, Folie abziehen, dosieren und Refill wechseln','Open, peel, dispense and change the refill')}">${image('shop-product-front.webp',L(lang,'Das komplette Bamboo Shampoo','The complete Bamboo Shampoo'),false,'shop-scene__fallback')}</div><div class="guide-heading"><span>${L(lang,'SO FUNKTIONIERT’S','HOW IT WORKS')}</span><a href="#collection">${L(lang,'Duft wählen','Choose a scent')}${icon('arrow')}</a></div><div class="product-journey__captions">${phases.map(caption).join('')}</div><div class="guide-progress" aria-hidden="true"><span></span></div></div></section>`;
   }
+
   function home(lang) {
     return `<main id="main" data-journey>
       ${homeHero(lang)}
-      ${productJourney(lang)}
       <section class="section-shell home-collection" id="collection" data-journey-chapter="collection">
         <div class="section-heading" data-reveal><div>${eyebrow(L(lang, 'DIE KOLLEKTION', 'THE COLLECTION'))}<h2 class="display">${L(lang, 'DREI DÜFTE.<br>DEIN BAMBOO.', 'THREE MOODS.<br>YOUR BAMBOO.')}</h2></div><div class="section-heading__aside"><p>${L(lang, '250 ml. Bambus außen, Shampoo innen.<br>Entdecke den Duft, der zu dir passt.', '250 ml. Bamboo outside, shampoo inside.<br>Find the scent that fits you.')}</p>${link(path(lang, 'shop/'), L(lang, 'Alle Produkte', 'All products'))}</div></div>
         <div class="collection-grid collection-grid--campaign">${scentCards(lang)}</div>
         <div class="section-end"><span class="collection-format-note">Shampoo ${formatPrice(1250, lang)} · Refill ${formatPrice(450, lang)}</span></div>
       </section>
+      ${productJourney(lang)}
       <section class="section-shell faq-tease" id="questions" data-journey-chapter="questions"><div class="section-heading" data-reveal><div>${eyebrow(L(lang, 'GUT ZU WISSEN', 'GOOD TO KNOW'))}<h2 class="display">${L(lang, 'GUTE FRAGEN.<br>KLARE ANTWORTEN.', 'GOOD QUESTIONS.<br>CLEAR ANSWERS.')}</h2></div>${link(path(lang, 'faq/'), L(lang, 'Alle Antworten', 'All the answers'))}</div><div class="faq-list">${accordions(faqItems(lang).slice(0, 3), 'home-answer')}</div></section>
       ${closing(lang, true)}
     </main>`;
@@ -246,12 +231,8 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
 
   function productForm(lang, id) {
     const t = shopCopy[lang];
-    return `<form class="product-form" data-product-form data-id="${id}" data-default-format="shampoo">
+    return `<form class="product-form" id="product-form-${id}" data-product-form data-id="${id}" data-default-format="shampoo">
       <input type="hidden" name="scent" value="${id}">
-      <fieldset><legend>${L(lang, 'Format', 'Format')}</legend><div class="format-options">
-        <label class="format-option"><input type="radio" name="format" value="shampoo" checked><span><span class="format-option__head"><strong>${t.shampoo}</strong><b>${formatPrice(1250, lang)}</b></span><small>250 ml · ${L(lang, 'Hülle, Kappe & gefüllter Einsatz', 'Shell, cap & filled insert')}</small></span></label>
-        <label class="format-option"><input type="radio" name="format" value="refill"><span><span class="format-option__head"><strong>Refill</strong><b>${formatPrice(450, lang)}</b></span><small>250 ml · ${L(lang, 'Gefüllter PET-Einsatz mit Siegelfolie', 'Filled PET insert with film seal')}</small></span></label>
-      </div></fieldset>
       <fieldset><legend>${L(lang, 'Duft', 'Scent')}<span data-scent-name>${t.names[id]}</span></legend><div class="scent-options">${orderedScents.map(scent => `<a class="scent-option scent-${scent} ${scent === id ? 'is-current' : ''}" data-scent-link href="${path(lang, `products/${scent}/`)}" ${scent === id ? 'aria-current="page"' : ''}><i class="scent-dot" aria-hidden="true"></i><span>${t.names[scent]}</span></a>`).join('')}</div></fieldset>
       <div class="product-price-line"><strong class="product-price" data-product-price data-price aria-label="${t.productPriceLabel}">${formatPrice(1250, lang)}</strong><span class="unit-price"><span data-unit-price>${formatPrice(5000, lang)}</span> / l · 250 ml</span></div>
       <div class="product-add-line"><div class="quantity-control"><button type="button" data-quantity="-1" disabled aria-label="${L(lang, 'Menge reduzieren', 'Decrease quantity')}">${icon('minus')}</button><input name="quantity" type="number" min="1" max="20" value="1" inputmode="numeric" aria-label="${t.quantity}"><button type="button" data-quantity="1" aria-label="${L(lang, 'Menge erhöhen', 'Increase quantity')}">${icon('plus')}</button></div><button class="button product-add" type="submit"><span data-add-label>${t.formatAdd.shampoo}</span>${icon('bag')}</button></div>
@@ -261,8 +242,8 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
   }
 
   function productGallery(lang, id = 'bamboo', eager = false) {
-    const t = shopCopy[lang];
-    return `<div class="product-gallery"><div class="product-gallery__primary"><span class="product-gallery__word" data-gallery-scent aria-hidden="true">${t.names[id]}</span>${viewer(lang, 'product', id, 'product-viewer', eager, 'detail')}<span class="product-gallery__volume">250 ML</span></div><div class="product-gallery__views" role="group" aria-label="${L(lang, 'Produktansicht wählen', 'Choose a product view')}">${['product', 'refill'].map(mode => `<button class="gallery-view ${mode === 'product' ? 'is-active' : ''}" type="button" data-gallery-view="${mode}" aria-pressed="${mode === 'product'}">${image(mode === 'refill' ? `shop-refill-${id}.webp` : 'shop-product.webp', '')}<span>${t.productGallery[mode]}</span></button>`).join('')}</div><p class="product-gallery__hint">${L(lang, 'Ziehen zum Drehen', 'Drag to rotate')}</p></div>`;
+    const t=shopCopy[lang];
+    return `<div class="product-gallery"><div class="product-gallery__primary">${viewer(lang,'product',id,'product-viewer',eager,'detail')}<span class="product-gallery__volume">250 ML</span></div><fieldset class="product-format"><legend class="sr-only">${L(lang,'Produkt wählen','Choose a product')}</legend><div class="format-options">${['shampoo','refill'].map(format=>`<label class="format-option"><input type="radio" form="product-form-${id}" name="format" value="${format}" ${format==='shampoo'?'checked':''}><span><span class="format-option__head"><strong>${t[format]}</strong><b>${price(format,lang)}</b></span><small>${format==='shampoo'?L(lang,'Das komplette Produkt','The complete product'):L(lang,'Der gefüllte Einsatz','The filled insert')}</small></span></label>`).join('')}</div></fieldset><p class="product-gallery__hint">${L(lang,'Ziehen zum Drehen','Drag to rotate')}</p></div>`;
   }
 
   function product(lang, id) {
@@ -293,9 +274,9 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
   function story(lang) {
     return `<main id="main" class="story-page">
       <section class="section-shell story-intro"><div data-reveal>${eyebrow('BAMBOO / SILICONE / PET')}<h1 class="display">${L(lang, 'DREI TEILE.<br>EIN BAMBOO.', 'THREE PARTS.<br>ONE BAMBOO.')}</h1></div><p class="lede" data-reveal>${L(lang, 'Die Hülle bleibt. Der Einsatz wechselt. Dazwischen: Details, die genau zusammenpassen.', 'The shell stays. The insert changes. Between them: details designed to fit.')}</p></section>
-      <section class="story-product-stage scent-bamboo">${viewer(lang, 'product', 'bamboo', 'story-product', true, 'campaign')}<span class="story-product-stage__word" aria-hidden="true">KEEP IT.</span><a class="text-link" href="${BASE}/assembly/" ${detour('inspect')}><span>${L(lang, 'Die Konstruktion in Bewegung', 'See the construction in motion')}</span>${icon('arrow')}</a></section>
+      <section class="story-product-stage scent-bamboo">${viewer(lang, 'product', 'bamboo', 'story-product', true, 'campaign')}<span class="story-product-stage__word" aria-hidden="true">KEEP IT.</span><a class="text-link" href="${BASE}/assembly/" data-native-route><span>${L(lang, 'Die Konstruktion in Bewegung', 'See the construction in motion')}</span>${icon('arrow')}</a></section>
       <section class="section-shell story-components"><div class="component-list">
-        <article class="component-row" data-reveal><div class="component-row__copy">${eyebrow('BAMBOO')}<h2 class="display">${L(lang, 'DIE HÜLLE.', 'THE SHELL.')}</h2><p>${L(lang, 'Bambus mit gelaserter Gravur. Der zylindrische Tubus nimmt den PET-Einsatz auf. Oben schließen Kappe und Rand bündig aneinander an.', 'Bamboo with laser engraving. The cylindrical tube holds the PET insert. At the top, the cap meets the rim in a flush fit.')}</p><p class="component-row__caption">${L(lang, 'FÜR DAS NÄCHSTE REFILL BEHALTEN', 'KEEP FOR THE NEXT REFILL')}</p></div><figure class="component-row__art scent-bamboo">${image('shop-product.webp', L(lang, 'Originale Bambushülle mit Lasergravur und bündig aufgesetzter Silikonkappe', 'Original bamboo shell with laser engraving and a flush silicone cap'))}</figure></article>
+        <article class="component-row" data-reveal><div class="component-row__copy">${eyebrow('BAMBOO')}<h2 class="display">${L(lang, 'DIE HÜLLE.', 'THE SHELL.')}</h2><p>${L(lang, 'Bambus mit gelaserter Gravur. Der zylindrische Tubus nimmt den PET-Einsatz auf. Oben schließen Kappe und Rand bündig aneinander an.', 'Bamboo with laser engraving. The cylindrical tube holds the PET insert. At the top, the cap meets the rim in a flush fit.')}</p><p class="component-row__caption">${L(lang, 'FÜR DAS NÄCHSTE REFILL BEHALTEN', 'KEEP FOR THE NEXT REFILL')}</p></div><figure class="component-row__art scent-bamboo">${image('shop-shell.webp', L(lang, 'Der offene Bambustubus mit Originalgravur, ohne Kappe und PET-Einsatz', 'The open bamboo tube with original engraving, without cap or PET insert'))}</figure></article>
         <article class="component-row component-row--reverse" data-reveal><div class="component-row__copy">${eyebrow('SILICONE')}<h2 class="display">${L(lang, 'DIE KAPPE.', 'THE CAP.')}</h2><p>${L(lang, 'Die Mitte ist Teil der Kappe. Beim Drücken biegt sich die Silikonoberfläche. Der kreisrunde Ring lässt die Verschlusslasche um die Mitte schwenken.', 'The centre is part of the cap. Pressing it bends the silicone surface. The circular ring lets the closure swivel around the centre.')}</p><p class="component-row__caption">PRESS TO DOSE.</p></div><figure class="component-row__art scent-argan">${viewer(lang, 'cap', 'bamboo', 'component-viewer')}</figure></article>
         <article class="component-row" data-reveal><div class="component-row__copy">${eyebrow('PET / 250 ML')}<h2 class="display">${L(lang, 'DAS REFILL.', 'THE REFILL.')}</h2><p>${L(lang, 'Dünn und transparent. Der umlaufende obere Rand liegt auf der Bambushülle auf. Darauf sitzt die Folie, die vor der Verwendung vollständig abgezogen wird.', 'Thin and transparent. The upper flange rests on the bamboo shell. It holds the film that peels off completely before use.')}</p>${link(path(lang, 'refill/'), L(lang, 'Der nächste Einsatz', 'Meet your next insert'))}</div><figure class="component-row__art scent-bamboo" data-world="bamboo" data-world-kind="refill">${viewer(lang, 'refill', 'bamboo', 'component-viewer')}</figure></article>
       </div></section>
@@ -335,61 +316,10 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc }) {
     return `<main id="main" class="checkout-page"><section class="section-shell checkout-intro"><div>${eyebrow(L(lang, 'DEINE AUSWAHL', 'YOUR SELECTION'))}<h1 class="display">${L(lang, 'DEINE<br>TASCHE.', 'YOUR<br>BAG.')}</h1></div><p class="lede">${L(lang, 'Düfte, Formate und Mengen auf einen Blick. Diese Vorschau nimmt keine Bestellungen oder Zahlungen an.', 'Scents, formats and quantities at a glance. This preview does not accept orders or payments.')}</p></section><section class="section-shell checkout-layout" id="cart-review"><div class="review-items" data-review-items aria-live="polite"><div class="review-empty"><h2>${L(lang, 'Noch Platz für deinen Duft.', 'Room for your scent.')}</h2><p>${L(lang, 'Deine Produktauswahl erscheint hier.', 'Your product selection appears here.')}</p>${button(path(lang, 'shop/'), L(lang, 'Die Kollektion entdecken', 'Explore the collection'))}</div></div><aside class="review-summary" aria-labelledby="review-summary-title">${eyebrow('BAMBOO SHAMPOO')}<h2 id="review-summary-title">${L(lang, 'Deine Übersicht', 'Your overview')}</h2><div class="review-total"><span>${L(lang, 'Gesamtsumme', 'Total')}</span><strong data-review-total>${formatPrice(0, lang)}</strong></div><p>${L(lang, 'Produktpreise der Vorschau. Kein Bestellabschluss, keine Zahlung und keine Eingabe von Kundendaten.', 'Preview product prices. No order submission, payment or customer information entry.')}</p>${button(path(lang, 'shop/'), L(lang, 'Weiter entdecken', 'Keep exploring'))}${link(path(lang, 'refill/'), L(lang, 'Mehr über Refills', 'More about refills'))}</aside></section></main>`;
   }
 
-  function detours(lang) {
-    const t = shopCopy[lang];
-    const ingredients = faqItems(lang)[6];
-    const contents = lang === 'de' ? [
-      ['Was ist enthalten?', '<p>Shampoo: das komplette Produkt mit Bambushülle, Kappe und gefülltem 250-ml-Einsatz. Refill: der neue, gefüllte Einsatz. Hülle und Kappe bleiben.</p>'],
-      ingredients
-    ] : [
-      ['What is included?', '<p>Shampoo: the complete product with a bamboo shell, cap and filled 250 ml insert. Refill: the new, filled insert. Keep the shell and cap.</p>'],
-      ingredients
-    ];
-    return `<dialog class="journey-dialog" id="journey-dialog" aria-labelledby="detour-title">
-      <div class="journey-dialog__shell">
-        <header class="journey-dialog__header"><button class="detour-return" type="button" data-detour-close autofocus>${icon('arrow')}<span>${L(lang, 'Zurück zum Entdecken', 'Back to exploring')}</span></button><h2 id="detour-title" data-detour-title>${L(lang, 'Dein Bamboo', 'Your Bamboo')}</h2><button class="icon-button detour-close" type="button" data-detour-close aria-label="${t.close}">${icon('close')}</button></header>
-        <div class="journey-dialog__body" data-detour-body>
-          <section class="detour-panel detour-product scent-bamboo" data-detour-panel="product" data-detour-product hidden>
-            <div class="detour-product__layout product-layout">
-              ${productGallery(lang)}
-              <div class="product-config"><div>${eyebrow('BAMBOO SHAMPOO / 250 ML')}<h3 class="display" data-detour-product-name data-detail-scent>Bamboo</h3><p class="scent-subtitle" data-detour-product-words data-detail-words>${t.scentWords.bamboo}</p><p class="product-scent-copy" data-detour-product-description data-detail-description>${t.scentDescriptions.bamboo}</p></div>${productForm(lang, 'bamboo')}<div class="detour-add-feedback" data-detour-feedback hidden><p role="status" aria-live="polite" data-product-status></p><button class="text-link" type="button" data-open-bag>${L(lang, 'Meine Tasche ansehen', 'View my bag')}${icon('bag')}</button></div><a class="text-link detour-product__page" href="${path(lang, 'products/bamboo/')}" data-native-route data-product-page-link><span>${L(lang, 'Produktseite öffnen', 'Open product page')}</span>${icon('arrow')}</a><div class="product-details faq-list">${accordions(contents, 'detour-product-answer')}</div></div>
-            </div>
-          </section>
-          <section class="detour-panel detour-materials scent-bamboo" data-detour-panel="materials" hidden>
-            <div class="detour-split">
-              ${productGallery(lang)}
-              <div class="detour-copy">${eyebrow('BAMBOO / SILICONE / PET')}<h3 class="display">${L(lang, 'DREI TEILE.<br>EIN SYSTEM.', 'THREE PARTS.<br>ONE SYSTEM.')}</h3><dl class="material-facts">
-                <div><dt>${L(lang, 'Bambushülle', 'Bamboo shell')}</dt><dd>${L(lang, 'Nimmt den Einsatz auf. Die Lasergravur bleibt. Kappe und Tubusrand schließen bündig an.', 'Holds the insert. The laser engraving stays. The cap meets the tube rim in a flush fit.')}</dd></div>
-                <div><dt>${L(lang, 'Silikonkappe', 'Silicone cap')}</dt><dd>${L(lang, 'Die flexible Mitte gehört zur Kappe. Der kreisrunde Ring lässt die Verschlusslasche zur Seite schwenken.', 'The flexible centre is part of the cap. The circular ring lets the closure swivel aside.')}</dd></div>
-                <div><dt>${L(lang, 'PET-Einsatz', 'PET insert')}</dt><dd>${L(lang, 'Dünne, transparente Wand. Der obere Auflagerand sitzt auf dem Tubusrand und trägt die abziehbare Siegelfolie.', 'Thin, transparent walls. The upper flange rests on the tube rim and holds the peel-off film seal.')}</dd></div>
-              </dl><div class="detour-actions">${button(`${BASE}/assembly/`, L(lang, 'Genau ansehen', 'Inspect closely'), '', detour('inspect', '', '', 'closed'))}${link(path(lang, 'refill/'), L(lang, 'Was beim Refill bleibt', 'What stays for a refill'))}</div></div>
-            </div>
-          </section>
-          <section class="detour-panel detour-refill scent-bamboo" data-detour-panel="refill" hidden>
-            <div class="detour-split">
-              <div class="detour-refill__art"><span class="detour-refill__word" aria-hidden="true">REFILL</span>${viewer(lang, 'refill', 'bamboo', 'detour-refill__viewer')}</div>
-              <div class="detour-copy">${eyebrow('KEEP. REFILL. REPEAT.')}<h3 class="display">${L(lang, 'NEU DRIN.<br>WEITER GEHT’S.', 'NEW INSIDE.<br>GO AGAIN.')}</h3><p class="detour-refill__price">250 ml <strong>${price('refill', lang)}</strong></p><ol class="detour-process">
-                <li><strong>${L(lang, 'Öffnen & entnehmen', 'Open & remove')}</strong><p>${L(lang, 'Kappe abnehmen. Den leeren PET-Einsatz aus der Bambushülle ziehen.', 'Take off the cap. Lift the empty PET insert out of the bamboo shell.')}</p></li>
-                <li><strong>${L(lang, 'Neu einsetzen', 'Put the new one in')}</strong><p>${L(lang, 'Das neue Refill einsetzen. Sein oberer Rand liegt auf dem Tubusrand auf.', 'Put the new refill in. Its upper flange rests on the tube rim.')}</p></li>
-                <li><strong>${L(lang, 'Abziehen & aufsetzen', 'Peel & replace')}</strong><p>${L(lang, 'Vor der Verwendung die Siegelfolie vollständig abziehen. Die vorhandene Silikonkappe wieder aufsetzen.', 'Before use, peel the film seal off completely. Put your existing silicone cap back on.')}</p></li>
-              </ol><div class="detour-actions">${button(path(lang, 'products/bamboo/') + '?format=refill', L(lang, 'Mein Refill auswählen', 'Choose my refill'), '', detour('product', '', 'refill'))}${link(`${BASE}/assembly/`, L(lang, 'Wechsel genau ansehen', 'Inspect the change'), detour('inspect', '', '', 'refill'))}</div></div>
-            </div>
-          </section>
-          <section class="detour-panel detour-faq" data-detour-panel="faq" hidden><div class="detour-faq__intro">${eyebrow(L(lang, 'FRAGEN & ANTWORTEN', 'QUESTIONS & ANSWERS'))}<h3 class="display">${L(lang, 'GUT ZU<br>WISSEN.', 'GOOD TO<br>KNOW.')}</h3></div><div class="faq-list">${accordions(faqItems(lang), 'detour-faq-answer')}</div></section>
-          <section class="detour-panel detour-inspect scent-bamboo" data-detour-panel="inspect" hidden>
-            <div class="inspection-stage" data-shop-scene="ritual" data-scent="bamboo" data-inspection role="group" aria-label="${L(lang, 'Produkt in 3D untersuchen: drehen und zoomen', 'Inspect the product in 3D: rotate and zoom')}">${image('shop-product.webp', L(lang, 'Bamboo Shampoo mit Originalgravur und Dosierkappe', 'Bamboo Shampoo with original engraving and dosing cap'))}</div>
-            <div class="inspection-toolbar"><p>${L(lang, 'Ziehen zum Drehen · Pinchen zum Zoomen', 'Drag to rotate · Pinch to zoom')}</p><div class="inspection-zoom" role="group" aria-label="${L(lang, 'Ansicht vergrößern oder zurücksetzen', 'Zoom or reset the view')}"><button type="button" data-inspect-zoom="out" aria-label="${L(lang, 'Verkleinern', 'Zoom out')}">${icon('minus')}</button><button type="button" data-inspect-zoom="in" aria-label="${L(lang, 'Vergrößern', 'Zoom in')}">${icon('plus')}</button><button class="inspection-reset" type="button" data-inspect-zoom="reset">${L(lang, 'Ansicht zurücksetzen', 'Reset view')}</button></div></div>
-            <label class="inspection-timeline" for="inspection-progress"><span>${L(lang, 'Vom Öffnen zum Refill', 'From opening to refill')}</span><input id="inspection-progress" type="range" min="0" max="1" step="0.001" value="0" data-inspect-progress aria-label="${L(lang, 'Produktanimation vorwärts und rückwärts bewegen', 'Move the product animation forward and backward')}"></label>
-          </section>
-        </div>
-      </div>
-    </dialog>`;
-  }
-
   const withReturn = (lang, body) => body.replace(/<main\b[^>]*>/, opening => `${opening}<a class="journey-resume" href="${path(lang)}?resume=1" data-resume-journey hidden><span>${L(lang, 'Entdecken fortsetzen', 'Resume your journey')}</span>${icon('arrow')}</a>`);
   return Object.fromEntries(['de', 'en'].map(lang => [lang, {
     home: home(lang), collection: withReturn(lang, collection(lang)), refill: withReturn(lang, refill(lang)),
-    story: withReturn(lang, story(lang)), faq: withReturn(lang, faq(lang)), checkout: withReturn(lang, checkout(lang)), detours: detours(lang),
+    story: withReturn(lang, story(lang)), faq: withReturn(lang, faq(lang)), checkout: withReturn(lang, checkout(lang)),
     products: Object.fromEntries(orderedScents.map(id => [id, withReturn(lang, product(lang, id))]))
   }]));
 }

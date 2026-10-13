@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { chapterPosition, positionFromBookmark, normalizeChoice, validBookmark } from '../assets/journey.js';
+import { chapterPosition, positionFromBookmark, normalizeChoice, normalizeBookmark, validBookmark, JOURNEY_CHAPTERS } from '../assets/journey.js';
 
 const BASE = '/bamboo-shampoo-demo';
 const HOME = `https://example.test${BASE}/en/`;
 const production = fs.readFileSync(new URL('../assets/journey.js', import.meta.url), 'utf8');
-const saved = overrides => ({ chapter: 'ritual', progress: .4, scroll: 3366, lang: 'en', viewportHeight: 844, viewportWidth: 390, ...overrides });
+const saved = overrides => ({ chapter: 'ritual', progress: .4, scroll: 3366, lang: 'en', viewportHeight: 844, viewportWidth: 390,
+  layout: 'collection-before-ritual-v1', ...overrides });
 
 test('continuous homepage links use real product and story pages without material popups', () => {
   const h = harness({ continuous: true });
@@ -36,7 +37,7 @@ test('continuous homepage resumes only after the model has established the final
 
 test('scent changes preserve the explicit refill format on native purchase links', () => {
   const h = harness({ continuous: true });
-  const world = new h.Element('section', { 'data-world': 'bamboo' }, h.chapters[4]);
+  const world = new h.Element('section', { 'data-world': 'bamboo' }, h.chapters[1]);
   const shampoo = new h.Element('a', { 'data-world-link': '', href: `${BASE}/en/products/bamboo/` }, world);
   const refill = new h.Element('a', { 'data-world-link': '', 'data-world-format': 'refill', href: `${BASE}/en/products/bamboo/?format=refill` }, world);
   h.api.select({ scent: 'argan' });
@@ -95,6 +96,25 @@ test('untrusted persisted positions must name a known chapter and finite bounded
   for (const progress of [NaN, Infinity, -.01, 1.01, '.5']) assert.ok(!validBookmark(saved({ progress })));
   for (const scroll of [NaN, Infinity, -1, '12']) assert.ok(!validBookmark(saved({ scroll })));
   assert.ok(!validBookmark(null));
+});
+
+test('chapter order follows discover, scent choice, use and questions', () => {
+  assert.deepEqual(JOURNEY_CHAPTERS, ['discover', 'collection', 'ritual', 'questions']);
+});
+
+test('old material bookmarks migrate to the beginning of use instead of retaining obsolete pixel positions', () => {
+  const point = normalizeBookmark(saved({ chapter: 'materials', progress: .8, layout: undefined }));
+  assert.equal(point.chapter, 'ritual'); assert.equal(point.progress, 0);
+  assert.equal(point.viewportWidth, undefined); assert.equal(point.viewportHeight, undefined);
+  assert.equal(positionFromBookmark(point, { top: 2600, height: 4000 }, 844, 68, 390), 2532);
+  assert.equal(normalizeBookmark(saved({ chapter: 'materials', progress: Infinity })), null);
+});
+
+test('unversioned old-layout returns preserve chapter progress rather than a previous section pixel offset', () => {
+  const point = normalizeBookmark(saved({ layout: undefined }));
+  assert.equal(point.chapter, 'ritual'); assert.equal(point.progress, .4);
+  assert.ok(Math.abs(positionFromBookmark(point, { top: 2600, height: 4000 }, 844, 68, 390) - 3821.6) < 1e-9);
+  assert.equal(normalizeBookmark(saved({ chapter: 'unknown' })), null);
 });
 
 // Execute the complete production controller against a small standard-DOM
@@ -171,7 +191,7 @@ function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), m
   const nav = new Element('nav', { 'data-journey-nav': '' }, body); nav.offsetHeight = 58;
   const mainEl = main ? new Element('main', { 'data-journey': '' }, body) : null;
   if (continuous && mainEl) new Element('section', { 'data-product-journey': '' }, mainEl);
-  const specs = [['discover', 0, 850], ['materials', 1000, 1050], ['ritual', 2100, 4000], ['collection', 6200, 1400], ['questions', 7700, 800]];
+  const specs = [['discover', 0, 850], ['collection', 1000, 1400], ['ritual', 2600, 4000], ['questions', 6700, 800]];
   const chapters = specs.map(([id, top, height]) => { const el = new Element('section', { id, 'data-journey-chapter': id }, mainEl || body); el.top = top; el.height = height; return el; });
   const trigger = new Element('a', { href: `${BASE}/en/products/bamboo/`, 'data-detour': 'product' }, chapters[0]);
   const dialog = new Element('dialog', { id: 'journey-dialog' }, body);
@@ -181,6 +201,7 @@ function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), m
   const detailPanels = ['product', 'materials', 'refill', 'faq', 'inspect'].map(type => new Element('section', { 'data-detour-panel': type }, detailBody));
   const scent = new Element('a', { href: `${BASE}/en/products/aloe/`, 'data-scent-link': '' }, detailPanels[0]);
   const bag = new Element('dialog', { id: 'bag-dialog' }, body);
+  const menu = new Element('dialog', { id: 'menu-dialog' }, body);
   const entries = [{ state: null, url: HOME }, { state, url }]; let index = 1;
   const history = {
     get state() { return entries[index].state; },
@@ -201,107 +222,119 @@ function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), m
     requestAnimationFrame(callback) { const id = frameId++; frames.set(id, callback); return id; },
   });
   vm.runInContext(`${production.replace(/^export /gm, '')}\nglobalThis.createJourney = initializeJourney;`, context);
-  const modalChanges = [], detailCalls = [];
+  const modalChanges = [];
   const api = context.createJourney({ ui: { base: BASE, lang: 'en', names: { aloe: 'Aloe', argan: 'Argan', bamboo: 'Bamboo' }, scentDescriptions: {}, scentWords: {} },
-    reduced: { matches: false }, onModal: value => { if (modalChanges.at(-1) !== value) modalChanges.push(value); },
-    onDetail: (type, options, choice) => detailCalls.push({ type, options, choice }) });
+    reduced: { matches: false }, onModal: value => { if (modalChanges.at(-1) !== value) modalChanges.push(value); } });
   const flushMutations = () => { for (const o of observers) if (o.dirty) { o.dirty = false; o.callback(); } };
   const flushEvents = () => { while (tasks.length) tasks.shift()(); flushMutations(); };
   const flushHistory = () => { while (historyTasks.length) { historyTasks.shift()(); flushEvents(); } };
   const flushFrames = () => { const current = [...frames.values()]; frames.clear(); current.forEach(callback => callback()); };
   const click = (target, options = {}) => { const event = { target, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...options };
     for (const callback of docListeners.get('click') || []) callback(event); return event; };
-  return { api, click, document, window, location, history, trigger, dialog, bag, scent, chapters, modalChanges, detailCalls, memory,
+  return { api, click, document, window, location, history, trigger, dialog, bag, menu, scent, chapters, modalChanges, memory,
     flushHistory, flushFrames, flushEvents, flushMutations, Element,
     choice: () => JSON.parse(JSON.stringify(api.getChoice())),
     resize(width, height) { window.innerWidth = context.innerWidth = width; window.innerHeight = context.innerHeight = height; emit('resize'); },
   };
 }
 
-test('product close uses one asynchronous Back and restores the exact scroll and originating focus', () => {
-  const h = harness(); h.trigger.focus(); h.api.open('product', { trigger: h.trigger });
-  assert.equal(h.dialog.open, true); assert.equal(h.api.isLocked(), true); assert.equal(h.document.body.style.top, '-312px');
-  h.api.close(); assert.equal(h.dialog.open, true);
-  h.flushHistory(); h.flushFrames();
-  assert.equal(h.dialog.open, false); assert.equal(h.api.isLocked(), false);
-  assert.equal(h.window.scrollY, 312); assert.equal(h.document.activeElement, h.trigger);
+test('product and explanation links are native even with leftover detour attributes on an older page', () => {
+  for (const main of [true, false]) for (const continuous of [true, false]) {
+    const h = harness({ main, continuous });
+    for (const [route, type] of [['en/products/aloe/', 'product'], ['en/story/', 'materials'], ['en/refill/', 'refill'], ['en/faq/', 'faq'], ['assembly/', 'inspect']]) {
+      const link = new h.Element('a', { href: `${BASE}/${route}`, 'data-detour': type }, h.document.body);
+      assert.equal(h.click(link).defaultPrevented, false, route);
+      assert.equal(h.dialog.open, false);
+      assert.equal(h.api.isLocked(), false);
+    }
+    assert.equal(h.api.open, undefined, 'the retired detail controller has no popup entry point');
+  }
+});
+
+test('basket close restores the same page position and native originating focus without history entries', () => {
+  const h = harness(); h.trigger.focus(); h.bag.showModal(); h.flushMutations();
+  assert.equal(h.api.isLocked(), true); assert.equal(h.document.body.style.top, '-312px');
+  assert.equal(h.api.getTopDialog(), h.bag);
+  h.bag.close(); h.flushEvents(); h.flushFrames();
+  assert.equal(h.api.isLocked(), false); assert.equal(h.window.scrollY, 312);
+  assert.equal(h.document.activeElement, h.trigger); assert.equal(h.location.href, HOME);
   assert.deepEqual(h.modalChanges, [true, false]);
 });
 
-test('Forward reopens the selected detail and Back returns to the unchanged origin', () => {
-  const h = harness({ scroll: 3366 });
-  h.api.open('inspect', { trigger: h.trigger, scent: 'aloe', format: 'refill' });
-  h.api.close(); h.flushHistory(); h.flushFrames();
-  h.history.forward(); h.flushHistory();
-  assert.equal(h.dialog.dataset.detour, 'inspect'); assert.equal(h.dialog.open, true);
-  assert.deepEqual(h.choice(), { scent: 'aloe', format: 'refill' });
-  h.api.close(); h.flushHistory(); h.flushFrames(); assert.equal(h.window.scrollY, 3366); assert.equal(h.dialog.open, false);
-});
-
-test('switching details uses one history detour rather than forcing several closes', () => {
-  const h = harness(); h.api.open('materials'); h.api.open('refill'); h.api.open('faq');
-  assert.equal(h.dialog.dataset.detour, 'faq');
-  h.api.close(); h.flushHistory(); assert.equal(h.dialog.open, false);
-});
-
-test('Escape closes through history once even when a second close arrives before Back completes', () => {
-  const h = harness(); h.api.open('inspect');
-  let prevented = false;
-  h.dialog.dispatchEvent({ type: 'cancel', preventDefault() { prevented = true; } }); h.api.close();
-  assert.equal(prevented, true); h.flushHistory(); h.flushFrames();
-  assert.equal(h.dialog.open, false); assert.equal(h.location.href, HOME); assert.equal(h.window.scrollY, 312);
-});
-
-test('resizing inside a detour returns to the corresponding point in the same chapter', () => {
-  const h = harness({ scroll: 3615 }); h.api.open('materials'); h.resize(844, 390);
-  h.api.close(); h.flushHistory(); h.flushFrames();
-  assert.equal(h.window.scrollY, 3842); assert.equal(h.document.querySelector('main[data-journey]').dataset.activeChapter, 'ritual');
-});
-
-test('a nested bag keeps background scrolling and viewers locked until the last modal closes', () => {
-  const h = harness({ scroll: 3366 }); h.trigger.focus(); h.api.open('product', { trigger: h.trigger });
-  h.bag.showModal(); h.flushMutations(); h.api.close(); h.flushHistory();
-  assert.equal(h.dialog.open, false); assert.equal(h.bag.open, true); assert.equal(h.api.isLocked(), true);
+test('a menu and basket keep the page locked until the final required dialog closes', () => {
+  const h = harness({ scroll: 3366 }); h.menu.showModal(); h.flushMutations();
+  h.bag.showModal(); h.flushMutations();
+  assert.equal(h.api.getTopDialog(), h.bag);
+  h.menu.close(); h.flushEvents();
+  assert.equal(h.api.isLocked(), true); assert.equal(h.bag.open, true);
   assert.deepEqual(h.modalChanges, [true]);
   h.bag.close(); h.flushEvents(); h.flushFrames();
-  assert.equal(h.api.isLocked(), false); assert.equal(h.window.scrollY, 3366); assert.deepEqual(h.modalChanges, [true, false]);
+  assert.equal(h.api.isLocked(), false); assert.equal(h.window.scrollY, 3366);
+  assert.deepEqual(h.modalChanges, [true, false]);
 });
 
-test('ordinary scent selection stays in the panel and preserves the chosen format', () => {
-  const h = harness(); h.api.open('product', { format: 'refill' });
-  assert.equal(h.click(h.scent).defaultPrevented, true);
-  assert.deepEqual(h.choice(), { scent: 'aloe', format: 'refill' }); assert.equal(h.dialog.open, true);
+test('orientation inside the basket returns to the corresponding point of the guide', () => {
+  const h = harness({ scroll: 3615 }); h.bag.showModal(); h.flushMutations();
+  h.resize(844, 390); h.bag.close(); h.flushEvents(); h.flushFrames();
+  assert.ok(Math.abs(h.window.scrollY - 3772.8348567946373) < 1e-9, `returned at ${h.window.scrollY}`);
+  assert.equal(h.document.querySelector('main[data-journey]').dataset.activeChapter, 'ritual');
 });
 
-test('modified scent-anchor clicks preserve native new-tab/window behavior and current selection', () => {
-  for (const modifier of ['ctrlKey', 'metaKey', 'shiftKey', 'altKey']) {
-    const h = harness(); h.api.open('product');
-    assert.equal(h.click(h.scent, { [modifier]: true }).defaultPrevented, false, modifier);
-    assert.deepEqual(h.choice(), { scent: 'bamboo', format: 'shampoo' }, modifier);
+test('ordinary and modified scent anchors always preserve native navigation and the current choice', () => {
+  for (const modifier of [null, 'ctrlKey', 'metaKey', 'shiftKey', 'altKey', 'download', 'target']) {
+    const h = harness();
+    if (modifier === 'target') h.scent.setAttribute('target', '_blank');
+    if (modifier === 'download') h.scent.setAttribute('download', '');
+    assert.equal(h.click(h.scent, modifier && !['target', 'download'].includes(modifier) ? { [modifier]: true } : {}).defaultPrevented, false);
+    assert.deepEqual(h.choice(), { scent: 'bamboo', format: 'shampoo' });
+    assert.equal(h.dialog.open, false);
   }
-  const h = harness(); h.api.open('product'); h.scent.setAttribute('target', '_blank');
-  assert.equal(h.click(h.scent).defaultPrevented, false);
 });
 
-test('a cold reload of an open-detour history state can subsequently open and close once', () => {
-  const h = harness({ state: { bambooDetail: { type: 'product', scent: 'aloe', format: 'refill' } }, url: `${HOME}#detail-product` });
-  if (!h.dialog.open) h.api.open('product');
-  h.api.close(); h.flushHistory(); h.flushFrames();
-  assert.equal(h.dialog.open, false); assert.equal(h.api.isLocked(), false);
-  assert.ok(!h.history.state?.bambooDetail, 'the returned main entry must not still identify an open detail');
+test('cold visits clean removed detail hashes and state while retaining unrelated history state', () => {
+  for (const state of [null, { keep: 7, bambooDetail: null }, { keep: 7, bambooDetail: { type: 'inspect' } }]) {
+    const h = harness({ state, url: `${HOME}?format=refill#detail-inspect` });
+    assert.equal(h.location.hash, ''); assert.equal(h.location.search, '?format=refill');
+    assert.equal(h.history.state?.bambooDetail, undefined);
+    if (state) assert.equal(h.history.state.keep, 7);
+    assert.equal(h.dialog.open, false); assert.equal(h.api.isLocked(), false);
+  }
 });
 
-test('native-route anchors remain real navigation even from the journey', () => {
-  const h = harness(); h.trigger.setAttribute('data-native-route', '');
-  assert.equal(h.click(h.trigger).defaultPrevented, false); assert.equal(h.dialog.open, false);
+test('Back and Forward sanitize legacy detail entries without reopening popups or locking the page', () => {
+  const h = harness();
+  h.history.pushState({ keep: 'old', bambooDetail: { type: 'product' } }, '', '#detail-product');
+  h.history.pushState({ keep: 'new' }, '', HOME);
+  h.history.back(); h.flushHistory(); h.flushFrames();
+  assert.equal(h.history.state.keep, 'old'); assert.equal(h.history.state.bambooDetail, undefined);
+  assert.equal(h.location.hash, ''); assert.equal(h.dialog.open, false); assert.equal(h.api.isLocked(), false);
+  h.history.forward(); h.flushHistory(); h.flushFrames();
+  assert.equal(h.history.state.keep, 'new'); assert.equal(h.dialog.open, false);
 });
 
-test('blocked storage still permits local choice, inspection, and exact in-place return', () => {
+test('the collection shortcut only intercepts a normal click when the collection exists', () => {
+  const h = harness({ continuous: true });
+  const link = new h.Element('a', { href: `${BASE}/en/shop/` }, h.document.body);
+  assert.equal(h.click(link).defaultPrevented, true); assert.equal(h.window.scrollY, 1000);
+  assert.equal(h.click(link, { ctrlKey: true }).defaultPrevented, false);
+  link.setAttribute('data-native-route', ''); assert.equal(h.click(link).defaultPrevented, false);
+  const absent = harness({ main: false });
+  assert.equal(absent.click(new absent.Element('a', { href: `${BASE}/en/shop/` }, absent.document.body)).defaultPrevented, false);
+});
+
+test('the mobile menu collection shortcut closes the menu before moving to the collection', () => {
+  const h = harness({ continuous: true }); h.menu.showModal(); h.flushMutations();
+  const link = new h.Element('a', { href: `${BASE}/en/shop/` }, h.menu);
+  assert.equal(h.click(link).defaultPrevented, true); h.flushEvents(); h.flushFrames();
+  assert.equal(h.menu.open, false); assert.equal(h.api.isLocked(), false); assert.equal(h.window.scrollY, 1000);
+});
+
+test('blocked storage still permits choice and exact basket return', () => {
   const h = harness({ storageBlocked: true, scroll: 3366 });
-  h.api.select({ scent: 'argan', format: 'refill' }); h.api.open('inspect');
+  h.api.select({ scent: 'argan', format: 'refill' }); h.bag.showModal(); h.flushMutations();
   assert.deepEqual(h.choice(), { scent: 'argan', format: 'refill' });
-  h.api.close(); h.flushHistory(); h.flushFrames();
-  assert.equal(h.dialog.open, false); assert.equal(h.window.scrollY, 3366);
+  h.bag.close(); h.flushEvents(); h.flushFrames();
+  assert.equal(h.api.isLocked(), false); assert.equal(h.window.scrollY, 3366);
 });
 
 test('a normal fresh homepage visit does not force a stored return position', async () => {
@@ -320,4 +353,18 @@ test('invalid saved data does not force a scroll even for an explicit resume URL
   const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(saved({ chapter: 'unknown' }))]]);
   const h = harness({ scroll: 0, url: `${HOME}?resume=1`, memory }); await Promise.resolve(); h.flushFrames();
   assert.equal(h.window.scrollY, 0);
+});
+
+test('a legacy materials hash enters the actual use sequence after the model establishes its layout', async () => {
+  const h = harness({ continuous: true, scroll: 0, url: `${HOME}#materials` });
+  assert.equal(h.location.hash, '#ritual'); assert.equal(h.window.scrollY, 0);
+  h.api.ready(); await Promise.resolve(); h.flushFrames();
+  assert.equal(h.window.scrollY, 2600);
+});
+
+test('a legacy material return waits for the model and resumes at the start of the new use sequence', async () => {
+  const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(saved({ chapter: 'materials', progress: .7, layout: undefined }))]]);
+  const h = harness({ continuous: true, scroll: 0, memory, url: `${HOME}?resume=1` });
+  assert.equal(h.window.scrollY, 0); h.api.ready(); await Promise.resolve(); h.flushFrames();
+  assert.equal(h.window.scrollY, 2532);
 });

@@ -12,7 +12,7 @@ test('captions follow displayed poses identically forward, paused and reversed',
   const forward = samples.map(frame);
   const reverse = [...samples].reverse().map(frame).reverse();
   assert.deepEqual(reverse, forward);
-  for (const q of [.16, .24, .33, .54, .72, .91]) assert.deepEqual(frame(q), frame(q), 'pausing does not advance a separate type timer');
+  for (const q of [.03, .1, .2, .31, .54, .77, .88, .98]) assert.deepEqual(frame(q), frame(q), 'pausing does not advance a separate type timer');
 });
 
 test('every caption stays bounded and the transitions keep a readable visible caption', () => {
@@ -31,10 +31,50 @@ test('native-scroll mapping uses the measured sticky stage, with bounded endpoin
   const track = 9284, stage = 780, header = 64, travel = track - stage;
   assert.equal(journeyScrollProgress(header, track, stage, header), 0);
   assert.equal(journeyScrollProgress(header - travel, track, stage, header), 1);
-  for (const q of [0, .13, .3, .48, .662, .8544, 1]) assert.ok(Math.abs(journeyScrollProgress(header - q * travel, track, stage, header) - q) < 1e-12);
+  for (const q of [0, .06, .15, .27, .35, .72, .83, .96, 1]) assert.ok(Math.abs(journeyScrollProgress(header - q * travel, track, stage, header) - q) < 1e-12);
   assert.equal(journeyScrollProgress(900, track, stage, header), 0);
   assert.equal(journeyScrollProgress(-20000, track, stage, header), 1);
   assert.equal(journeyScrollProgress(NaN, track, stage, header), 0);
+});
+
+test('the controller prepares the closed product caption and reverses its active reading state with the model', () => {
+  const previousWindow = globalThis.window, previousDocument = globalThis.document;
+  const classList = () => {
+    const classes = new Set();
+    return { add(...names) { names.forEach(name => classes.add(name)); }, remove(...names) { names.forEach(name => classes.delete(name)); }, contains: name => classes.has(name),
+      toggle(name, value) { const on = value ?? !classes.has(name); if (on) classes.add(name); else classes.delete(name); return on; } };
+  };
+  const captions = JOURNEY_PHASES.map(phase => ({ dataset: { journeyCaption: phase.id, chapterLabel: phase.id },
+    classList: classList(), inert: false, attributes: new Map(), properties: new Map(),
+    setAttribute(name,value) { this.attributes.set(name,value); }, removeAttribute(name) { this.attributes.delete(name); },
+    style: { setProperty() {}, removeProperty() {} } }));
+  const current = { textContent: '' }, stage = { getBoundingClientRect: () => ({ width:390,height:780 }) };
+  const section = { dataset: {}, classList: classList(), style: { setProperty() {} },
+    querySelector: selector => selector === '[data-shop-scene="journey"]' || selector === '.product-journey__sticky' ? stage : selector === '[data-journey-current]' ? current : null,
+    querySelectorAll: selector => selector === '[data-journey-caption]' ? captions : [],
+    getBoundingClientRect: () => ({ top:64,height:8440,bottom:8504 }) };
+  globalThis.window = { scrollY:0, addEventListener() {}, removeEventListener() {}, scrollTo() {} };
+  globalThis.document = { documentElement: { clientWidth:390,lang:'de' }, querySelector: selector => selector === '.header' ? { offsetHeight:64 } : null };
+  try {
+    const controller = initializeProductJourney(section); controller.prepare();
+    assert.equal(captions[0].inert,false); assert.equal(captions[0].attributes.get('aria-hidden'),'false');
+    assert.ok(captions[0].classList.contains('is-visible'));
+    for (const q of [0,.11,.2,.31,.54,.77,.88,.98,.2,.03]) {
+      const pose = computeJourneyPose(q); controller.enhance(pose);
+      assert.equal(section.dataset.journeyPhase,pose.phase); assert.equal(current.textContent,pose.phase);
+      for (const caption of captions) {
+        const active = caption.dataset.journeyCaption === pose.phase;
+        assert.equal(caption.inert,!active); assert.equal(caption.attributes.get('aria-hidden'),String(!active));
+        assert.equal(caption.classList.contains('is-active'),active);
+      }
+    }
+    controller.fallback();
+    for (const caption of captions) { assert.equal(caption.inert,false); assert.equal(caption.attributes.has('aria-hidden'),false); }
+    controller.suspend();
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window; else globalThis.window = previousWindow;
+    if (previousDocument === undefined) delete globalThis.document; else globalThis.document = previousDocument;
+  }
 });
 
 test('orientation preserves a late pinned pose when new CSS puts old scroll pixels beyond the track', () => {
@@ -62,7 +102,7 @@ test('orientation preserves a late pinned pose when new CSS puts old scroll pixe
   };
   try {
     const controller = initializeProductJourney(section);
-    controller.enhance({ q: .77, phase: 'dose' });
+    controller.enhance({ q: .77, phase: 'remove' });
     assert.ok(Math.abs(controller.getProgress() - .77) < 1e-9);
     Object.assign(geometry, { width: 829, stage: 316, track: 3900, top: 390, header: 74 });
     assert.ok(section.getBoundingClientRect().bottom < 0, 'the old pixels are now beyond the resized tutorial');
