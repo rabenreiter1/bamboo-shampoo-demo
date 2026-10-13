@@ -1,12 +1,12 @@
 import * as THREE from './assembly/vendor/three.module.js';
-import { createCampaignBackdrop, campaignLayout } from './campaign-backdrop.js?v=shop-20261013-flow3';
+import { createCampaignBackdrop, campaignLayout } from './campaign-backdrop.js?v=shop-20261013-jury1';
 import { createStudioEnvironment } from './assembly/studio-environment.js?v=ritual-20261013-1';
 import { createBody, shellRadiusAt } from './assembly/body.js?v=ritual-20261013-1';
 import { createRitualCap } from './assembly/ritual-cap.js?v=ritual-20261013-1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from './assembly/ritual-effects.js?v=ritual-20261013-journey';
 import { computeCycleState, TILT_AXIS, clamp } from './assembly/ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from './assembly/ritual-space.js?v=ritual-20261012-4';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-flow3';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-jury1';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
@@ -40,16 +40,30 @@ async function acquireBody() {
   catch (error) { release(); throw error; }
 }
 
-const MODES = new Set(['product', 'refill', 'cap', 'ritual', 'journey']);
-const STATIC_MODES = new Set(['product', 'refill', 'cap']);
+const MODES = new Set(['product', 'refill', 'cap', 'shell', 'ritual', 'journey']);
+const STATIC_MODES = new Set(['product', 'refill', 'cap', 'shell']);
 const ALT = {
   product: 'Bamboo Shampoo, 250 ml. Bamboo case with the original engraving and emerald silicone cap. Drag left or right to rotate; arrow keys also rotate.',
   refill: 'A sealed 250 ml refill: a transparent PET insert, scent-coloured shampoo, visible headspace and a peelable film on its supporting flange. Drag left or right to rotate; arrow keys also rotate.',
   cap: 'The complete emerald silicone cap, with its integral teardrop feature and circular captive closure bearing. Drag left or right to rotate; arrow keys also rotate.',
+  shell: 'The empty bamboo tube, with its original engraving, open bore and seating notch. Drag left or right to rotate; arrow keys also rotate. The tube contains no cap or refill.',
   ritual: 'Bamboo Shampoo opening, pouring and refill sequence. Page scrolling moves the sequence forwards or backwards. Drag horizontally to inspect the product.',
   journey: 'Bamboo Shampoo: the complete filled product, its bamboo shell, sealed refill and complete cap, followed by opening, dispensing and refilling. Page scrolling controls every step. Drag horizontally to rotate.',
 };
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+
+/** A shell view shares the exact source meshes and contains no packaging internals. */
+export function createShopShell(body) {
+  if (!body?.components?.shell?.clone) throw new TypeError('A shell view needs the approved bamboo body.');
+  return body.components.shell.clone(true);
+}
+
+/** Bound oversized/high-DPI render targets without lowering ordinary phone detail. */
+export function shopScenePixelRatio(width, height, deviceRatio = 1, coarse = false) {
+  const area = Math.max(1, finite(width, 1) * finite(height, 1));
+  return Math.min(Math.max(.1, finite(deviceRatio, 1)), coarse || width < 520 ? 1.3 : 1.65,
+    Math.sqrt(3_000_000 / area));
+}
 
 /**
  * An element-sized shop viewer. The journey paints a coherent opaque world;
@@ -215,10 +229,12 @@ export function mountShopScene(container, options = {}) {
     // different engraving or cap corners rotate toward the viewer.
     const direction = mode === 'cap'
       ? new THREE.Vector3(.13, .83, 1).normalize()
+      : mode === 'shell' ? new THREE.Vector3(.035, .28, 1).normalize()
       : campaign ? new THREE.Vector3(.10, .28, 1).normalize() : space.directions.direction;
     const right = new THREE.Vector3(0, 1, 0).cross(direction).normalize();
     const up = direction.clone().cross(right).normalize();
     const [radius, bottom, top] = mode === 'cap' ? [40, 149.9, 173.4]
+      : mode === 'shell' ? [29, 0, 170]
       : mode === 'refill' ? [29.1, 5, 170.5] : [40, 0, 173.4];
     const points = [];
     for (const y of [bottom, top]) for (let j = 0; j < 48; j++) {
@@ -271,16 +287,25 @@ export function mountShopScene(container, options = {}) {
     yawRig.rotation.y = (animated ? state.yaw : progress * Math.PI * 4)
       + manualYaw + (campaign && !animated ? -.10 + poseProgress * .45 + (1 - reveal) * -.16 : 0);
     product.visible = true;
-    product.children[0].visible = mode === 'product' || animated;
+    product.children[0].visible = mode === 'product' || mode === 'shell' || animated;
+    if (mode === 'shell') {
+      // The idea page presents the retained component itself. A cap, PET wall,
+      // foil or fluid is never allocated/attached to this viewer's hierarchy.
+      tiltRig.updateWorldMatrix(true, true);
+      if (staticCameraDirty) fitStaticCamera();
+      spatial = null; floor.position.y = -85.4; floor.material.opacity = .105; floor.visible = true;
+      return;
+    }
     cap.group.visible = mode !== 'refill';
     cap.update(animated ? state.cap : { lift: 0, swivel: 0, press: 0 });
     if (journey) collarFlex.update(state.cap.position[1]);
     for (const [group, pose] of [[oldRefill, state.oldRefill], [newRefill, state.newRefill]]) {
+      if (!group) continue;
       group.position.fromArray(pose.position); group.rotation.set(...pose.rotation);
       group.visible = animated ? pose.visible : group === oldRefill && mode === 'refill';
     }
-    oldSeal.update({ ...(animated ? state.seal : { unfold: 0, peel: 0, exit: 0 }), externalExit: true });
-    newSeal.update(state.newSeal); newSeal.group.visible = animated && state.newSeal.visible;
+    oldSeal?.update({ ...(animated ? state.seal : { unfold: 0, peel: 0, exit: 0 }), externalExit: true });
+    if (newSeal) { newSeal.update(state.newSeal); newSeal.group.visible = animated && state.newSeal.visible; }
     tiltRig.updateWorldMatrix(true, true);
     if (journey) {
       framing = journeySpace.fitCamera({ pose: journeyPose, camera, tiltRig, zoom, width, height,
@@ -291,7 +316,7 @@ export function mountShopScene(container, options = {}) {
       spatial = space.placeParts({ state, camera, product, cap, oldRefill, newRefill, oldSeal, width });
     } else {
       cap.group.position.set(0, 0, 0);
-      oldSeal.group.position.set(0, 0, 0); oldSeal.group.visible = mode !== 'cap';
+      if (oldSeal) { oldSeal.group.position.set(0, 0, 0); oldSeal.group.visible = mode === 'refill'; }
       if (staticCameraDirty) fitStaticCamera();
       spatial = null;
     }
@@ -300,7 +325,7 @@ export function mountShopScene(container, options = {}) {
     outletDirection.set(0, 1, 0).applyQuaternion(outletQuaternion);
     if(animated || mode==='refill') gel.update({ progress: animated ? state.progress : 0,
       ...(animated ? state.liquid : { flow: 0, gush: 0, fillOld: 1, fillNew: 1 }), outletWorld, outletDirection });
-    else {
+    else if (gel) {
       // The sealed exterior hides all PET/fluid. Avoid its transmission prepass
       // and buffer updates in the hero; opening and refill views retain them.
       gel.oldFillGroup.visible=false; gel.newFillGroup.visible=false; gel.streamGroup.visible=false;
@@ -367,7 +392,8 @@ export function mountShopScene(container, options = {}) {
       captionFooterHeight = parseFloat(style.getPropertyValue('--journey-footer-height')) || 0;
     }
     const coarse = window.matchMedia('(pointer: coarse)').matches;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, coarse || width < 520 ? 1.3 : 1.65));
+    renderer.setPixelRatio(options.capture === true ? Math.min(window.devicePixelRatio || 1, 1.65)
+      : shopScenePixelRatio(width, height, window.devicePixelRatio || 1, coarse));
     renderer.setSize(width, height, false);
     backdrop?.resize(width,height);
     camera.aspect = width / height; camera.updateProjectionMatrix();
@@ -444,9 +470,16 @@ export function mountShopScene(container, options = {}) {
 
   function setMode(value) {
     if (disposed || !STATIC_MODES.has(value) || initialMode === 'ritual' || initialMode === 'journey') return false;
+    if ((initialMode === 'shell' || value === 'shell') && value !== initialMode) return false;
     if (mode === value) return true;
     mode = value; stopMomentum(); staticCameraDirty = true;
     if (renderer) renderer.domElement.setAttribute('aria-label', options.label || ALT[mode]);
+    if (value === 'refill' && product && !oldRefill) {
+      // The sealed full product never exposes these expensive physical meshes.
+      // Build/warm them only if the customer chooses the actual refill view.
+      buildContents();
+      if (ready || warming) warmShaders().catch(fail);
+    }
     report(true); requestRender();
     return true;
   }
@@ -544,6 +577,17 @@ export function mountShopScene(container, options = {}) {
     previous?.dispose();
   }
 
+  function buildContents() {
+    if (oldRefill || !body || !product || initialMode === 'shell') return;
+    oldSeal = createPeelSeal({ THREE }); newSeal = createPeelSeal({ THREE }); gel = createGel({ THREE, scent: world });
+    oldRefill = new THREE.Group(); oldRefill.name = 'shop-original-sealed-inlay';
+    newRefill = new THREE.Group(); newRefill.name = 'shop-replacement-sealed-inlay';
+    oldRefill.add(body.components.inlay.clone(true), oldSeal.group, gel.oldFillGroup);
+    newRefill.add(body.components.inlay.clone(true), newSeal.group, gel.newFillGroup);
+    product.add(oldRefill, newRefill); scene.add(gel.streamGroup);
+    Object.assign(metrics, { seal: oldSeal.metrics, gel: gel.metrics });
+  }
+
   function disposeResources() {
     backdrop?.dispose(); backdrop = null;
     oldSeal?.dispose(); newSeal?.dispose(); gel?.dispose(); cap?.dispose(); cap = null;
@@ -572,19 +616,21 @@ export function mountShopScene(container, options = {}) {
     const task = (async () => {
       resize(); applyState(); scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);
       // r186 compileAsync polls KHR_parallel_shader_compile without waiting for
-      // shader linkage on the UI thread. It includes hidden component meshes,
-      // so later cap/refill/stream visibility changes use warmed programs too.
+      // shader linkage on the UI thread. The journey warms its full operative
+      // set; a sealed exterior/shell warms only its needed component programs.
       if (!await compile() || !valid()) return false;
       // Three's transmission prepass uses linear output and NoToneMapping.
       // Warm that variant as well, or first render would link another set.
-      const target = new THREE.WebGLRenderTarget(1, 1);
-      const toneMapping = currentRenderer.toneMapping;
-      try {
-        currentRenderer.setRenderTarget(target); currentRenderer.toneMapping = THREE.NoToneMapping;
-        if (!await compile() || !valid()) return false;
-      } finally {
-        if (valid()) { currentRenderer.setRenderTarget(null); currentRenderer.toneMapping = toneMapping; }
-        target.dispose();
+      if (gel) {
+        const target = new THREE.WebGLRenderTarget(1, 1);
+        const toneMapping = currentRenderer.toneMapping;
+        try {
+          currentRenderer.setRenderTarget(target); currentRenderer.toneMapping = THREE.NoToneMapping;
+          if (!await compile() || !valid()) return false;
+        } finally {
+          if (valid()) { currentRenderer.setRenderTarget(null); currentRenderer.toneMapping = toneMapping; }
+          target.dispose();
+        }
       }
       if (!valid()) return false;
       // Mode/progress/size can change while linkage is pending. Reconstruct the
@@ -664,24 +710,21 @@ export function mountShopScene(container, options = {}) {
       const rim = new THREE.DirectionalLight('#ffffff', 2.6); rim.position.set(130, 320, -210); scene.add(rim);
       floor = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.ShadowMaterial({ color: '#586145', opacity: .105 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -85.4; floor.receiveShadow = true; scene.add(floor);
-      const built = await Promise.allSettled([acquireBody(), createRitualCap({ THREE })]);
+      const built = await Promise.allSettled([acquireBody(), initialMode === 'shell' ? Promise.resolve(null) : createRitualCap({ THREE })]);
       if (built[0].status === 'fulfilled') { bodyLease = built[0].value; body = bodyLease.body; }
       if (built[1].status === 'fulfilled') cap = built[1].value;
       if (disposed) { bodyLease?.release(); bodyLease = null; cap?.dispose(); cap = null; return; }
       for (const result of built) if (result.status === 'rejected') throw result.reason;
       if (initialMode === 'journey') collarFlex = createJourneyCollarFlex({ cap, shellRadiusAt });
       if (renderer.getContext().isContextLost()) throw new Error('The 3D context was interrupted while the product was loading.');
-      oldSeal = createPeelSeal({ THREE }); newSeal = createPeelSeal({ THREE }); gel = createGel({ THREE, scent: world });
       tiltRig = new THREE.Group(); tiltRig.name = 'shop-approved-product-tilt';
       yawRig = new THREE.Group(); yawRig.name = 'shop-longitudinal-inspection';
       product = new THREE.Group(); product.name = 'shop-retail-product'; product.position.y = -85;
       tiltRig.add(yawRig); yawRig.add(product); scene.add(tiltRig);
-      oldRefill = new THREE.Group(); oldRefill.name = 'shop-original-sealed-inlay';
-      newRefill = new THREE.Group(); newRefill.name = 'shop-replacement-sealed-inlay';
-      oldRefill.add(body.components.inlay.clone(true), oldSeal.group, gel.oldFillGroup);
-      newRefill.add(body.components.inlay.clone(true), newSeal.group, gel.newFillGroup);
-      product.add(body.components.shell.clone(true), oldRefill, newRefill, cap.group); scene.add(gel.streamGroup);
-      Object.assign(metrics, { body: body.metrics, cap: cap.metrics, seal: oldSeal.metrics, gel: gel.metrics,
+      product.add(createShopShell(body));
+      if (cap) product.add(cap.group);
+      if (['refill', 'ritual', 'journey'].includes(mode)) buildContents();
+      Object.assign(metrics, { body: body.metrics, cap: cap?.metrics || null,
         source: 'Approved assembly component factories; original engraving unchanged', units: 'mm' });
       error = null;
       installInput(canvas);
