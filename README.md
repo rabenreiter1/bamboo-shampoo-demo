@@ -74,7 +74,7 @@ The graphic-hero and dedicated-studio revision passed 132 regression tests and t
 
 ## Asset provenance
 
-The product images are transparent render exports of the approved 3D model, captured locally with the same component factories used by the interactive viewer. WebP files serve the storefront; JPEG versions serve social previews:
+The product images are transparent render exports of the approved 3D model, captured locally with the same component factories used by the interactive viewer. WebP files serve the storefront. Dedicated campaign JPEGs now serve social previews:
 
 - `assets/shop-product.webp`: closed product with bamboo shell, original engraving and complete silicone cap.
 - `assets/shop-refill.webp`: sealed transparent PET insert with support flange, grapefruit-coral shampoo and visible headspace.
@@ -105,3 +105,9 @@ The supplied 5.93-second iPhone recording exposed a different poster camera and 
 The liquid effect restores group visibility before its geometry-cache check, retaining the full 250 ml fill after repeated Shampoo/Refill changes. Mobile home, refill and related-product tracks use mandatory native snapping, with trailing space that aligns the final card at the same leading edge. Regression coverage includes the real THREE camera projection, prepaint query/bookmark initialization, denied storage, and repeated liquid hide/restore. Controlled browser checks compared the still and live product poses and exercised repeated format switching and native partial-scroll snapping; physical Safari behavior still requires device verification.
 
 The final release passes 192 tests and the 31-page checker. Preview-world bitmaps are cached by viewport, fragrance, lettering and font readiness; scroll pose updates do not repaint the hidden backdrop. Mobile native snap checks aligned the second and final cards within one CSS pixel. Tablet and large-desktop inspection at 768 × 1024 and 2560 × 1440 retained the selected refill and showed no horizontal document overflow.
+
+## Shared-link artwork
+
+The entry, home, product and refill links now expose static Open Graph and large Twitter-card metadata with versioned, public JPEG URLs. Ten 1200 × 630 images cover German and English home, fragrance and refill previews. The artwork follows the live hero: the same Campaign and Manrope fonts, coloured world, oversized lettering and approved transparent product render. The refill preview uses the approved sealed insert. Only the clipped far end of the poster's contact shadow is feathered; original product geometry and engraving stay intact.
+
+Metadata and filenames are defined in `scripts/share-cards.mjs`; the browser-canvas composition is in `scripts/share-card-art.mjs`. Optimized finished images are 43–64 kB each and are copied through the publish allowlist. Titles and descriptions are shorter for the campaign/product links; informational routes retain their own document copy. The bare entry URL also carries a complete preview before its locale redirect. The release passes 195 regression tests and the 31-page checker, including JPEG frame dimensions, public image paths, localized route selection and metadata available without JavaScript. Actual rendering inside WhatsApp is not part of the browser verification.
