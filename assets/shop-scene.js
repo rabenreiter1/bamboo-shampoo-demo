@@ -1,12 +1,13 @@
 import * as THREE from './assembly/vendor/three.module.js';
-import { createCampaignBackdrop, campaignLayout } from './campaign-backdrop.js?v=shop-20261013-jury2';
+import { staticSceneFrame } from './scene-framing.js?v=shop-20261013-jury3';
+import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261013-jury3';
 import { createStudioEnvironment } from './assembly/studio-environment.js?v=ritual-20261013-1';
 import { createBody, shellRadiusAt } from './assembly/body.js?v=ritual-20261013-1';
 import { createRitualCap } from './assembly/ritual-cap.js?v=ritual-20261013-1';
-import { createPeelSeal, createGel, configurePetReflectionSkin } from './assembly/ritual-effects.js?v=ritual-20261013-journey';
+import { createPeelSeal, createGel, configurePetReflectionSkin } from './assembly/ritual-effects.js?v=ritual-20261013-visibility-1';
 import { computeCycleState, TILT_AXIS, clamp } from './assembly/ritual-timeline.js?v=ritual-20261012-4';
 import { createRitualSpace } from './assembly/ritual-space.js?v=ritual-20261012-4';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-jury2';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-jury3';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
@@ -118,7 +119,6 @@ export function mountShopScene(container, options = {}) {
   const tiltAxis = new THREE.Vector3(...TILT_AXIS);
   const outletWorld = new THREE.Vector3(), outletDirection = new THREE.Vector3();
   const outletQuaternion = new THREE.Quaternion();
-  const fitVector = new THREE.Vector3();
   const metrics = {};
   function withinViewport(rect) {
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -226,46 +226,11 @@ export function mountShopScene(container, options = {}) {
   }
 
   function fitStaticCamera() {
-    // Cylindrical envelopes make manual yaw stable: no camera breathing as
-    // different engraving or cap corners rotate toward the viewer.
-    const direction = mode === 'cap'
-      ? new THREE.Vector3(.13, .83, 1).normalize()
-      : mode === 'shell' ? new THREE.Vector3(.035, .28, 1).normalize()
-      : campaign ? new THREE.Vector3(.10, .28, 1).normalize() : space.directions.direction;
-    const right = new THREE.Vector3(0, 1, 0).cross(direction).normalize();
-    const up = direction.clone().cross(right).normalize();
-    const [radius, bottom, top] = mode === 'cap' ? [40, 149.9, 173.4]
-      : mode === 'shell' ? [29, 0, 170]
-      : mode === 'refill' ? [29.1, 5, 170.5] : [40, 0, 173.4];
-    const points = [];
-    for (const y of [bottom, top]) for (let j = 0; j < 48; j++) {
-      const angle = j * Math.PI / 24;
-      points.push(new THREE.Vector3(radius * Math.cos(angle), y - 85, radius * Math.sin(angle))
-        .applyMatrix4(tiltRig.matrixWorld));
-    }
-    const limits = [[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]];
-    const axes = [right, up, direction];
-    for (const p of points) for (let j = 0; j < axes.length; j++) {
-      const value = p.dot(axes[j]); limits[j][0] = Math.min(limits[j][0], value); limits[j][1] = Math.max(limits[j][1], value);
-    }
-    const center = new THREE.Vector3();
-    for (let j = 0; j < axes.length; j++) center.addScaledVector(axes[j], (limits[j][0] + limits[j][1]) / 2);
-    const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), tanH = tanV * camera.aspect;
-    const region = campaignBackdrop ? campaignLayout(width,height) : {minX:0,maxX:1,minY:0,maxY:1};
-    const minX=2*region.minX-1, maxX=2*region.maxX-1, minY=1-2*region.maxY, maxY=1-2*region.minY;
-    const aimX=(minX+maxX)/2, aimY=(minY+maxY)/2;
-    let distance = 0;
-    for (const p of points) {
-      fitVector.copy(p).sub(center);
-      const x=fitVector.dot(right),y=fitVector.dot(up),depth=fitVector.dot(direction);
-      distance=Math.max(distance,depth+y/(tanV*(y>=0?maxY-aimY:minY-aimY)),
-        depth+x/(tanH*(x>=0?maxX-aimX:minX-aimX)));
-    }
-    distance = Math.max(100, distance * 1.12);
-    const aim=center.clone().addScaledVector(right,-aimX*tanH*distance/zoom).addScaledVector(up,-aimY*tanV*distance/zoom);
-    camera.position.copy(aim).addScaledVector(direction, distance / zoom);
-    camera.up.set(0, 1, 0); camera.lookAt(aim); camera.updateMatrixWorld();
-    framing = { center: center.toArray(), distance, zoom, cameraPosition: camera.position.toArray() };
+    const frame = staticSceneFrame({ width, height, mode, campaign, reserved: campaignBackdrop,
+      pose: poseProgress, reveal, zoom });
+    camera.position.fromArray(frame.cameraPosition);
+    camera.up.set(0, 1, 0); camera.lookAt(...frame.aim); camera.updateMatrixWorld();
+    framing = { center: frame.center, distance: frame.distance, zoom, cameraPosition: frame.cameraPosition };
     staticCameraDirty = false;
   }
 
@@ -329,7 +294,7 @@ export function mountShopScene(container, options = {}) {
     else if (gel) {
       // The sealed exterior hides all PET/fluid. Avoid its transmission prepass
       // and buffer updates in the hero; opening and refill views retain them.
-      gel.oldFillGroup.visible=false; gel.newFillGroup.visible=false; gel.streamGroup.visible=false;
+      gel.update({ visible: false });
     }
     floor.position.y = campaign ? -101 : mode === 'refill' ? -80.4 : -85.4;
     floor.material.opacity = .105 * (1 - (animated ? state.framing.pouring : 0));
@@ -660,11 +625,14 @@ export function mountShopScene(container, options = {}) {
       // plus a matching scene background avoids Safari layer compositing and
       // Three r186's white/.5 transmission fallback. Keeping context alpha is
       // also MDN's recommendation for platforms that emulate alpha:false.
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: false, preserveDrawingBuffer: options.capture === true, powerPreference: 'high-performance' });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true,
+        premultipliedAlpha: options.capture === true && options.capturePremultiplied === true,
+        preserveDrawingBuffer: options.capture === true, powerPreference: 'high-performance' });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
       renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.setClearColor(backgroundColor, opaque ? 1 : 0);
+      if (options.capture === true && options.capturePremultiplied && !opaque) renderer.setClearColor('#000000', 0);
       const canvas = renderer.domElement;
       canvas.className = 'shop-product-canvas'; canvas.tabIndex = options.interactive === false ? -1 : 0;
       canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', options.label || ALT[mode]);

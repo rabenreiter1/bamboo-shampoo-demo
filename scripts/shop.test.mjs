@@ -121,7 +121,7 @@ test('navigation is consistent and the useful first product image is prioritized
  }
  for(const lang of locales)for(const route of ['',...productRoutes]){
    const html=readPage(lang,route);
-   assert.ok(links(html).some(link=>link.rel==='preload'&&link.as==='image'&&/shop-product-front\.webp/.test(link.href)),'the immediately useful source-derived poster is available before GPU warmup');
+   assert.ok(links(html).some(link=>link.rel==='preload'&&link.as==='image'&&/shop-(?:detail|campaign)-product\.webp/.test(link.href)),'the camera-matched source-derived poster is available before GPU warmup');
  }
 });
 
@@ -285,7 +285,7 @@ test('published 3D assets retain approved artwork and exclude rejected legacy re
   assert.equal(publishedViewer, sourceViewer.replaceAll('./assembly/', '../assembly/'), 'published shop viewer only adapts the approved module directory');
   const imports = [...publishedViewer.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)].map(match => match[1]);
   for (const specifier of imports) {
-    assert.ok(specifier.startsWith('../assembly/') || ['./journey-pose.js','./campaign-backdrop.js'].includes(specifier.split('?')[0]), 'approved models use the scroll adapter and coherent campaign backdrop');
+    assert.ok(specifier.startsWith('../assembly/') || ['./journey-pose.js','./campaign-backdrop.js','./scene-framing.js'].includes(specifier.split('?')[0]), 'approved models use the scroll adapter, shared preview framing and coherent campaign backdrop');
     assert.ok(fs.existsSync(path.resolve(root, 'assets', specifier.split('?')[0])), `${specifier} resolves after publishing`);
   }
   const poseSource = fs.readFileSync(path.join('assets', 'journey-pose.js'), 'utf8');

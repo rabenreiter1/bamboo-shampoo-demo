@@ -16,6 +16,27 @@ export function campaignLayout(width, height) {
     wordY: compact ? .39 : .43, fontSize: width * (compact ? .32 : landscape ? .29 : .34) };
 }
 
+export function paintCampaignWorld(context,{width,height,world='bamboo',word='BAMBOO',layout='campaign',scale=1}){
+  const palette=CAMPAIGN_WORLDS[world]||CAMPAIGN_WORLDS.bamboo;
+  context.setTransform(scale,0,0,scale,0,0);
+  context.fillStyle=palette.base; context.fillRect(0,0,width,height);
+  const glow=context.createRadialGradient(width*.72,height*.35,0,width*.72,height*.35,width*.68);
+  glow.addColorStop(0,palette.light); glow.addColorStop(1,palette.base);
+  context.globalAlpha=.75; context.fillStyle=glow; context.fillRect(0,0,width,height);
+  const wash=context.createLinearGradient(0,0,width,height);
+  wash.addColorStop(0,'#ffffff00'); wash.addColorStop(1,palette.accent);
+  context.globalAlpha=.20; context.fillStyle=wash; context.fillRect(0,0,width,height);
+  context.globalAlpha=1;
+  const type=layout === 'detail'
+    ? { fontSize: width * .32 * 6 / Math.max(4, word.length), wordY: .46 }
+    : campaignLayout(width,height);
+  context.font=`700 ${type.fontSize}px Campaign, Impact, sans-serif`;
+  context.textAlign='center'; context.textBaseline='middle'; context.fillStyle=palette.ink;
+  context.globalAlpha=layout === 'detail' ? .23 : 1;
+  context.fillText(word.toUpperCase(),width/2,height*type.wordY,width*.975);
+  context.globalAlpha=1;
+}
+
 export function createCampaignBackdrop({ THREE, world = 'bamboo', word = 'BAMBOO', layout = 'campaign' }) {
   const canvas = document.createElement('canvas'), context = canvas.getContext('2d');
   if (!context) throw new Error('The campaign backdrop needs a 2D canvas.');
@@ -50,23 +71,7 @@ export function createCampaignBackdrop({ THREE, world = 'bamboo', word = 'BAMBOO
       texture.dispose(); canvas.width=nextWidth; canvas.height=nextHeight;
       texture=makeTexture(); material.uniforms.backdropMap.value=texture;
     }
-    context.setTransform(scale,0,0,scale,0,0);
-    context.fillStyle=palette.base; context.fillRect(0,0,width,height);
-    const glow=context.createRadialGradient(width*.72,height*.35,0,width*.72,height*.35,width*.68);
-    glow.addColorStop(0,palette.light); glow.addColorStop(1,palette.base);
-    context.globalAlpha=.75; context.fillStyle=glow; context.fillRect(0,0,width,height);
-    const wash=context.createLinearGradient(0,0,width,height);
-    wash.addColorStop(0,'#ffffff00'); wash.addColorStop(1,palette.accent);
-    context.globalAlpha=.20; context.fillStyle=wash; context.fillRect(0,0,width,height);
-    context.globalAlpha=1;
-    const type=layout === 'detail'
-      ? { fontSize: width * .32 * 6 / Math.max(4, word.length), wordY: .46 }
-      : campaignLayout(width,height);
-    context.font=`700 ${type.fontSize}px Campaign, Impact, sans-serif`;
-    context.textAlign='center'; context.textBaseline='middle'; context.fillStyle=palette.ink;
-    context.globalAlpha=layout === 'detail' ? .23 : 1;
-    context.fillText(word.toUpperCase(),width/2,height*type.wordY,width*.975);
-    context.globalAlpha=1;
+    paintCampaignWorld(context,{width,height,world,word,layout,scale});
     texture.needsUpdate=true;
   }
   return { mesh, resize(w,h){width=w;height=h;paint();}, setWorld(value){world=value;paint();},

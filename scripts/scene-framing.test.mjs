@@ -1,0 +1,38 @@
+import test from 'node:test';import assert from 'node:assert/strict';import * as THREE from 'three';
+import {staticSceneFrame,projectScenePoint,scenePreviewBox} from '../assets/scene-framing.js';
+import {campaignLayout} from '../assets/campaign-backdrop.js';
+import {scenePreviewAsset,createScenePreviews} from '../assets/scene-preview.js';
+
+test('the shared first-frame camera projects exactly like the live THREE camera',()=>{
+  for(const [width,height] of [[320,440],[390,472],[390,844],[844,390],[768,700],[1440,900],[3440,1440]])
+    for(const mode of ['product','refill','shell','cap'])for(const campaign of [false,true]){
+      const reserved=campaign,frame=staticSceneFrame({width,height,mode,campaign,reserved});
+      const camera=new THREE.PerspectiveCamera(30,width/height,.5,5000);
+      camera.position.fromArray(frame.cameraPosition);camera.up.set(0,1,0);camera.lookAt(...frame.aim);camera.updateMatrixWorld();
+      const region=reserved?campaignLayout(width,height):{minX:0,maxX:1,minY:0,maxY:1};
+      for(const point of frame.points){
+        const actual=new THREE.Vector3(...point).project(camera),predicted=projectScenePoint(point,frame,width,height);
+        assert.ok(Math.abs(predicted.x-(actual.x+1)*width/2)<1e-8);
+        assert.ok(Math.abs(predicted.y-(1-actual.y)*height/2)<1e-8);
+        assert.ok(predicted.x>=region.minX*width-.01&&predicted.x<=region.maxX*width+.01);
+        assert.ok(predicted.y>=region.minY*height-.01&&predicted.y<=region.maxY*height+.01);
+      }
+      const box=scenePreviewBox({width,height,mode,campaign,reserved});
+      assert.ok(Object.values(box).every(Number.isFinite));assert.ok(box.width>0&&box.height>0);
+    }
+});
+
+test('mode and scent changes replace the matching preview and reframe it without a renderer',()=>{
+  const writes=new Map(),attributes=new Map();let rect={width:390,height:472};let resize;
+  const image={getAttribute:name=>attributes.get(name),set src(value){attributes.set('src',value);}};
+  const element={dataset:{shopScene:'product',artDirection:'detail',scent:'argan'},classList:{contains:()=>true},
+    getBoundingClientRect:()=>rect,closest:()=>null,querySelector:()=>image,style:{setProperty:(name,value)=>writes.set(name,value)}};
+  const win={addEventListener:(name,callback)=>{resize=callback;},removeEventListener:()=>{resize=null;}};
+  const previews=createScenePreviews({elements:[element],base:'/demo',version:'test',window:win});
+  assert.match(attributes.get('src'),/shop-detail-product\.webp\?v=test$/);
+  previews.update(element,'refill','argan');assert.match(attributes.get('src'),/shop-detail-refill-argan\.webp/);
+  assert.equal(element.dataset.previewMode,'refill');assert.equal(element.dataset.previewScent,'argan');
+  const old=writes.get('--preview-height');rect={width:340,height:568};resize();assert.notEqual(writes.get('--preview-height'),old);
+  assert.equal(scenePreviewAsset({mode:'refill',scent:'aloe',campaign:true}),'shop-campaign-refill-aloe.webp');
+  previews.destroy();assert.equal(resize,null);
+});

@@ -108,6 +108,15 @@ body:not([data-page='home']):not([data-page='refill']) .header { background: #f4
 }
 .product-gallery { top: calc(var(--header) + 16px); }
 .product-gallery__primary { block-size: clamp(430px, 66svh, 980px); }
+[data-shop-scene].scene-preview > .shop-scene__fallback {
+  position: absolute; left: var(--preview-left, 50%); top: var(--preview-top, 50%);
+  width: var(--preview-width, auto); height: var(--preview-height, 100%); max-width: none;
+  transform: translate(-50%, -50%) rotate(var(--preview-rotation, 0deg)); object-fit: contain; z-index: 1;
+}
+[data-shop-scene].scene-preview > .scene-preview-world { z-index: 0; opacity: 1; pointer-events: none; }
+.campaign-hero:has(.scene-preview-world) > .campaign-word,
+.campaign-hero--home:has(.scene-preview-world) .campaign-lettering { opacity: 0; }
+.campaign-product.scene-preview { --preview-top: calc(50% - 40px); --preview-height: calc(100% - 280px); }
 .product-gallery__word { top: 46%; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none; user-select: none; }
 .product-gallery__word[data-scent='aloe'] { font-size: clamp(140px, 23vw, 440px); color: #24515b3b; }
 .product-gallery__word[data-scent='argan'] { font-size: clamp(120px, 20vw, 380px); color: #6b3e483b; }
@@ -419,7 +428,9 @@ body:not([data-page='home']):not([data-page='refill']) .header { background: #f4
   .campaign-purchase strong { font-size: 17px; }
   .campaign-purchase > p { font-size: 12px; }
   .campaign-purchase .button { font-size: 12px; padding-inline: 13px; }
-  .collection-grid--campaign, .related-products .collection-grid--two { grid-auto-columns: minmax(0, 1fr); gap: 14px; padding-block-end: 10px; scroll-snap-type: x proximity; scroll-padding-inline-start: 0; }
+  .collection-grid--campaign, .related-products .collection-grid--two { grid-auto-columns: minmax(0, 1fr); gap: 14px; padding-block-end: 10px; scroll-snap-type: x mandatory; scroll-padding-inline: 0; }
+  .collection-grid--campaign, .related-products .collection-grid--two { padding-inline-end: max(var(--gutter), calc(100% + var(--gutter) - min(78vw, 340px))); }
+  .collection-grid--campaign > .product-card, .related-products .collection-grid--two > .product-card { scroll-snap-align: start; scroll-snap-stop: always; }
   .collection-grid--campaign { grid-template-columns: repeat(3, minmax(min(78vw, 340px), 1fr)); }
   .related-products .collection-grid--two { grid-template-columns: repeat(2, minmax(min(78vw, 340px), 1fr)); }
   .product-card__art, .collection-grid--two .product-card__art { block-size: auto; aspect-ratio: 4 / 5; }
