@@ -20,15 +20,18 @@ const links = html => tags(html, 'link').map(attrs);
 const scriptData = (html, id) => JSON.parse(html.match(new RegExp(`<script[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)<\\/script>`))[1]);
 const unescape = value => value.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
 
-test('the homepage explains the early three-part reveal in one scene and preserves real shopping routes', () => {
+test('the graphic product hero precedes a dedicated, uncluttered how-it-works scene', () => {
   for (const lang of locales) {
     const main = readPage(lang).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
-    assert.equal(tags(main, 'div').filter(tag => attrs(tag)['data-shop-scene']).length, 1);
+    assert.equal(tags(main, 'div').filter(tag => attrs(tag)['data-shop-scene']).length, 2);
+    assert.match(main, /campaign-hero--home/);
+    assert.match(main, /<h1 class="campaign-word">BAMBOO/);
+    assert.ok(main.indexOf('campaign-hero--home') < main.indexOf('data-product-journey'));
     assert.ok(tags(main, 'div').some(tag => attrs(tag)['data-shop-scene'] === 'journey'));
     const phases = tags(main, 'article').map(attrs).filter(tag => tag['data-journey-caption']);
     assert.deepEqual(phases.map(tag => tag['data-journey-caption']), ['meet', 'shell', 'insert', 'cap', 'together', 'unseal', 'dose', 'refill', 'ready']);
-    assert.deepEqual(tags(main, 'details').map(attrs).filter(tag => tag['data-component']).map(tag => tag['data-component']), ['shell', 'insert', 'cap']);
-    assert.equal(tags(main, 'path').map(attrs).filter(tag => tag['data-journey-leader']).length, 3);
+    const guide = main.slice(main.indexOf('<section class="product-journey'), main.indexOf('<section class="section-shell home-collection'));
+    assert.doesNotMatch(guide, /<details|data-world-scent|data-world-link|data-journey-leader|<em>/, 'the explanation has no accordions, buying controls or mixed headline styles');
     assert.doesNotMatch(main, /data-detour(?:=|-)/, 'main journey explanations and purchases do not open the old detail panels');
     for (const scent of fragrances) assert.ok(tags(main, 'a').some(tag => attrs(tag).href === `${base}/${lang}/products/${scent}/` && /\sdata-native-route(?:\s|>)/.test(tag)), 'scent cards lead to actual product pages');
     const ui = scriptData(readPage(lang), 'ui-copy');

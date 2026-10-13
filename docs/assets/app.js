@@ -1,6 +1,6 @@
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeJourney } from './journey.js?v=shop-20261013-reveal3';
-import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-reveal3';
+import { initializeJourney } from './journey.js?v=shop-20261013-studio2';
+import { initializeProductJourney } from './journey-caption.js?v=shop-20261013-studio2';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;
@@ -113,7 +113,7 @@ async function mountScene(element){
   const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,
    progress:snapshot?.progress??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionProgress)||0:0),
    yaw:snapshot?.yaw??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionYaw)||0:0),
-   zoom:snapshot?.zoom||1,reveal:snapshot||mode==='journey'?1:undefined,poseProgress:snapshot?.pose||0,opaque:true,
+   zoom:snapshot?.zoom||1,reveal:snapshot||mode==='journey'?1:undefined,poseProgress:snapshot?.pose||0,opaque:!element.closest('.campaign-hero--home'),
    inspection:element.hasAttribute('data-inspection'),paused:!!journey?.isLocked()&&element.closest('dialog')!==journey.getTopDialog(),
    background:getComputedStyle(element).getPropertyValue('--world-bg').trim()||undefined,
    label:element.getAttribute('aria-label'),instructions:de?

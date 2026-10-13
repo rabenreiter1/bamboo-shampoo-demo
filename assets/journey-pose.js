@@ -118,30 +118,31 @@ export function createJourneySpace({ THREE }) {
   const projection = new THREE.Matrix4(), frustum = new THREE.Frustum();
   const offset = new THREE.Vector3(), filmBounds = new THREE.Box3();
   const center = new THREE.Vector3(), wideCenter = new THREE.Vector3();
-  let frame;
+  let frame, compactAnatomy = false;
 
-  function cameraRegion(width, height, copyHeight = width >= 520 && width <= 760 ? 320 : 270, footerHeight = 70, stageHeight = height) {
-    // Match the authored caption layout exactly: portrait tablets retain the
-    // desktop text column; only the mobile breakpoint puts text below.
-    const beside = width > 760 || (height <= 560 && width > height);
-    return beside ? { minX: .34, maxX: .98, minY: .08, maxY: .93, layout: 'beside' }
-      : { minX: .055, maxX: .945, minY: .06,
-        maxY: Math.max(.22, Math.min(.60, (stageHeight - copyHeight - footerHeight - 16) / Math.max(1, stageHeight))), layout: 'below' };
+  function cameraRegion(width, height, copyHeight = width <= 760 ? 156 : 132, footerHeight = 0, stageHeight = height) {
+    // A quiet caption lives below the product in the dedicated studio chapter.
+    // Only short landscape screens put it alongside the model.
+    const beside = height <= 560 && width > height;
+    return beside ? { minX: .36, maxX: .97, minY: .10, maxY: .93, layout: 'beside' }
+      : { minX: width <= 760 ? .035 : .105, maxX: width <= 760 ? .965 : .895, minY: .075,
+        maxY: Math.max(.22, Math.min(.82, (stageHeight - copyHeight - footerHeight - 32) / Math.max(1, stageHeight))), layout: 'studio' };
   }
 
   function componentOffset(pose, name, target = new THREE.Vector3()) {
     const { state, anatomy, q } = pose;
     target.set(0, 0, 0);
     if (name === 'cap') {
-      target.addScaledVector(right, -(q < .48 ? JOURNEY_CLEARANCES.capScreenLeft : 130) * state.cap.park)
+      target.addScaledVector(right, -(q < .48 ? compactAnatomy ? 74 : JOURNEY_CLEARANCES.capScreenLeft : 130) * state.cap.park)
         .addScaledVector(up, (q < .48 ? JOURNEY_CLEARANCES.capScreenUp : 20) * state.cap.park);
     } else if (name === 'insert' && q < .48) {
-      target.addScaledVector(right, JOURNEY_CLEARANCES.insertScreenRight * anatomy.insertPark);
+      target.addScaledVector(right, (compactAnatomy ? 66 : JOURNEY_CLEARANCES.insertScreenRight) * anatomy.insertPark);
     }
     return target;
   }
 
   function fitCamera({ pose, camera, tiltRig, zoom = 1, width, height, copyHeight, footerHeight, layoutWidth = width, layoutHeight = height }) {
+    compactAnatomy = layoutWidth <= 760 && layoutHeight > 560;
     const state = pose.state, matrix = tiltRig.matrixWorld;
     const points = [];
     const limits = [[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]];
@@ -202,7 +203,7 @@ export function createJourneySpace({ THREE }) {
     projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frustum.setFromProjectionMatrix(projection);
     wideCenter.copy(center).addScaledVector(right, -aimX * tanH * fittedDistance / .6)
       .addScaledVector(up, -aimY * tanV * fittedDistance / .6);
-    frame = { center: center.toArray(), viewCenter: viewCenter.toArray(), distance: fittedDistance, zoom,
+    frame = { center: center.toArray(), viewCenter: viewCenter.toArray(), distance: fittedDistance, zoom, compactAnatomy,
       cameraPosition: camera.position.toArray(), region, min: new THREE.Box3().setFromPoints(points).min.toArray(),
       max: new THREE.Box3().setFromPoints(points).max.toArray() };
     return frame;
