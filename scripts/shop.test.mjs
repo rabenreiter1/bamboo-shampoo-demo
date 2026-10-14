@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fragrances, prices, formatPrice, cartTotal } from '../assets/catalog.js';
+import { BRAND_THEME, PRODUCT_THEMES } from '../assets/product-theme.js';
 
 const root = path.resolve('docs');
 const origin = 'https://rabenreiter1.github.io';
@@ -16,31 +17,49 @@ const readPage = (lang, route = '') => fs.readFileSync(path.join(root, lang, rou
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 const tags = (html, name) => [...html.matchAll(new RegExp(`<${name}\\b[^>]*>`, 'gi'))].map(match => match[0]);
 const attrs = tag => Object.fromEntries([...tag.matchAll(/([\w:-]+)="([^"]*)"/g)].map(match => [match[1], match[2]]));
+const hasAttribute = (tag, name) => new RegExp(`\\s${name}(?:\\s|=|>)`).test(tag);
 const links = html => tags(html, 'link').map(attrs);
 const scriptData = (html, id) => JSON.parse(html.match(new RegExp(`<script[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)<\\/script>`))[1]);
 const unescape = value => value.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
 
-test('the graphic hero leads to scent selection and then the complete use cycle', () => {
+test('the graphic hero leads to scent selection and a finite, controllable automatic use cycle', () => {
   for (const lang of locales) {
     const main = readPage(lang).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
     assert.equal(tags(main, 'div').filter(tag => attrs(tag)['data-shop-scene']).length, 2);
     assert.match(main, /campaign-hero--home/);
     assert.match(main, /<h1 class="campaign-word">BAMBOO/);
     assert.ok(main.indexOf('campaign-hero--home') < main.indexOf('id="collection"'));
-    assert.ok(main.indexOf('id="collection"') < main.indexOf('data-product-journey'));
+    assert.ok(main.indexOf('id="collection"') < main.indexOf('data-playback-profile="home-cycle"'));
+    assert.doesNotMatch(main, /data-product-journey|data-ritual-scroll/, 'home explanation is no longer a pinned native-scroll track');
+    const scenes = tags(main, 'div').map(attrs).filter(tag => tag['data-shop-scene']);
+    assert.deepEqual(scenes.map(tag => tag['data-shop-scene']), ['product', 'journey']);
+    assert.equal(scenes[0]['data-art-direction'], 'campaign');
+    assert.equal(scenes[0]['data-scent'], 'aloe', 'a new visit begins with the sage Aloe world');
     assert.ok(tags(main, 'div').some(tag => attrs(tag)['data-shop-scene'] === 'journey'));
     const phases = tags(main, 'article').map(attrs).filter(tag => tag['data-journey-caption']);
     assert.deepEqual(phases.map(tag => tag['data-journey-caption']), ['closed','uncap','unseal','recap','dose','remove','refill','ready']);
     const guide = main.slice(main.indexOf('<section id="ritual"'), main.indexOf('<section class="section-shell faq-tease'));
+    const profile = tags(guide, 'section').map(attrs).find(tag => tag.id === 'ritual');
+    assert.equal(profile?.['data-playback-profile'], 'home-cycle');
+    assert.match(profile?.class || '', /\bproduct-playback\b/);
+    assert.doesNotMatch(profile?.class || '', /product-journey|ritual-scroll/);
+    assert.equal(tags(guide, 'button').filter(tag => hasAttribute(tag, 'data-playback-toggle')).length, 1);
+    const seek = tags(guide, 'input').find(tag => hasAttribute(tag, 'data-playback-seek'));
+    assert.ok(seek, 'the animation has a direct native progress control');
+    assert.deepEqual(Object.fromEntries(['type','min','max','step'].map(key => [key,attrs(seek)[key]])), {type:'range',min:'0',max:'1000',step:'1'});
+    assert.ok(attrs(seek)['aria-label']?.trim(), 'the progress control has a localized accessible name');
+    assert.deepEqual(tags(guide, 'button').map(attrs).filter(tag => tag['data-playback-at']).map(tag => Number(tag['data-playback-at'])), [.10,.20,.54,.875]);
+    assert.match(guide, /shop-guide-product-aloe\.webp/, 'the guide starts with its matching closed-product poster');
     assert.doesNotMatch(guide, /<details|data-world-scent|data-world-link|data-journey-leader|<em>/, 'the explanation has no accordions, buying controls or mixed headline styles');
     assert.doesNotMatch(main, /data-detour(?:=|-)/, 'main journey explanations and purchases do not open the old detail panels');
     for (const scent of fragrances) assert.ok(tags(main, 'a').some(tag => attrs(tag).href === `${base}/${lang}/products/${scent}/` && /\sdata-native-route(?:\s|>)/.test(tag)), 'scent cards lead to actual product pages');
     const ui = scriptData(readPage(lang), 'ui-copy');
-    assert.equal(ui.shampoo, 'Shampoo'); assert.equal(ui.refill, 'Refill');
+    assert.equal(ui.shampoo, lang === 'de' ? 'Starter-Set' : 'Starter Set'); assert.equal(ui.refill, 'Refill');
+    assert.match(ui.formatAdd.shampoo, lang === 'de' ? /Starter-Set/ : /starter set/i);
   }
 });
 
-test('one form-owned priced selector below each model chooses shampoo or refill', () => {
+test('one form-owned priced selector below each model chooses starter set or refill without changing format keys', () => {
   for (const lang of locales) for (const scent of fragrances) {
     const main = readPage(lang, `products/${scent}/`).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
     assert.doesNotMatch(main,/data-gallery-view/, 'there is no second image-only selector');
@@ -51,6 +70,33 @@ test('one form-owned priced selector below each model chooses shampoo or refill'
     assert.ok(main.indexOf('product-format')>main.indexOf('data-shop-scene="product"'));
     const selector=main.match(/<fieldset class="product-format">([\s\S]*?)<\/fieldset>/)[1];
     assert.match(selector,/12,50|12\.50/); assert.match(selector,/4,50|4\.50/);
+    assert.match(selector,lang==='de'?/Starter-Set/:/Starter Set/);
+    assert.match(selector,/Refill/);
+    assert.match(main,new RegExp(`shop-detail-product-${scent}\\.webp`));
+  }
+});
+
+test('the refill teaser illustrates reuse while every purchase points to a filled insert', () => {
+  for (const lang of locales) {
+    const main=readPage(lang,'refill/').match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
+    const teaser=main.slice(main.indexOf('<section class="campaign-hero'),main.indexOf('<section class="section-shell refill-selection'));
+    assert.equal(tags(teaser,'section').map(attrs).filter(tag=>tag['data-playback-profile']==='refill-teaser').length,1);
+    assert.ok(tags(teaser,'div').some(tag=>attrs(tag)['data-shop-scene']==='ritual'),'the teaser illustrates a refill in the existing assembly');
+    assert.match(teaser,/shop-teaser-product-aloe\.webp/);
+    assert.match(teaser,/<h1 class="campaign-word">REFILL/);
+    assert.equal(tags(teaser,'button').filter(tag=>hasAttribute(tag,'data-playback-toggle')).length,1);
+    assert.deepEqual(tags(teaser,'button').map(attrs).filter(tag=>tag['data-playback-at']).map(tag=>Number(tag['data-playback-at'])),[.765,.83,.90,.96]);
+    const purchase=teaser.match(/<div class="campaign-purchase">([\s\S]*?)<\/div>/)?.[1];
+    assert.ok(purchase);
+    assert.match(purchase,lang==='de'?/gefüllter Einsatz/:/filled insert/);
+    assert.ok(unescape(purchase).includes(formatPrice(450,lang)));
+    assert.doesNotMatch(purchase,/12,50|12\.50|Starter-Set|Starter Set/,'the animation does not imply the shell or cap is sold with the refill');
+    assert.ok(main.indexOf('id="refill-scents"')<main.indexOf('data-ritual-scroll'),'the complete native-scroll explanation remains after the selection');
+    for(const tag of tags(main,'button').filter(tag=>hasAttribute(tag,'data-add'))){
+      assert.equal(attrs(tag)['data-format'],'refill');
+      assert.equal(attrs(tag)['data-quick-format'],'refill');
+    }
+    for(const scent of fragrances)assert.ok(tags(main,'a').map(attrs).some(link=>link.href===`${base}/${lang}/products/${scent}/?format=refill`));
   }
 });
 
@@ -119,10 +165,44 @@ test('navigation is consistent and the useful first product image is prioritized
    assert.ok(links(html).some(link=>link.rel==='stylesheet'&&/polish\.css/.test(link.href)));
    assert.ok(html.indexOf('@view-transition{navigation:auto}') < html.indexOf('<link rel="stylesheet"'),'transition opt-in is available before external CSS arrives');
  }
- for(const lang of locales)for(const route of ['',...productRoutes]){
+ for(const lang of locales)for(const route of ['','refill/',...productRoutes]){
    const html=readPage(lang,route);
-   assert.ok(links(html).some(link=>link.rel==='preload'&&link.as==='image'&&/shop-(?:detail|campaign)-product\.webp/.test(link.href)),'the camera-matched source-derived poster is available before GPU warmup');
+   const scent=route.startsWith('products/')?route.split('/')[1]:'aloe';
+   const family=route==='refill/'?'teaser':route.startsWith('products/')?'detail':'campaign';
+   const expected=`${base}/assets/shop-${family}-product-${scent}.webp`;
+   const leadImage=tags(html,'img').map(attrs).find(image=>image.fetchpriority==='high');
+   assert.ok(leadImage?.src.startsWith(expected),`${lang}/${route} prioritizes its matching scent and camera poster`);
+   assert.ok(links(html).some(link=>link.rel==='preload'&&link.as==='image'&&link.href===leadImage.src),'the exact first visible poster is preloaded before GPU warmup');
  }
+});
+
+test('published pages use one sage and ivory theme with independent pastel fragrance finishes',()=>{
+ for(const lang of locales)for(const route of primaryRoutes){
+   const html=readPage(lang,route);
+   assert.match(html,new RegExp(`--paper:\\s*${BRAND_THEME.ivory}`,'i'));
+   assert.match(html,new RegExp(`--ink:\\s*${BRAND_THEME.ink}`,'i'));
+   assert.match(html,new RegExp(`--sage:\\s*${BRAND_THEME.sage}`,'i'));
+   for(const [scent,theme] of Object.entries(PRODUCT_THEMES)){
+     const declarations=html.match(new RegExp(`\\.scent-${scent}\\s*\\{([^}]+)\\}`))?.[1];
+     assert.ok(declarations,`${lang}/${route} contains ${scent} theme values at first paint`);
+     assert.match(declarations,new RegExp(`--world-bg:\\s*${theme.world.base}`,'i'));
+     assert.match(declarations,new RegExp(`--cap-color:\\s*${theme.cap}`,'i'));
+   }
+   const themeColor=tags(html,'meta').map(attrs).find(meta=>meta.name==='theme-color')?.content;
+   assert.equal(themeColor?.toLowerCase(),BRAND_THEME.sage.toLowerCase());
+ }
+ const styles=fs.readFileSync(path.join(root,'assets','style.css'),'utf8')+'\n'+fs.readFileSync(path.join(root,'assets','polish.css'),'utf8');
+ const editorialFace=[...styles.matchAll(/@font-face\s*\{([^}]+)\}/g)].map(match=>match[1]).find(face=>/font-family:\s*Editorial\s*;/.test(face));
+ assert.ok(editorialFace,'the regular editorial face is declared');
+ assert.match(editorialFace,/editorial\.woff2/,'the editorial face is served locally');
+ assert.match(editorialFace,/font-weight:\s*400\s*;/,'editorial headings use the regular face');
+ assert.match(styles,/\.display\s*\{[^}]*font-family:\s*Editorial/,'editorial headings use the regular face');
+ assert.match(styles,/grid-template-columns:\s*repeat\(3,\s*86vw\)/,'mobile fragrance cards retain the agreed large swipe width');
+ assert.match(styles,/scroll-snap-type:\s*x mandatory/);
+ const playbackRoom=styles.match(/\.product-playback\s*\{([^}]+)\}/)?.[1];
+ assert.ok(playbackRoom);
+ assert.doesNotMatch(playbackRoom,/position:\s*(?:fixed|sticky)|(?:block-size|height):\s*\d{3,}svh/,'the home story occupies normal document flow');
+ assert.equal(fs.readFileSync(path.join(root,'assets','product-theme.js'),'utf8'),fs.readFileSync(path.join('assets','product-theme.js'),'utf8'));
 });
 
 test('structured data follows the visible content routes without inventing purchasable offers or reviews', () => {
@@ -285,7 +365,7 @@ test('published 3D assets retain approved artwork and exclude rejected legacy re
   assert.equal(publishedViewer, sourceViewer.replaceAll('./assembly/', '../assembly/'), 'published shop viewer only adapts the approved module directory');
   const imports = [...publishedViewer.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)].map(match => match[1]);
   for (const specifier of imports) {
-    assert.ok(specifier.startsWith('../assembly/') || ['./journey-pose.js','./campaign-backdrop.js','./scene-framing.js'].includes(specifier.split('?')[0]), 'approved models use the scroll adapter, shared preview framing and coherent campaign backdrop');
+    assert.ok(specifier.startsWith('../assembly/') || ['./journey-pose.js','./campaign-backdrop.js','./scene-framing.js','./product-theme.js'].includes(specifier.split('?')[0]), 'approved models use the pose adapter, shared preview framing and coherent fragrance theme');
     assert.ok(fs.existsSync(path.resolve(root, 'assets', specifier.split('?')[0])), `${specifier} resolves after publishing`);
   }
   const poseSource = fs.readFileSync(path.join('assets', 'journey-pose.js'), 'utf8');

@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { chapterPosition, positionFromBookmark, normalizeChoice, normalizeBookmark, validBookmark, JOURNEY_CHAPTERS } from '../assets/journey.js';
+import { chapterPosition, positionFromBookmark, normalizeChoice, normalizeBookmark, validBookmark, JOURNEY_CHAPTERS, BOOKMARK_LAYOUT } from '../assets/journey.js';
+import { PLAYBACK_VERSION, playbackTimeForProgress, createPlaybackClock } from '../assets/playback.js';
 
 const BASE = '/bamboo-shampoo-demo';
 const HOME = `https://example.test${BASE}/en/`;
 const production = fs.readFileSync(new URL('../assets/journey.js', import.meta.url), 'utf8');
 const saved = overrides => ({ chapter: 'ritual', progress: .4, scroll: 3366, lang: 'en', viewportHeight: 844, viewportWidth: 390,
-  layout: 'collection-before-ritual-v1', ...overrides });
+  layout: BOOKMARK_LAYOUT, ...overrides });
 
 test('continuous homepage links use real product and story pages without material popups', () => {
   const h = harness({ continuous: true });
@@ -24,11 +25,11 @@ test('continuous homepage links use real product and story pages without materia
   assert.equal(bookmark.progress, (312 + 68) / (2000 - (844 - 68)), 'embedded story nav does not add another header offset');
 });
 
-test('continuous homepage resumes only after the model has established the final scroll layout', async () => {
+test('continuous journey returns restore after explicit page readiness and only once', async () => {
   const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(saved())]]);
   const h = harness({ continuous: true, memory, url: `${HOME}?resume=1#ritual`, scroll: 0 });
   await Promise.resolve(); h.flushFrames();
-  assert.equal(h.window.scrollY, 0, 'static fallback geometry cannot restore the animated track prematurely');
+  assert.equal(h.window.scrollY, 0, 'a page that has not signalled layout readiness cannot restore its return prematurely');
   h.api.ready(); await Promise.resolve(); h.flushFrames();
   assert.equal(h.window.scrollY, 3366);
   h.window.scrollY = 3512; h.api.ready(); await Promise.resolve(); h.flushFrames();
@@ -45,7 +46,7 @@ test('scent changes preserve the explicit refill format on native purchase links
   assert.equal(refill.href, `https://example.test${BASE}/en/products/argan/?format=refill`);
 });
 
-test('cold reload and noncached browser Back restore the continuous track after it is ready', async () => {
+test('cold reload and noncached browser Back restore a current-layout bookmark after page readiness', async () => {
   for (const navigationType of ['reload', 'back_forward']) {
     const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(saved())]]);
     const h = harness({ continuous: true, navigationType, memory, scroll: 0 });
@@ -54,7 +55,7 @@ test('cold reload and noncached browser Back restore the continuous track after 
   }
 });
 
-test('a detour during 3D loading retains its chapter position when returning on another screen size', () => {
+test('a detour during legacy scrolling-guide loading retains its chapter position on another screen size', () => {
   const h = harness({ continuous: true, scroll: 3366 });
   const waiting = h.document.querySelector('[data-product-journey]');
   waiting.top = 2600; waiting.height = 4000; waiting.classList.add('is-loading');
@@ -99,7 +100,7 @@ test('partial scent/format choices retain the other valid choice and reject unkn
   assert.deepEqual(normalizeChoice({ scent: 'argan' }, current), { scent: 'argan', format: 'refill' });
   assert.deepEqual(normalizeChoice({ format: 'shampoo' }, current), { scent: 'aloe', format: 'shampoo' });
   assert.deepEqual(normalizeChoice({ scent: 'unknown', format: 'other' }, current), current);
-  assert.deepEqual(normalizeChoice(null), { scent: 'bamboo', format: 'shampoo' });
+  assert.deepEqual(normalizeChoice(null), { scent: 'aloe', format: 'shampoo' });
 });
 
 test('untrusted persisted positions must name a known chapter and finite bounded coordinates', () => {
@@ -129,12 +130,23 @@ test('unversioned old-layout returns preserve chapter progress rather than a pre
   assert.equal(normalizeBookmark(saved({ chapter: 'unknown' })), null);
 });
 
+test('the retired scroll guide migrates its pose separately from the new page position', () => {
+  const original = saved({ layout: 'collection-before-ritual-v1', progress: .54, scroll: 8300 });
+  const point = normalizeBookmark(original);
+  assert.equal(point.layout, BOOKMARK_LAYOUT); assert.equal(point.legacyAnimationProgress, .54);
+  assert.equal(point.progress, 0); assert.equal(point.viewportWidth, undefined); assert.equal(point.viewportHeight, undefined);
+  assert.equal(positionFromBookmark(point, { top: 2600, height: 1000 }, 844, 68, 390), 2532);
+  assert.equal(original.layout, 'collection-before-ritual-v1'); assert.equal(original.progress, .54);
+  assert.equal(original.viewportWidth, 390, 'migration does not alter the saved evidence');
+});
+
 // Execute the complete production controller against a small standard-DOM
 // surface. History traversals, native close events, and animation frames are
 // separate queues, so a test cannot accidentally treat Back as synchronous.
 // This harness checks state/control behavior; it does not claim native focus
 // trapping, layout, browser touch arbitration, BFCache, or GPU validation.
-function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), main = true, continuous = false, navigationType = 'navigate', storageBlocked = false } = {}) {
+function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), main = true, continuous = false,
+  autoplay = false, playbackSnapshot, fontsReady = Promise.resolve(), navigationType = 'navigate', storageBlocked = false } = {}) {
   const frames = new Map(), tasks = [], historyTasks = [], observers = [], stack = [];
   const listeners = new Map(); let frameId = 1;
   const location = new URL(url);
@@ -194,7 +206,7 @@ function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), m
       observers.forEach(o => o.dirty = true); tasks.push(() => this.dispatchEvent({ type: 'close' })); }
   }
   const html = new Element('html'), body = new Element('body', {}, html);
-  document = { documentElement: html, body, activeElement: body, fonts: { ready: Promise.resolve() },
+  document = { documentElement: html, body, activeElement: body, fonts: { ready: fontsReady },
     querySelectorAll: selector => [html, ...html.all()].filter(el => el.matches(selector)),
     querySelector(selector) { return this.querySelectorAll(selector)[0] || null; },
     addEventListener(type, callback) { const list = docListeners.get(type) || []; list.push(callback); docListeners.set(type, list); },
@@ -203,8 +215,12 @@ function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), m
   const nav = new Element('nav', { 'data-journey-nav': '' }, body); nav.offsetHeight = 58;
   const mainEl = main ? new Element('main', { 'data-journey': '' }, body) : null;
   if (continuous && mainEl) new Element('section', { 'data-product-journey': '' }, mainEl);
-  const specs = [['discover', 0, 850], ['collection', 1000, 1400], ['ritual', 2600, 4000], ['questions', 6700, 800]];
+  const specs = [['discover', 0, 850], ['collection', 1000, 1400], ['ritual', 2600, autoplay ? 1000 : 4000], ['questions', autoplay ? 3700 : 6700, 800]];
   const chapters = specs.map(([id, top, height]) => { const el = new Element('section', { id, 'data-journey-chapter': id }, mainEl || body); el.top = top; el.height = height; return el; });
+  if (autoplay) {
+    chapters[2].setAttribute('data-playback-profile', 'home-cycle');
+    new Element('div', { 'data-shop-scene': 'journey', 'data-scene-rendered': 'false' }, chapters[2]);
+  }
   const trigger = new Element('a', { href: `${BASE}/en/products/bamboo/`, 'data-detour': 'product' }, chapters[0]);
   const dialog = new Element('dialog', { id: 'journey-dialog' }, body);
   const close = new Element('button', { 'data-detour-close': '' }, dialog);
@@ -236,14 +252,16 @@ function harness({ scroll = 312, state = null, url = HOME, memory = new Map(), m
   vm.runInContext(`${production.replace(/^export /gm, '')}\nglobalThis.createJourney = initializeJourney;`, context);
   const modalChanges = [];
   const api = context.createJourney({ ui: { base: BASE, lang: 'en', names: { aloe: 'Aloe', argan: 'Argan', bamboo: 'Bamboo' }, scentDescriptions: {}, scentWords: {} },
-    reduced: { matches: false }, onModal: value => { if (modalChanges.at(-1) !== value) modalChanges.push(value); } });
+    reduced: { matches: false }, onModal: value => { if (modalChanges.at(-1) !== value) modalChanges.push(value); },
+    getPlaybackSnapshot: section => section.dataset.playbackProfile
+      ? typeof playbackSnapshot === 'function' ? playbackSnapshot(section) : playbackSnapshot : undefined });
   const flushMutations = () => { for (const o of observers) if (o.dirty) { o.dirty = false; o.callback(); } };
   const flushEvents = () => { while (tasks.length) tasks.shift()(); flushMutations(); };
   const flushHistory = () => { while (historyTasks.length) { historyTasks.shift()(); flushEvents(); } };
   const flushFrames = () => { const current = [...frames.values()]; frames.clear(); current.forEach(callback => callback()); };
   const click = (target, options = {}) => { const event = { target, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...options };
     for (const callback of docListeners.get('click') || []) callback(event); return event; };
-  return { api, click, document, window, location, history, trigger, dialog, bag, menu, scent, chapters, modalChanges, memory,
+  return { api, click, document, window, location, history, trigger, dialog, bag, menu, scent, chapters, modalChanges, memory, emit,
     flushHistory, flushFrames, flushEvents, flushMutations, Element,
     choice: () => JSON.parse(JSON.stringify(api.getChoice())),
     resize(width, height) { window.innerWidth = context.innerWidth = width; window.innerHeight = context.innerHeight = height; emit('resize'); },
@@ -298,7 +316,7 @@ test('ordinary and modified scent anchors always preserve native navigation and 
     if (modifier === 'target') h.scent.setAttribute('target', '_blank');
     if (modifier === 'download') h.scent.setAttribute('download', '');
     assert.equal(h.click(h.scent, modifier && !['target', 'download'].includes(modifier) ? { [modifier]: true } : {}).defaultPrevented, false);
-    assert.deepEqual(h.choice(), { scent: 'bamboo', format: 'shampoo' });
+    assert.deepEqual(h.choice(), { scent: 'aloe', format: 'shampoo' });
     assert.equal(h.dialog.open, false);
   }
 });
@@ -361,20 +379,60 @@ test('an explicit resume restores a valid same-viewport bookmark after font read
   assert.equal(h.window.scrollY, 3366);
 });
 
+test('a native departure from the autoplay guide bookmarks page position separately from the paused assembly pose', async () => {
+  const elapsed = playbackTimeForProgress('home-cycle', .54);
+  const clock = createPlaybackClock({ profile: 'home-cycle', now: () => 0,
+    requestFrame: () => { throw new Error('The paused fixture must not request an animation frame.'); }, cancelFrame: () => {} });
+  const snapshot = { version: PLAYBACK_VERSION, profile: 'home-cycle', elapsed, paused: true, yaw: 1.8 };
+  assert.equal(clock.restore(snapshot), true);
+  const memory = new Map([['bamboo-playback-v1:home-cycle', JSON.stringify(snapshot)]]);
+  const h = harness({ autoplay: true, scroll: 2710, memory, playbackSnapshot: () => clock.getSnapshot() });
+  h.api.ready();
+  const link = new h.Element('a', { href: `${BASE}/en/products/argan/` }, h.chapters[2]);
+  assert.equal(h.click(link).defaultPrevented, false);
+  const point = JSON.parse(memory.get('bamboo-journey-return-v1'));
+  assert.equal(point.layout, BOOKMARK_LAYOUT); assert.equal(point.chapter, 'ritual'); assert.equal(point.scroll, 2710);
+  assert.equal(point.progress, (2710 + 68 - 2600) / (1000 - (844 - 68)));
+  assert.notEqual(point.progress, .54, 'native section progress is not reused as an assembly pose');
+  assert.deepEqual(point.playback, snapshot, 'elapsed, explicit pause and manual yaw travel with the return bookmark');
+  assert.deepEqual(JSON.parse(memory.get('bamboo-playback-v1:home-cycle')), snapshot, 'page navigation cannot replace the independent animation snapshot');
+  const back = harness({ autoplay: true, scroll: 0, memory, navigationType: 'back_forward' });
+  back.api.ready(); await Promise.resolve(); back.flushFrames();
+  assert.equal(back.window.scrollY, 2710);
+  assert.equal(back.document.querySelector('[data-shop-scene]').dataset.sceneRendered, 'false', 'returning to a stable normal-height section does not wait for a GPU frame');
+  clock.destroy();
+});
+
+test('autoplay reload and cold Back wait for fonts, restore stable page geometry, and retain the saved playback snapshot', async () => {
+  for (const navigationType of ['reload', 'back_forward']) {
+    let resolveFonts;
+    const fontsReady = new Promise(resolve => { resolveFonts = resolve; });
+    const playback = { version: PLAYBACK_VERSION, profile: 'home-cycle', elapsed: 18.25, paused: true, yaw: -.7 };
+    const point = saved({ progress: (2710 + 68 - 2600) / (1000 - (844 - 68)), scroll: 2710, playback });
+    const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(point)], ['bamboo-playback-v1:home-cycle', JSON.stringify(playback)]]);
+    const h = harness({ autoplay: true, scroll: 0, memory, navigationType, fontsReady });
+    h.api.ready(); await Promise.resolve(); h.flushFrames(); assert.equal(h.window.scrollY, 0);
+    resolveFonts(); await Promise.resolve(); h.flushFrames(); assert.equal(h.window.scrollY, 2710);
+    assert.equal(h.document.querySelector('[data-shop-scene]').dataset.sceneRendered, 'false');
+    assert.deepEqual(JSON.parse(memory.get('bamboo-playback-v1:home-cycle')), playback);
+    h.window.scrollY = 2780; h.api.ready(); h.flushFrames(); assert.equal(h.window.scrollY, 2780, 'later model readiness cannot replay the page restoration');
+  }
+});
+
 test('invalid saved data does not force a scroll even for an explicit resume URL', async () => {
   const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(saved({ chapter: 'unknown' }))]]);
   const h = harness({ scroll: 0, url: `${HOME}?resume=1`, memory }); await Promise.resolve(); h.flushFrames();
   assert.equal(h.window.scrollY, 0);
 });
 
-test('a legacy materials hash enters the actual use sequence after the model establishes its layout', async () => {
+test('a legacy materials hash enters the actual use sequence after page layout readiness', async () => {
   const h = harness({ continuous: true, scroll: 0, url: `${HOME}#materials` });
   assert.equal(h.location.hash, '#ritual'); assert.equal(h.window.scrollY, 0);
   h.api.ready(); await Promise.resolve(); h.flushFrames();
   assert.equal(h.window.scrollY, 2600);
 });
 
-test('a legacy material return waits for the model and resumes at the start of the new use sequence', async () => {
+test('a legacy material return waits for page readiness and resumes at the start of the new use sequence', async () => {
   const memory = new Map([['bamboo-journey-return-v1', JSON.stringify(saved({ chapter: 'materials', progress: .7, layout: undefined }))]]);
   const h = harness({ continuous: true, scroll: 0, memory, url: `${HOME}?resume=1` });
   assert.equal(h.window.scrollY, 0); h.api.ready(); await Promise.resolve(); h.flushFrames();

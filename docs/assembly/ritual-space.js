@@ -24,7 +24,7 @@ export function createRitualSpace({ THREE }) {
       .addScaledVector(up, SPATIAL_LIMITS.capParkUp * state.cap.park);
   }
 
-  function fitCamera({ state, camera, product, tiltRig, zoom }) {
+  function fitCamera({ state, camera, product, tiltRig, zoom, region }) {
     const points = [], matrix = new THREE.Matrix4().copy(tiltRig.matrixWorld);
     // Yaw-invariant cylinders: inspection and the automatic two turns never
     // make the camera breathe as different box corners become extrema.
@@ -62,18 +62,24 @@ export function createRitualSpace({ THREE }) {
       .addScaledVector(direction, (projected.depth[0] + projected.depth[1]) / 2);
     const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), tanH = tanV * camera.aspect;
     let distance = 0;
+    const minX = region ? 2 * region.minX - 1 : -1, maxX = region ? 2 * region.maxX - 1 : 1;
+    const minY = region ? 1 - 2 * region.maxY : -1, maxY = region ? 1 - 2 * region.minY : 1;
+    const aimX = (minX + maxX) / 2, aimY = (minY + maxY) / 2;
     for (const p of points) {
       v.copy(p).sub(center);
-      distance = Math.max(distance, v.dot(direction) + Math.abs(v.dot(up)) / tanV,
-        v.dot(direction) + Math.abs(v.dot(right)) / tanH);
+      const x=v.dot(right), y=v.dot(up), z=v.dot(direction);
+      distance = Math.max(distance, z + y / (tanV * (y >= 0 ? maxY-aimY : minY-aimY)),
+        z + x / (tanH * (x >= 0 ? maxX-aimX : minX-aimX)));
     }
     const fittedDistance = Math.max(250, distance * 1.12);
-    camera.position.copy(center).addScaledVector(direction, fittedDistance / zoom);
-    camera.up.set(0, 1, 0); camera.lookAt(center); camera.updateMatrixWorld();
+    const viewCenter = center.clone().addScaledVector(right, -aimX*tanH*fittedDistance/zoom)
+      .addScaledVector(up, -aimY*tanV*fittedDistance/zoom);
+    camera.position.copy(viewCenter).addScaledVector(direction, fittedDistance / zoom);
+    camera.up.set(0, 1, 0); camera.lookAt(viewCenter); camera.updateMatrixWorld();
     projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(projection);
     const bounds = new THREE.Box3().setFromPoints(points);
-    frame = { center: center.toArray(), distance: fittedDistance, zoom, min: bounds.min.toArray(), max: bounds.max.toArray(),
+    frame = { center: center.toArray(), viewCenter: viewCenter.toArray(), region, distance: fittedDistance, zoom, min: bounds.min.toArray(), max: bounds.max.toArray(),
       cameraPosition: camera.position.toArray() };
     return frame;
   }

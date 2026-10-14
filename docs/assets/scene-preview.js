@@ -1,5 +1,5 @@
-import { scenePreviewBox } from './scene-framing.js?v=shop-20261013-jury4';
-import { paintCampaignWorld } from './campaign-backdrop.js?v=shop-20261013-jury4';
+import { scenePreviewBox, playbackPreviewBox } from './scene-framing.js?v=shop-20261014-sage1';
+import { paintCampaignWorld, CAMPAIGN_WORLDS } from './campaign-backdrop.js?v=shop-20261014-sage1';
 
 export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=element.ownerDocument}){
   if(!doc?.createElement)return false;
@@ -9,27 +9,34 @@ export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=
   const scale=Math.min(1.5,2048/Math.max(width,height));
   const w=Math.max(1,Math.round(width*scale)),h=Math.max(1,Math.round(height*scale));
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
-  const hero=element.closest('.campaign-hero');
+  const hero=element.closest('.campaign-hero'),detail=element.closest('.product-gallery__primary');
+  const guide=element.closest('[data-playback-profile="home-cycle"]');
   const word=hero?(hero.classList.contains('campaign-hero--refill')?'REFILL':'BAMBOO')
-    :element.closest('.product-gallery__primary')?.querySelector('.product-gallery__word')?.textContent||'BAMBOO';
+    :detail?.querySelector('.product-gallery__word')?.textContent||'BAMBOO';
   const signature=JSON.stringify([width,height,scent,word,campaign,doc.fonts?.check?.('700 160px Campaign')]);
   if(canvas.dataset.previewWorldSignature===signature)return true;
-  paintCampaignWorld(context,{width,height,world:scent,word,layout:campaign?'campaign':'detail',scale});
+  if(guide||!hero&&!detail){context.setTransform(scale,0,0,scale,0,0);context.fillStyle=(guide?CAMPAIGN_WORLDS.aloe:CAMPAIGN_WORLDS[scent]||CAMPAIGN_WORLDS.aloe).base;context.fillRect(0,0,width,height);}
+  else paintCampaignWorld(context,{width,height,world:scent,word,layout:campaign?'campaign':'detail',scale});
   canvas.dataset.previewWorldSignature=signature;
   return true;
 }
 
-export function scenePreviewAsset({mode='product',scent='bamboo',campaign=false}){
+export function scenePreviewAsset({mode='product',scent='aloe',campaign=false,profile}){
+  const fragrance=['aloe','argan','bamboo'].includes(scent)?scent:'aloe';
+  if(profile==='home-cycle'||mode==='journey')return `shop-guide-product-${fragrance}.webp`;
+  if(profile==='refill-teaser')return `shop-teaser-product-${fragrance}.webp`;
+  if(mode==='cap')return `shop-cap-${fragrance}.webp`;
   if(!['product','refill'].includes(mode))return null;
   const family=campaign?'campaign':'detail';
-  return `shop-${family}-${mode==='refill'?`refill-${['aloe','argan','bamboo'].includes(scent)?scent:'bamboo'}`:'product'}.webp`;
+  return `shop-${family}-${mode}-${fragrance}.webp`;
 }
 
 export function createScenePreviews({elements,base,version,window:win=window}){
   const records=new Map();
   function resize(record){
     const box=record.element.getBoundingClientRect();if(!box.width||!box.height)return;
-    const frame=scenePreviewBox({width:box.width,height:box.height,mode:record.mode,campaign:record.campaign,reserved:record.reserved,pose:record.pose});
+    const frame=record.profile?playbackPreviewBox({width:box.width,height:box.height,profile:record.profile,reserved:record.reserved})
+      :scenePreviewBox({width:box.width,height:box.height,mode:record.mode,campaign:record.campaign,reserved:record.reserved,pose:record.pose});
     for(const [name,value] of Object.entries(frame))record.element.style.setProperty(`--preview-${name}`,`${value}${name==='rotation'?'deg':'px'}`);
     paintScenePreviewWorld(record.element,{width:box.width,height:box.height,scent:record.scent,campaign:record.campaign});
   }
@@ -37,9 +44,9 @@ export function createScenePreviews({elements,base,version,window:win=window}){
     let record=records.get(element);
     if(!record){
       if(!element.classList.contains('scene-preview'))return false;
-      record={element,campaign:element.dataset.artDirection==='campaign',reserved:!!element.closest('.campaign-hero'),pose:0};records.set(element,record);
+      record={element,campaign:element.dataset.artDirection==='campaign',reserved:!!element.closest('.campaign-hero'),profile:element.closest('[data-playback-profile]')?.dataset.playbackProfile,pose:0};records.set(element,record);
     }
-    const name=scenePreviewAsset({mode,scent,campaign:record.campaign});if(!name)return false;
+    const name=scenePreviewAsset({mode,scent,campaign:record.campaign,profile:record.profile});if(!name)return false;
     record.mode=mode;record.scent=scent;
     const image=element.querySelector('img');if(image){const src=`${base}/assets/${name}?v=${version}`;if(image.getAttribute('src')!==src)image.src=src;}
     element.dataset.previewMode=mode;element.dataset.previewScent=scent;resize(record);return true;

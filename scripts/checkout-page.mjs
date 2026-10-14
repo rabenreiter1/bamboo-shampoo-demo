@@ -11,7 +11,7 @@ export function createCheckoutPage({ BASE, icon, esc, lang }) {
 
   return `<main id="main" class="checkout-page" data-checkout-root>
     <section class="section-shell checkout-heading">
-      <div><p class="eyebrow">${text('DEIN NÄCHSTES RITUAL', 'YOUR NEXT RITUAL')}</p><h1 class="display">${text('FAST<br>DEIN.', 'ALMOST<br>YOURS.')}</h1></div>
+      <div><p class="eyebrow">${text('DEIN NÄCHSTES RITUAL', 'YOUR NEXT RITUAL')}</p><h1 class="display">${text('Fast<br>dein.', 'Almost<br>yours.')}</h1></div>
       <div><p class="lede">${text('Ein Duft. Ein Anfang. Ein Bamboo, das bleibt.', 'A scent. A beginning. A Bamboo to keep.')}</p><p class="checkout-demo-note">${text('Demo-Checkout · Keine Bestellung. Keine Zahlung.', 'Demo checkout · No orders. No payments.')}</p></div>
     </section>
     <section class="section-shell checkout-flow" aria-label="${text('Demo-Checkout', 'Demo checkout')}">

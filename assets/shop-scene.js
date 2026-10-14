@@ -1,13 +1,14 @@
 import * as THREE from './assembly/vendor/three.module.js';
-import { staticSceneFrame } from './scene-framing.js?v=shop-20261013-jury4';
-import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261013-jury4';
+import { staticSceneFrame, refillTeaserRegion } from './scene-framing.js?v=shop-20261014-sage1';
+import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261014-sage1';
+import { PRODUCT_THEMES, BRAND_THEME } from './product-theme.js?v=shop-20261014-sage1';
 import { createStudioEnvironment } from './assembly/studio-environment.js?v=ritual-20261013-1';
 import { createBody, shellRadiusAt } from './assembly/body.js?v=ritual-20261013-1';
-import { createRitualCap } from './assembly/ritual-cap.js?v=ritual-20261013-1';
+import { createRitualCap } from './assembly/ritual-cap.js?v=shop-20261014-sage1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from './assembly/ritual-effects.js?v=ritual-20261013-visibility-1';
 import { computeCycleState, TILT_AXIS, clamp } from './assembly/ritual-timeline.js?v=ritual-20261012-4';
-import { createRitualSpace } from './assembly/ritual-space.js?v=ritual-20261012-4';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261013-jury4';
+import { createRitualSpace } from './assembly/ritual-space.js?v=shop-20261014-sage1';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261014-sage1';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
@@ -82,12 +83,12 @@ export function mountShopScene(container, options = {}) {
   const initialMode = MODES.has(options.mode) ? options.mode : 'product';
   const campaignBackdrop = options.backdrop === 'campaign';
   const hasBackdrop = campaignBackdrop || options.backdrop === 'detail';
-  const opaque = hasBackdrop || options.opaque === true || initialMode === 'journey';
+  const opaque = hasBackdrop || options.opaque === true || (initialMode === 'journey' && !options.capture);
   const artDirection = ['campaign', 'detail'].includes(options.artDirection) ? options.artDirection : 'studio';
   const campaign = artDirection === 'campaign';
-  const worlds = { aloe: '#ebe4ff', argan: '#f7d9ce', bamboo: '#ddeaf4' };
+  const worlds = Object.fromEntries(Object.entries(PRODUCT_THEMES).map(([id, theme]) => [id, theme.world.base]));
   let world = Object.hasOwn(worlds, options.scent) ? options.scent : 'bamboo';
-  let backgroundColor = options.background || (initialMode === 'journey' || artDirection === 'campaign' ? worlds[world] : '#e7ebf2');
+  let backgroundColor = options.background || (initialMode === 'journey' ? BRAND_THEME.sage : artDirection === 'campaign' ? worlds[world] : BRAND_THEME.ivory);
   let poseProgress = clamp(finite(options.poseProgress),0,1), targetPoseProgress = poseProgress,
     reveal = campaign ? clamp(finite(options.reveal),0,1) : 1;
   let mode = initialMode, disposed = false, ready = false, rendered = false, error = null, paused = options.paused === true;
@@ -96,7 +97,8 @@ export function mountShopScene(container, options = {}) {
   let resizeObserver, intersectionObserver, frame = 0, lastTick = 0, lastReport = -1000;
   let width = 0, height = 0, inView = true, observedInView = null,
     progress = initialMode === 'journey' ? clamp(finite(options.progress), 0, 1) : finite(options.progress), targetProgress = progress;
-  let manualYaw = finite(options.yaw), yawVelocity = 0, pointer = null, frames = 0, renderedMode = null;
+  let manualYaw = finite(options.yaw), automaticYaw = Number.isFinite(options.automaticYaw) ? options.automaticYaw : null,
+    yawVelocity = 0, pointer = null, frames = 0, renderedMode = null;
   const fingers = new Map(); let pinch = null;
   let framing = null, spatial = null, state = computeCycleState(progress);
   let journeyPose = computeJourneyPose(progress), journeyState = {
@@ -158,8 +160,8 @@ export function mountShopScene(container, options = {}) {
       status: disposed ? 'disposed' : error ? 'error' : ready ? 'ready' : 'loading', ready, rendered, error, mode,
       progress: mode === 'ritual' ? state.progress : progress,
       cyclePosition: progress, targetProgress, phase: mode === 'journey' ? journeyState.phase : mode === 'ritual' ? state.phase : `sealed-${mode}`,
-      yaw: (mode === 'ritual' || mode === 'journey' ? state.yaw : progress * Math.PI * 4) + manualYaw,
-      manualYaw, reducedMotion, frames, framing, spatial, artDirection, world, poseProgress,
+      yaw: (mode === 'ritual' || mode === 'journey' ? automaticYaw ?? state.yaw : progress * Math.PI * 4) + manualYaw,
+      manualYaw, automaticYaw, reducedMotion, frames, framing, spatial, artDirection, world, poseProgress,
       journey: mode === 'journey' ? journeyState : null, background: { color: backgroundColor, opaque },
       warming, shaderWarmupMilliseconds, paused, scent: gel?.scent || world,
       renderedMode, active: active(), inView, observedInView, renderPending, size: { width, height },
@@ -250,7 +252,7 @@ export function mountShopScene(container, options = {}) {
       if (poseProgress !== appliedPoseProgress || reveal !== appliedReveal) staticCameraDirty = true;
       appliedPoseProgress = poseProgress; appliedReveal = reveal;
     }
-    yawRig.rotation.y = (animated ? state.yaw : progress * Math.PI * 4)
+    yawRig.rotation.y = (animated ? automaticYaw ?? state.yaw : progress * Math.PI * 4)
       + manualYaw + (campaign && !animated ? -.10 + poseProgress * .45 + (1 - reveal) * -.16 : 0);
     product.visible = true;
     product.children[0].visible = mode === 'product' || mode === 'shell' || animated;
@@ -264,7 +266,7 @@ export function mountShopScene(container, options = {}) {
     }
     cap.group.visible = mode !== 'refill';
     cap.update(animated ? state.cap : { lift: 0, swivel: 0, press: 0 });
-    if (journey) collarFlex.update(state.cap.position[1]);
+    if (animated) collarFlex?.update(state.cap.position[1]);
     for (const [group, pose] of [[oldRefill, state.oldRefill], [newRefill, state.newRefill]]) {
       if (!group) continue;
       group.position.fromArray(pose.position); group.rotation.set(...pose.rotation);
@@ -275,10 +277,12 @@ export function mountShopScene(container, options = {}) {
     tiltRig.updateWorldMatrix(true, true);
     if (journey) {
       framing = journeySpace.fitCamera({ pose: journeyPose, camera, tiltRig, zoom, width, height,
-        copyHeight: captionCopyHeight, footerHeight: captionFooterHeight, layoutWidth: innerWidth, layoutHeight: innerHeight });
+        copyHeight: captionCopyHeight, footerHeight: captionFooterHeight, layoutWidth: innerWidth, layoutHeight: innerHeight,
+        region: options.cameraRegion });
       spatial = journeySpace.placeParts({ pose: journeyPose, camera, product, cap, oldRefill, newRefill, oldSeal, width });
     } else if (ritual) {
-      framing = space.fitCamera({ state, camera, product, tiltRig, zoom });
+      framing = space.fitCamera({ state, camera, product, tiltRig, zoom,
+        region: options.cameraRegion || (options.playbackProfile === 'refill-teaser' ? refillTeaserRegion(width,height) : undefined) });
       spatial = space.placeParts({ state, camera, product, cap, oldRefill, newRefill, oldSeal, width });
     } else {
       cap.group.position.set(0, 0, 0);
@@ -388,6 +392,7 @@ export function mountShopScene(container, options = {}) {
 
   function setProgress(value, settings = {}) {
     if (disposed) return;
+    automaticYaw = Number.isFinite(settings.automaticYaw) ? settings.automaticYaw : null;
     targetProgress = mode === 'journey' ? clamp(finite(value), 0, 1) : finite(value);
     if (!active() || reducedMotion || settings.immediate) progress = targetProgress;
     requestRender();
@@ -424,6 +429,7 @@ export function mountShopScene(container, options = {}) {
     world = value;
     backdrop?.setWorld(value);
     gel?.setScent(value);
+    cap?.setColors(PRODUCT_THEMES[value].capColors);
     backgroundColor = background || worlds[world];
     renderer?.setClearColor(backgroundColor, opaque ? 1 : 0);
     if (scene && opaque) {
@@ -478,6 +484,7 @@ export function mountShopScene(container, options = {}) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return;
         pointer.axis = Math.abs(dx) > Math.abs(dy) * 1.12 ? 'horizontal' : 'vertical';
         if (pointer.axis === 'horizontal') {
+          container.dispatchEvent(new CustomEvent('scene-inspection', { bubbles: true }));
           try { canvas.setPointerCapture(event.pointerId); } catch { /* A native gesture can end before capture. */ }
           canvas.style.cursor = 'grabbing';
         }
@@ -517,6 +524,7 @@ export function mountShopScene(container, options = {}) {
     listen(canvas, 'keydown', event => {
       if (options.inspection && ['+','=','-'].includes(event.key)) { event.preventDefault(); setZoom(zoom*(event.key==='-'?1/1.2:1.2)); return; }
       if (!['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) return;
+      container.dispatchEvent(new CustomEvent('scene-inspection', { bubbles: true }));
       event.preventDefault(); stopMomentum();
       manualYaw = event.key === 'Home' ? 0 : manualYaw + (event.key === 'ArrowRight' ? .28 : -.28);
       requestRender();
@@ -675,16 +683,17 @@ export function mountShopScene(container, options = {}) {
       Object.assign(key.shadow.camera, { left: -350, right: 350, top: 450, bottom: -250, near: 1, far: 1600 });
       key.shadow.camera.updateProjectionMatrix();
       key.shadow.bias = -.00016; key.shadow.normalBias = .28; key.shadow.radius = 4; scene.add(key);
-      const fill = new THREE.DirectionalLight('#dfeaff', .35); fill.position.set(250, 160, 340); scene.add(fill);
+      const fill = new THREE.DirectionalLight('#f6f2e7', .35); fill.position.set(250, 160, 340); scene.add(fill);
       const rim = new THREE.DirectionalLight('#ffffff', 2.6); rim.position.set(130, 320, -210); scene.add(rim);
       floor = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.ShadowMaterial({ color: '#586145', opacity: .105 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -85.4; floor.receiveShadow = true; scene.add(floor);
-      const built = await Promise.allSettled([acquireBody(), initialMode === 'shell' ? Promise.resolve(null) : createRitualCap({ THREE })]);
+      const built = await Promise.allSettled([acquireBody(), initialMode === 'shell' ? Promise.resolve(null) : createRitualCap({ THREE, colors: PRODUCT_THEMES[world].capColors })]);
       if (built[0].status === 'fulfilled') { bodyLease = built[0].value; body = bodyLease.body; }
       if (built[1].status === 'fulfilled') cap = built[1].value;
       if (disposed) { bodyLease?.release(); bodyLease = null; cap?.dispose(); cap = null; return; }
       for (const result of built) if (result.status === 'rejected') throw result.reason;
-      if (initialMode === 'journey') collarFlex = createJourneyCollarFlex({ cap, shellRadiusAt });
+      cap?.setColors(PRODUCT_THEMES[world].capColors);
+      if (initialMode === 'journey' || initialMode === 'ritual') collarFlex = createJourneyCollarFlex({ cap, shellRadiusAt });
       if (renderer.getContext().isContextLost()) throw new Error('The 3D context was interrupted while the product was loading.');
       tiltRig = new THREE.Group(); tiltRig.name = 'shop-approved-product-tilt';
       yawRig = new THREE.Group(); yawRig.name = 'shop-longitudinal-inspection';

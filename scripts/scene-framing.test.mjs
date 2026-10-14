@@ -28,7 +28,8 @@ test('the preview world stays cached through pose updates and repaints after its
     createLinearGradient(){return {addColorStop(){}};},fillText(){paints++;}};
   const canvas={dataset:{},setAttribute(){},getContext:()=>context};let attached=false;
   const doc={fonts:{check:()=>fontReady},createElement:()=>canvas};
-  const element={ownerDocument:doc,querySelector:()=>attached?canvas:null,appendChild:()=>{attached=true;},closest:()=>null};
+  const hero={classList:{contains:()=>false}};
+  const element={ownerDocument:doc,querySelector:()=>attached?canvas:null,appendChild:()=>{attached=true;},closest:selector=>selector==='.campaign-hero'?hero:null};
   const state={width:390,height:844,scent:'argan',campaign:true};
   for(let i=0;i<60;i++)paintScenePreviewWorld(element,state);
   assert.equal(paints,1,'scroll pose updates do not redraw a hidden full-screen bitmap');
@@ -43,10 +44,23 @@ test('mode and scent changes replace the matching preview and reframe it without
     getBoundingClientRect:()=>rect,closest:()=>null,querySelector:()=>image,style:{setProperty:(name,value)=>writes.set(name,value)}};
   const win={addEventListener:(name,callback)=>{resize=callback;},removeEventListener:()=>{resize=null;}};
   const previews=createScenePreviews({elements:[element],base:'/demo',version:'test',window:win});
-  assert.match(attributes.get('src'),/shop-detail-product\.webp\?v=test$/);
+  assert.match(attributes.get('src'),/shop-detail-product-argan\.webp\?v=test$/);
   previews.update(element,'refill','argan');assert.match(attributes.get('src'),/shop-detail-refill-argan\.webp/);
   assert.equal(element.dataset.previewMode,'refill');assert.equal(element.dataset.previewScent,'argan');
   const old=writes.get('--preview-height');rect={width:340,height:568};resize();assert.notEqual(writes.get('--preview-height'),old);
   assert.equal(scenePreviewAsset({mode:'refill',scent:'aloe',campaign:true}),'shop-campaign-refill-aloe.webp');
   previews.destroy();assert.equal(resize,null);
+});
+
+test('the explanatory stage paints a quiet sage field instead of campaign lettering',()=>{
+  let fills=0,letters=0,fill;
+  const context={setTransform(){},fillRect(){fills++;fill=this.fillStyle;},fillText(){letters++;}};
+  const canvas={dataset:{},setAttribute(){},getContext:()=>context};let attached=false;
+  const doc={fonts:{check:()=>true},createElement:()=>canvas};
+  const element={ownerDocument:doc,querySelector:()=>attached?canvas:null,appendChild:()=>{attached=true;},
+    closest:selector=>selector==='[data-playback-profile="home-cycle"]'?{}:null};
+  paintScenePreviewWorld(element,{width:390,height:422,scent:'argan',campaign:false});
+  assert.equal(fills,1);assert.equal(letters,0);assert.equal(fill,'#E6EEE0');
+  assert.equal(scenePreviewAsset({mode:'journey',scent:'argan'}),'shop-guide-product-argan.webp');
+  assert.equal(scenePreviewAsset({mode:'ritual',scent:'bamboo',profile:'refill-teaser'}),'shop-teaser-product-bamboo.webp');
 });

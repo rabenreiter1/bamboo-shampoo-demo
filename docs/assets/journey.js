@@ -4,8 +4,8 @@ export const JOURNEY_CHAPTERS = ['discover', 'collection', 'ritual', 'questions'
 const scents = ['aloe', 'argan', 'bamboo'];
 const CHOICE_KEY = 'bamboo-journey-choice-v1';
 const RETURN_KEY = 'bamboo-journey-return-v1';
-export const BOOKMARK_LAYOUT = 'collection-before-ritual-v1';
-export function normalizeChoice(value, fallback = { scent: 'bamboo', format: 'shampoo' }) {
+export const BOOKMARK_LAYOUT = 'sage-autoplay-guide-v2';
+export function normalizeChoice(value, fallback = { scent: 'aloe', format: 'shampoo' }) {
   return { scent: scents.includes(value?.scent) ? value.scent : fallback.scent,
     format: ['shampoo', 'refill'].includes(value?.format) ? value.format : fallback.format };
 }
@@ -32,15 +32,19 @@ export function normalizeBookmark(value) {
   if (migrated || point.layout !== BOOKMARK_LAYOUT) {
     delete point.viewportHeight; delete point.viewportWidth;
   }
+  if(point.chapter==='ritual'&&point.layout==='collection-before-ritual-v1'){
+    point.legacyAnimationProgress=point.progress;
+    point.progress=0;
+  }
   if (migrated) point.progress = 0;
   point.layout = BOOKMARK_LAYOUT;
   return point;
 }
 
-export function initializeJourney({ ui, reduced, onChoice, onModal, onReady }) {
+export function initializeJourney({ ui, reduced, onChoice, onModal, onReady, getPlaybackSnapshot }) {
   const base = ui.base;
   const main = document.querySelector('main[data-journey]');
-  const continuous = main?.querySelector('[data-product-journey]');
+  const continuous = main?.querySelector('[data-product-journey]') || main?.querySelector('[data-playback-profile]');
   const chapters = main ? [...main.querySelectorAll('[data-journey-chapter]')] : [];
   const allDialogs = [...document.querySelectorAll('dialog')].filter(el => el.getAttribute('id') !== 'journey-dialog');
   function cleanLegacyHistory() {
@@ -71,7 +75,9 @@ export function initializeJourney({ ui, reduced, onChoice, onModal, onReady }) {
     const line = y + headerHeight() + 50;
     const chapter = [...chapters].reverse().find(el => absoluteRect(el).top <= line) || chapters[0];
     const rect = absoluteRect(chapter);
+    const playback=getPlaybackSnapshot?.(chapter);
     return { chapter: chapter.dataset.journeyChapter, progress: chapterPosition(rect, y, innerHeight, headerHeight()), scroll: y, lang: ui.lang,
+      ...(playback?{playback}:{}),
       viewportHeight: innerHeight, viewportWidth: innerWidth, layout: BOOKMARK_LAYOUT };
   }
   function saveReturn() {

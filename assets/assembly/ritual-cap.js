@@ -21,7 +21,7 @@ export function siliconeRoofField(x, z, stroke = 0) {
  * The hidden bearing, outlet and movement clearance are explicitly provisional.
  * update() is a pure pose assignment: it never integrates time or previous poses.
  */
-export async function createRitualCap({ THREE } = {}) {
+export async function createRitualCap({ THREE, colors } = {}) {
   if (!THREE?.Group || !THREE?.LatheGeometry) throw new TypeError('createRitualCap requires the supplied THREE namespace.');
 
   const d = {
@@ -357,11 +357,20 @@ export async function createRitualCap({ THREE } = {}) {
   };
   group.userData.metrics = metrics;
 
+  // Each factory call owns these five materials. A fragrance switch recolours
+  // only this closure, including its integral feature and captive ring.
+  function setColors(value = {}) {
+    for (const [key, material] of Object.entries(materials)) {
+      if (Object.hasOwn(value, key)) material.color.set(value[key]);
+    }
+  }
+  if (colors) setColors(colors);
+
   function dispose() {
     if (disposed) return;
     disposed = true;
     for (const geometry of geometries) geometry.dispose();
     for (const material of Object.values(materials)) material.dispose();
   }
-  return { group, components, outlet, update, metrics, dispose };
+  return { group, components, outlet, update, setColors, metrics, dispose };
 }
