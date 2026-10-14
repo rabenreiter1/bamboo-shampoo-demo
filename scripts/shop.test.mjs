@@ -86,6 +86,8 @@ test('the refill teaser illustrates reuse while every purchase points to a fille
     assert.match(teaser,/<h1 class="campaign-word">REFILL/);
     assert.equal(tags(teaser,'button').filter(tag=>hasAttribute(tag,'data-playback-toggle')).length,1);
     assert.deepEqual(tags(teaser,'button').map(attrs).filter(tag=>tag['data-playback-at']).map(tag=>Number(tag['data-playback-at'])),[.765,.83,.90,.96]);
+    assert.match(teaser,lang==='de'?/>Kappe auf<\/button>/:/>Cap on<\/button>/);
+    assert.doesNotMatch(teaser,/>Entsiegeln<\/button>|>Peel<\/button>/,'the short swap preserves the new seal, so it must describe recapping rather than invent a second peel');
     const purchase=teaser.match(/<div class="campaign-purchase">([\s\S]*?)<\/div>/)?.[1];
     assert.ok(purchase);
     assert.match(purchase,lang==='de'?/gefüllter Einsatz/:/filled insert/);
