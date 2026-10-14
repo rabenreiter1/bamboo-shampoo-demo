@@ -1,10 +1,10 @@
+import { PRODUCT_THEMES } from './product-theme.js?v=shop-20261014-sage1';
+
 // The hero's typography, coloured world and product share one opaque canvas.
 // Semantic HTML remains available while this source-derived stage is loading.
-export const CAMPAIGN_WORLDS = Object.freeze({
-  aloe: { base: '#c4e4ec', light: '#e9f8f8', accent: '#83c8d1', ink: '#24515b' },
-  argan: { base: '#ecd0d0', light: '#f9e7e5', accent: '#eea69c', ink: '#6b3e48' },
-  bamboo: { base: '#cdc0e8', light: '#f0e8ff', accent: '#b5d8e9', ink: '#413356' },
-});
+export const CAMPAIGN_WORLDS = Object.freeze(Object.fromEntries(
+  Object.entries(PRODUCT_THEMES).map(([scent, theme]) => [scent, theme.world]),
+));
 
 export function campaignLayout(width, height) {
   const landscape = width > height && height <= 560;

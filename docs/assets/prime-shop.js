@@ -1,6 +1,18 @@
-import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261013-jury4';
-import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261013-jury4';
-import {scenePreviewBox} from './scene-framing.js?v=shop-20261013-jury4';
+import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261014-sage1';
+import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261014-sage1';
+import {scenePreviewBox,playbackPreviewBox} from './scene-framing.js?v=shop-20261014-sage1';
+
+// This changes only the loading illustration, never the stored pose. A closed
+// poster must not contradict a restored, open or manually rotated product.
+export function needsPlaybackRestorePreview(snapshot,profile){
+  const duration=profile==='home-cycle'?32:profile==='refill-teaser'?14:0;
+  if(!duration||!snapshot||snapshot.version!==1||snapshot.profile!==profile
+    ||!Number.isFinite(snapshot.elapsed)||snapshot.elapsed<0||typeof snapshot.paused!=='boolean'
+    ||snapshot.yaw!==undefined&&!Number.isFinite(snapshot.yaw))return false;
+  const elapsed=snapshot.elapsed%duration,yaw=snapshot.yaw||0;
+  const rotated=Math.abs(Math.atan2(Math.sin(yaw),Math.cos(yaw)))>.0001;
+  return rotated||(profile==='home-cycle'?elapsed>2&&elapsed<30:elapsed>.0001);
+}
 
 // Serialized into the static document and run before its first paint. The main
 // controller uses the same validators, image names and camera calculations.
@@ -37,12 +49,19 @@ export function primeShop({doc,storage,href,ui}){
   for(const element of doc.querySelectorAll('[data-shop-scene].scene-preview')){
     const campaign=element.dataset.artDirection==='campaign',mode=form&&element.classList.contains('product-viewer')
       ?choice.format==='refill'?'refill':'product':element.dataset.shopScene;
-    const scent=form?form.dataset.id:choice.scent;
+    const scent=form?form.dataset.id:choice.scent,profile=element.closest('[data-playback-profile]')?.dataset.playbackProfile;
+    if(profile){
+      const id=element.closest('[data-playback-profile]')?.dataset.playbackId||profile;
+      const snapshot=read(`bamboo-playback-v1:${id}`);
+      const legacy=profile==='home-cycle'&&Number.isFinite(bookmark?.legacyAnimationProgress)&&bookmark.legacyAnimationProgress>0&&bookmark.legacyAnimationProgress<1;
+      element.dataset.previewRestoring=String(needsPlaybackRestorePreview(snapshot,profile)||legacy);
+    }
     element.dataset.scent=scent;element.dataset.requestedMode=mode;
-    const image=element.querySelector('img'),name=scenePreviewAsset({mode,scent,campaign});
+    const image=element.querySelector('img'),name=scenePreviewAsset({mode,scent,campaign,profile});
     if(image&&name){image.src=`${ui.base}/assets/${name}?v=${ui.version}`;const label=ui.productGallery?.[mode];if(label){image.alt=label;element.setAttribute('aria-label',label);}}
     const rect=element.getBoundingClientRect();if(!rect.width||!rect.height)continue;
-    const frame=scenePreviewBox({width:rect.width,height:rect.height,mode,campaign,reserved:!!element.closest('.campaign-hero')});
+    const frame=profile?playbackPreviewBox({width:rect.width,height:rect.height,profile,reserved:!!element.closest('.campaign-hero')})
+      :scenePreviewBox({width:rect.width,height:rect.height,mode,campaign,reserved:!!element.closest('.campaign-hero')});
     for(const [name,value] of Object.entries(frame))element.style.setProperty(`--preview-${name}`,`${value}${name==='rotation'?'deg':'px'}`);
     paintScenePreviewWorld(element,{width:rect.width,height:rect.height,scent,campaign,doc});
   }

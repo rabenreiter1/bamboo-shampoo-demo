@@ -12,6 +12,12 @@
   font-display: swap;
 }
 @font-face {
+  font-family: Editorial;
+  src: url('./editorial.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
   font-family: NarrativeEditorial;
   src: url('./editorial-italic.woff2') format('woff2');
   font-style: italic;

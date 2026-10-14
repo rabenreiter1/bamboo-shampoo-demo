@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { createCampaignBackdrop, campaignLayout } from '../assets/campaign-backdrop.js';
+import { BRAND_THEME } from '../assets/product-theme.js';
 
 test('hero resizing reallocates GPU storage, preserves type proportions and stays within the texture budget',()=>{
   const previous=globalThis.document;
@@ -23,7 +24,7 @@ test('hero resizing reallocates GPU storage, preserves type proportions and stay
     assert.equal(calls.at(-1).y,844*.39);
     backdrop.setWorld('argan');
     assert.equal(backdrop.mesh.material.uniforms.backdropMap.value,portrait,'same-size colour changes reuse the texture');
-    assert.equal(calls.at(-1).ink,'#6b3e48');
+    assert.equal(calls.at(-1).ink,BRAND_THEME.ink);
     backdrop.resize(3840,2160);
     const large=backdrop.mesh.material.uniforms.backdropMap.value.image;
     assert.ok(large.width<=2048&&large.height<=2048);

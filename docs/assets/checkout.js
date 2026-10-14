@@ -46,9 +46,9 @@ export function initializeCheckout({
   let state = restoreCheckoutState(readCart(), savedReceipt());
   if (!state.receipt) discardReceipt();
 
-  const label = format => format === 'refill' ? 'Refill' : 'Shampoo';
+  const label = format => format === 'refill' ? 'Refill' : text('Starter-Set', 'Starter Set');
   const productURL = item => `${base}/${lang}/products/${item.scent}/${item.format === 'refill' ? '?format=refill' : ''}`;
-  const imageURL = item => `${base}/assets/${item.format === 'refill' ? `shop-refill-${item.scent}.webp` : 'shop-product-front.webp'}`;
+  const imageURL = item => `${base}/assets/${item.format === 'refill' ? `shop-detail-refill-${item.scent}.webp` : `shop-product-front-${item.scent}.webp`}`;
   const deliveryLabel = id => id === 'pickup' ? text('Beispiel-Abholpunkt', 'Sample pickup point') : text('Beispieladresse', 'Sample address');
   const paymentLabel = id => id === 'wallet' ? 'Demo-Wallet' : text('Demo-Karte · •••• 4242', 'Demo card · •••• 4242');
   const address = id => id === 'pickup'
@@ -61,7 +61,7 @@ export function initializeCheckout({
     const key = productKey(item.scent, item.format);
     const name = `${names[item.scent]} ${label(item.format)}`;
     return `<article class="checkout-line" data-checkout-key="${key}">
-      <a class="checkout-line__art" href="${productURL(item)}" data-native-route aria-label="${escape(text(`${name} ansehen`, `View ${name}`))}"><img src="${imageURL(item)}" alt="${escape(name)}" width="112" height="140" loading="lazy" decoding="async"></a>
+      <a class="checkout-line__art scent-${item.scent}" href="${productURL(item)}" data-native-route aria-label="${escape(text(`${name} ansehen`, `View ${name}`))}"><img src="${imageURL(item)}" alt="${escape(name)}" width="112" height="140" loading="lazy" decoding="async"></a>
       <div class="checkout-line__copy"><a href="${productURL(item)}" data-native-route><h3>${names[item.scent]}</h3></a><p>${label(item.format)} · 250 ml</p><small>${price(prices[item.format])} ${text('pro Stück', 'each')}</small>
         <div class="checkout-line__controls"><div class="checkout-quantity"><button type="button" data-checkout-quantity="-1" aria-label="${escape(text(`${name}: Menge reduzieren`, `${name}: decrease quantity`))}" ${item.quantity <= 1 ? 'disabled' : ''}>${icon('minus')}</button><input type="number" min="1" max="20" step="1" inputmode="numeric" value="${item.quantity}" data-checkout-number aria-label="${escape(text(`Menge: ${name}`, `Quantity: ${name}`))}"><button type="button" data-checkout-quantity="1" aria-label="${escape(text(`${name}: Menge erhöhen`, `${name}: increase quantity`))}" ${item.quantity >= 20 ? 'disabled' : ''}>${icon('plus')}</button></div><button type="button" class="checkout-remove" data-checkout-remove>${text('Entfernen', 'Remove')}</button></div>
       </div><strong class="checkout-line__amount">${price(prices[item.format] * item.quantity)}</strong>
@@ -73,7 +73,7 @@ export function initializeCheckout({
   }
 
   function summaryPreview(items) {
-    return items.map(item => `<div class="checkout-summary-product"><img src="${imageURL(item)}" alt="" width="44" height="55" loading="lazy" decoding="async"><span><strong>${names[item.scent]}</strong><small>${item.quantity} × ${label(item.format)} · 250 ml</small></span></div>`).join('');
+    return items.map(item => `<div class="checkout-summary-product scent-${item.scent}"><img src="${imageURL(item)}" alt="" width="44" height="55" loading="lazy" decoding="async"><span><strong>${names[item.scent]}</strong><small>${item.quantity} × ${label(item.format)} · 250 ml</small></span></div>`).join('');
   }
 
   function render({ focus = false } = {}) {

@@ -1,4 +1,5 @@
 import { CAMPAIGN_WORLDS, paintCampaignWorld } from '../assets/campaign-backdrop.js';
+import { PRODUCT_THEMES } from '../assets/product-theme.js';
 import { SHARE_CARD_SIZE, shareCardSpecs } from './share-cards.mjs';
 
 // Reusable canvas artwork for the share-card studio. Font files and product
@@ -62,7 +63,7 @@ export function drawShareCard(canvas, spec, images) {
   ctx.font = '600 17px ShareSans, sans-serif';
   const labels = spec.id === 'refill' || spec.id === 'home'
     ? ['Aloe', 'Argan', 'Bamboo'] : [spec.word[0] + spec.word.slice(1).toLowerCase()];
-  const colors = ['#65bbc6', '#e69185', '#96bfda'];
+  const colors = ['aloe', 'argan', 'bamboo'].map(id => PRODUCT_THEMES[id].cap);
   const measured = labels.map(label => ctx.measureText(label).width);
   const total = measured.reduce((a, b) => a + b, 0) + labels.length * 22 + (labels.length - 1) * 23;
   let x = width - 40 - total;

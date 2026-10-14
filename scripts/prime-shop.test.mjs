@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {primeShop} from '../assets/prime-shop.js';
+import {primeShop,needsPlaybackRestorePreview} from '../assets/prime-shop.js';
 
 function fixture(storage){
   const fields=new Map(),style=new Map(),link={hidden:true},image={};
@@ -29,6 +29,29 @@ test('denied or corrupt browser storage cannot change the explicitly requested f
     {getItem:()=>JSON.stringify({chapter:'javascript:bad',progress:.5,scroll:1})}]){
     const f=fixture(storage);assert.equal(f.link.hidden,true);assert.equal(f.element.dataset.requestedMode,'refill');
     assert.match(f.image.src,/refill-argan/);
+  }
+});
+
+test('a restored moving pose or inspection never displays a contradictory closed-product poster',()=>{
+  const saved=(profile,elapsed,yaw=0)=>({version:1,profile,elapsed,paused:true,yaw});
+  assert.equal(needsPlaybackRestorePreview(saved('home-cycle',1),'home-cycle'),false);
+  assert.equal(needsPlaybackRestorePreview(saved('home-cycle',31),'home-cycle'),false);
+  assert.equal(needsPlaybackRestorePreview(saved('home-cycle',17),'home-cycle'),true);
+  assert.equal(needsPlaybackRestorePreview(saved('home-cycle',0,Math.PI/2),'home-cycle'),true);
+  assert.equal(needsPlaybackRestorePreview(saved('home-cycle',0,2*Math.PI),'home-cycle'),false);
+  assert.equal(needsPlaybackRestorePreview(saved('refill-teaser',0),'refill-teaser'),false);
+  assert.equal(needsPlaybackRestorePreview(saved('refill-teaser',8),'refill-teaser'),true);
+  assert.equal(needsPlaybackRestorePreview(saved('refill-teaser',14),'refill-teaser'),false);
+});
+
+test('invalid or incompatible playback data cannot hide the normal loading illustration',()=>{
+  for(const snapshot of [null,{}, {version:0,profile:'home-cycle',elapsed:5,paused:false},
+    {version:1,profile:'home-cycle',elapsed:NaN,paused:false},
+    {version:1,profile:'home-cycle',elapsed:5,paused:'false'},
+    {version:1,profile:'home-cycle',elapsed:-1,paused:false},
+    {version:1,profile:'home-cycle',elapsed:5,paused:false,yaw:Infinity},
+    {version:1,profile:'refill-teaser',elapsed:5,paused:false}]){
+    assert.equal(needsPlaybackRestorePreview(snapshot,'home-cycle'),false);
   }
 });
 

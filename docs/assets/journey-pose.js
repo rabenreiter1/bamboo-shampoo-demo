@@ -124,7 +124,7 @@ export function createJourneySpace({ THREE }) {
     return target;
   }
 
-  function fitCamera({ pose, camera, tiltRig, zoom = 1, width, height, copyHeight, footerHeight, layoutWidth = width, layoutHeight = height }) {
+  function fitCamera({ pose, camera, tiltRig, zoom = 1, width, height, copyHeight, footerHeight, layoutWidth = width, layoutHeight = height, region: suppliedRegion }) {
     const state = pose.state, matrix = tiltRig.matrixWorld;
     const points = [];
     const limits = [[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]];
@@ -156,7 +156,7 @@ export function createJourneySpace({ THREE }) {
     }
     center.set(0, 0, 0);
     for (let j = 0; j < 3; j++) center.addScaledVector(axes[j], (limits[j][0] + limits[j][1]) / 2);
-    const region = cameraRegion(layoutWidth, layoutHeight, copyHeight, footerHeight, height);
+    const region = suppliedRegion || cameraRegion(layoutWidth, layoutHeight, copyHeight, footerHeight, height);
     const minX = 2 * region.minX - 1, maxX = 2 * region.maxX - 1;
     const minY = 1 - 2 * region.maxY, maxY = 1 - 2 * region.minY;
     const aimX = (minX + maxX) / 2, aimY = (minY + maxY) / 2;
