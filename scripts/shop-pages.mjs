@@ -167,7 +167,7 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc, vers
     const teaser = profile === 'refill-teaser';
     const chapters = teaser ? [
       ['.765', L(lang, 'Entnehmen', 'Remove')], ['.83', L(lang, 'Einsetzen', 'Insert')],
-      ['.90', L(lang, 'Entsiegeln', 'Peel')], ['.96', L(lang, 'Weiterpflegen', 'Continue')]
+      ['.90', L(lang, 'Kappe auf', 'Cap on')], ['.96', L(lang, 'Weiterpflegen', 'Continue')]
     ] : [
       ['.10', L(lang, 'Öffnen', 'Open')], ['.20', L(lang, 'Entsiegeln', 'Peel')],
       ['.54', L(lang, 'Dosieren', 'Dispense')], ['.875', 'Refill']
