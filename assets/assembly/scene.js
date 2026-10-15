@@ -1,5 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import { createStudioEnvironment } from './studio-environment.js?v=ritual-20261013-1';
+import { createStudioEnvironment } from './studio-environment.js?v=culm-20261015-1';
+import { finishBamboo, finishCap, finishMicroSurface } from './surface-finish.js?v=culm-20261015-1';
+import { PRODUCT_THEMES } from '../assets/product-theme.js?v=shop-20261015-intro1';
 import { createBody } from './body.js?v=ritual-20261013-1';
 import { createRitualCap } from './ritual-cap.js?v=ritual-20261013-1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from './ritual-effects.js?v=ritual-20261013-3';
@@ -110,9 +112,9 @@ async function boot() {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    renderer.toneMappingExposure = 1;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setClearColor('#eeece5', 1);
     const canvas = renderer.domElement;
     canvas.tabIndex = 0; canvas.setAttribute('role', 'img');
@@ -127,9 +129,9 @@ async function boot() {
     scene = new THREE.Scene(); scene.background = new THREE.Color('#eeece5');
     camera = new THREE.PerspectiveCamera(30, 1, 1, 5000);
     environment = createStudioEnvironment({ THREE, renderer });
-    scene.environment = environment.texture; scene.environmentIntensity = .82;
+    scene.environment = environment.texture; scene.environmentIntensity = .55;
     scene.add(new THREE.HemisphereLight('#fff9ed', '#ced4c9', .30));
-    const key = new THREE.DirectionalLight('#fff1de', 2.25);
+    const key = new THREE.DirectionalLight('#fff8ed', 2.4);
     key.position.set(-230, 370, 350); key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
     Object.assign(key.shadow.camera, { left: -350, right: 350, top: 450, bottom: -250, near: 1, far: 1600 });
@@ -137,14 +139,16 @@ async function boot() {
     key.shadow.bias = -.00016; key.shadow.normalBias = .28; key.shadow.radius = 4;
     scene.add(key);
     const fill = new THREE.DirectionalLight('#f2fafb', .40); fill.position.set(250, 160, 340); scene.add(fill);
-    const rim = new THREE.DirectionalLight('#ffffff', 1.8); rim.position.set(130, 320, -210); scene.add(rim);
-    floor = new THREE.Mesh(new THREE.PlaneGeometry(3600, 3600), new THREE.ShadowMaterial({ color: '#586145', opacity: .13 }));
+    const rim = new THREE.DirectionalLight('#fffaf3', .85); rim.position.set(130, 320, -210); scene.add(rim);
+    floor = new THREE.Mesh(new THREE.PlaneGeometry(3600, 3600), new THREE.ShadowMaterial({ color: '#586145', opacity: .065 }));
     floor.rotation.x = -Math.PI / 2; floor.position.y = -85.4; floor.receiveShadow = true; scene.add(floor);
-    [body, cap] = await Promise.all([createBody({ THREE, engravingUrl: './original-engraving.svg' }), createRitualCap({ THREE })]);
+    [body, cap] = await Promise.all([createBody({ THREE, engravingUrl: './original-engraving.svg' }), createRitualCap({ THREE, colors: PRODUCT_THEMES.aloe.capColors })]);
+    await finishBamboo({ THREE, body }); finishCap(cap);
     // Thin PET needs a transparent reflective skin here: two overlapping
     // refractive materials otherwise omit one another from Three's opaque
     // transmission buffer and make a full insert look empty.
     configurePetReflectionSkin({ THREE, material: body.materials.clearPET });
+    finishMicroSurface(body.materials.clearPET, {kind:'PET'});
     oldSeal = createPeelSeal({ THREE }); newSeal = createPeelSeal({ THREE }); gel = createGel({ THREE });
     tiltRig = new THREE.Group(); tiltRig.name = 'authored-product-tilt';
     yawRig = new THREE.Group(); yawRig.name = 'longitudinal-axis-inspection';

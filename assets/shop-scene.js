@@ -2,7 +2,8 @@ import * as THREE from './assembly/vendor/three.module.js';
 import { staticSceneFrame, refillTeaserRegion } from './scene-framing.js?v=shop-20261015-intro1';
 import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261015-intro1';
 import { PRODUCT_THEMES, BRAND_THEME } from './product-theme.js?v=shop-20261015-intro1';
-import { createStudioEnvironment } from './assembly/studio-environment.js?v=ritual-20261013-1';
+import { createStudioEnvironment } from './assembly/studio-environment.js?v=culm-20261015-1';
+import { finishBamboo, finishCap, finishMicroSurface } from './assembly/surface-finish.js?v=culm-20261015-1';
 import { createBody, shellRadiusAt } from './assembly/body.js?v=ritual-20261013-1';
 import { createRitualCap } from './assembly/ritual-cap.js?v=shop-20261015-intro1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from './assembly/ritual-effects.js?v=ritual-20261013-visibility-1';
@@ -20,8 +21,10 @@ async function acquireBody() {
   if (!sharedBody) {
     const entry = { references: 0, value: null, promise: null };
     entry.promise = createBody({ THREE, engravingUrl: new URL('./assembly/original-engraving.svg', import.meta.url).href })
-      .then(body => {
+      .then(async body => {
+        try { await finishBamboo({ THREE, body }); } catch(error) { body.dispose(); throw error; }
         configurePetReflectionSkin({ THREE, material: body.materials.clearPET });
+        finishMicroSurface(body.materials.clearPET, {kind:'PET'});
         entry.value = body;
         return body;
       });
@@ -548,7 +551,7 @@ export function mountShopScene(container, options = {}) {
   function makeEnvironment() {
     const previous = environment;
     environment = createStudioEnvironment({ THREE, renderer });
-    scene.environment = environment.texture; scene.environmentIntensity = .82;
+    scene.environment = environment.texture; scene.environmentIntensity = .55;
     previous?.dispose();
   }
 
@@ -638,8 +641,8 @@ export function mountShopScene(container, options = {}) {
         premultipliedAlpha: options.capture === true && options.capturePremultiplied === true,
         preserveDrawingBuffer: options.capture === true, powerPreference: 'high-performance' });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
-      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.setClearColor(backgroundColor, opaque ? 1 : 0);
       if (options.capture === true && options.capturePremultiplied && !opaque) renderer.setClearColor('#000000', 0);
       const canvas = renderer.domElement;
@@ -677,20 +680,20 @@ export function mountShopScene(container, options = {}) {
       }
       camera = new THREE.PerspectiveCamera(30, 1, .5, 5000);
       makeEnvironment();
-      scene.add(new THREE.HemisphereLight('#f5f3ff', '#647385', .25));
-      key = new THREE.DirectionalLight('#fff3e6', 2.7);
+      scene.add(new THREE.HemisphereLight('#fffaf2', '#777d6f', .25));
+      key = new THREE.DirectionalLight('#fff8ed', 2.4);
       key.position.set(-230, 370, 350); key.castShadow = true;
       key.shadow.mapSize.set(1024, 1024);
       Object.assign(key.shadow.camera, { left: -350, right: 350, top: 450, bottom: -250, near: 1, far: 1600 });
       key.shadow.camera.updateProjectionMatrix();
       key.shadow.bias = -.00016; key.shadow.normalBias = .28; key.shadow.radius = 4; scene.add(key);
-      const fill = new THREE.DirectionalLight('#f6f2e7', .35); fill.position.set(250, 160, 340); scene.add(fill);
-      const rim = new THREE.DirectionalLight('#ffffff', 2.6); rim.position.set(130, 320, -210); scene.add(rim);
-      floor = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.ShadowMaterial({ color: '#586145', opacity: .105 }));
+      const fill = new THREE.DirectionalLight('#f4f7fb', .40); fill.position.set(250, 160, 340); scene.add(fill);
+      const rim = new THREE.DirectionalLight('#fffaf3', .85); rim.position.set(130, 320, -210); scene.add(rim);
+      floor = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.ShadowMaterial({ color: '#586145', opacity: .065 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -85.4; floor.receiveShadow = true; scene.add(floor);
       const built = await Promise.allSettled([acquireBody(), initialMode === 'shell' ? Promise.resolve(null) : createRitualCap({ THREE, colors: PRODUCT_THEMES[world].capColors })]);
       if (built[0].status === 'fulfilled') { bodyLease = built[0].value; body = bodyLease.body; }
-      if (built[1].status === 'fulfilled') cap = built[1].value;
+      if (built[1].status === 'fulfilled') cap = built[1].value ? finishCap(built[1].value) : null;
       if (disposed) { bodyLease?.release(); bodyLease = null; cap?.dispose(); cap = null; return; }
       for (const result of built) if (result.status === 'rejected') throw result.reason;
       cap?.setColors(PRODUCT_THEMES[world].capColors);

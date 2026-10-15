@@ -5,7 +5,7 @@
  */
 export function createStudioEnvironment({ THREE, renderer }) {
   const room = new THREE.Scene();
-  room.background = new THREE.Color('#232634');
+  room.background = new THREE.Color('#34382f');
   const resources = [];
   function card(width, height, position, radiance, tint = [1, 1, 1]) {
     const geometry = new THREE.PlaneGeometry(width, height);
@@ -17,10 +17,12 @@ export function createStudioEnvironment({ THREE, renderer }) {
     light.position.set(...position); light.lookAt(0, 0, 0);
     room.add(light); resources.push(geometry, material);
   }
-  card(3.2, 6.5, [-5.2, 2, 3.5], 6.0, [1, .96, .91]);
-  card(.65, 6.0, [4.5, 1.2, 3], 7.5, [.90, .95, 1]);
-  card(4, 2.5, [0, 5, -2], 3.2);
-  card(2.0, 5.0, [-2, .5, -5.5], 3.0);
+  card(3.8, 6.5, [-5.2, 2, 3.5], 4.5, [1, .98, .94]);
+  card(.85, 6.0, [4.5, 1.2, 3], 5.0, [.95, .98, 1]);
+  card(4, 2.5, [0, 5, -2], 2.6);
+  card(2.0, 5.0, [-2, .5, -5.5], 1.8);
+  // Real negative-fill flags give clear PET a readable edge without tinting it.
+  card(2.2, 6.5, [5.0, .2, -1.7], .015);
   const generator = new THREE.PMREMGenerator(renderer);
   const environment = generator.fromScene(room, .018);
   generator.dispose();

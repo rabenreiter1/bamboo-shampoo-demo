@@ -47,7 +47,7 @@ body::-webkit-scrollbar { display: none; width: 0; height: 0; }
 }
 
 #viewport {
-  background: var(--stage-background) url('./product-poster.jpg') center / cover no-repeat;
+  background: var(--stage-background) url('./product-poster.webp?v=culm-20261015-1') center / auto 100% no-repeat;
   outline: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
