@@ -16,4 +16,6 @@ const server = http.createServer((req,res) => {
   res.writeHead(200, {'Content-Type':mime[path.extname(file)] || 'application/octet-stream', 'Cache-Control':'no-cache'});
   fs.createReadStream(file).pipe(res);
 });
-server.listen(4173, '127.0.0.1', () => console.log('Local: http://127.0.0.1:4173/bamboo-shampoo-demo/de/'));
+const port=Number(process.argv[2]||4173);
+if(!Number.isInteger(port)||port<1024||port>65535)throw Error('Invalid preview port');
+server.listen(port, '127.0.0.1', () => console.log(`Local: http://127.0.0.1:${port}/bamboo-shampoo-demo/de/`));

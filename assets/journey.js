@@ -22,14 +22,14 @@ export function validBookmark(value) {
   return value && JOURNEY_CHAPTERS.includes(value.chapter) && Number.isFinite(value.progress)
     && value.progress >= 0 && value.progress <= 1 && Number.isFinite(value.scroll) && value.scroll >= 0;
 }
-export function normalizeBookmark(value) {
+export function normalizeBookmark(value, layout = BOOKMARK_LAYOUT) {
   if (!value) return null;
   const migrated = value.chapter === 'materials';
   const point = { ...value, chapter: migrated ? 'ritual' : value.chapter };
   if (!validBookmark(point)) return null;
   // Earlier releases put the guide before the collection. A saved pixel offset
   // from that layout cannot represent the same chapter after the reorder.
-  if (migrated || point.layout !== BOOKMARK_LAYOUT) {
+  if (migrated || point.layout !== layout) {
     delete point.viewportHeight; delete point.viewportWidth;
   }
   if(point.chapter==='ritual'&&point.layout==='collection-before-ritual-v1'){
@@ -37,12 +37,14 @@ export function normalizeBookmark(value) {
     point.progress=0;
   }
   if (migrated) point.progress = 0;
-  point.layout = BOOKMARK_LAYOUT;
+  point.layout = layout;
   return point;
 }
 
 export function initializeJourney({ ui, reduced, onChoice, onModal, onReady, getPlaybackSnapshot }) {
-  const base = ui.base;
+  const base = ui.routeBase || ui.base;
+  const returnKey=ui.design==='classic'?`${RETURN_KEY}:classic`:RETURN_KEY;
+  const layout=ui.design==='classic'?'classic-scroll-guide-v1':BOOKMARK_LAYOUT;
   const main = document.querySelector('main[data-journey]');
   const continuous = main?.querySelector('[data-product-journey]') || main?.querySelector('[data-playback-profile]');
   const chapters = main ? [...main.querySelectorAll('[data-journey-chapter]')] : [];
@@ -66,7 +68,7 @@ export function initializeJourney({ ui, reduced, onChoice, onModal, onReady, get
     write(key, value) { try { sessionStorage.setItem(key, JSON.stringify(value)); } catch { /* Optional, local-only memory. */ } },
   };
   const pageScent = document.querySelector('main.pdp-page [data-product-form]')?.dataset.id;
-  choice = normalizeChoice(pageScent ? { scent: pageScent, format: new URLSearchParams(location.search).get('format') } : storage.read(CHOICE_KEY));
+  choice = normalizeChoice(pageScent ? { scent: pageScent, format: new URLSearchParams(location.search).get('format') } : storage.read(CHOICE_KEY),{scent:ui.design==='classic'?'bamboo':'aloe',format:'shampoo'});
   const headerHeight = () => (document.querySelector('.header')?.offsetHeight || 68) + (main && !continuous ? document.querySelector('[data-journey-nav]')?.offsetHeight || 0 : 0);
   const absoluteRect = element => { const r = element.getBoundingClientRect(); return { top: r.top + (modalLocked ? lockedScroll : window.scrollY), height: r.height }; };
   function bookmark() {
@@ -78,10 +80,10 @@ export function initializeJourney({ ui, reduced, onChoice, onModal, onReady, get
     const playback=getPlaybackSnapshot?.(chapter);
     return { chapter: chapter.dataset.journeyChapter, progress: chapterPosition(rect, y, innerHeight, headerHeight()), scroll: y, lang: ui.lang,
       ...(playback?{playback}:{}),
-      viewportHeight: innerHeight, viewportWidth: innerWidth, layout: BOOKMARK_LAYOUT };
+      viewportHeight: innerHeight, viewportWidth: innerWidth, layout };
   }
   function saveReturn() {
-    const point = bookmark(); if (point) storage.write(RETURN_KEY, point);
+    const point = bookmark(); if (point) storage.write(returnKey, point);
     return point;
   }
   function select(next, { persist = true } = {}) {
@@ -169,7 +171,7 @@ export function initializeJourney({ ui, reduced, onChoice, onModal, onReady, get
   const schedule = () => { if (!chapterFrame) chapterFrame = requestAnimationFrame(updateChapters); };
   window.addEventListener('scroll', schedule, { passive: true }); window.addEventListener('resize', schedule, { passive: true });
   window.addEventListener('pagehide', () => { if (main) saveReturn(); });
-  const saved = normalizeBookmark(storage.read(RETURN_KEY));
+  const saved = normalizeBookmark(storage.read(returnKey),layout);
   for (const link of document.querySelectorAll('[data-resume-journey]')) {
     link.hidden = !!main || !saved;
     if (saved) link.href = `${base}/${ui.lang}/?resume=1#${saved.chapter}`;

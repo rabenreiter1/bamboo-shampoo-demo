@@ -1,5 +1,5 @@
-import { scenePreviewBox, playbackPreviewBox } from './scene-framing.js?v=shop-20261015-intro1';
-import { paintCampaignWorld, CAMPAIGN_WORLDS } from './campaign-backdrop.js?v=shop-20261015-intro1';
+import { scenePreviewBox, playbackPreviewBox, classicGuideRegion } from './scene-framing.js?v=shop-20261015-cycles9';
+import { paintCampaignWorld, CAMPAIGN_WORLDS, campaignWorld } from './campaign-backdrop.js?v=shop-20261015-cycles9';
 
 export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=element.ownerDocument}){
   if(!doc?.createElement)return false;
@@ -14,10 +14,11 @@ export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=
   const intro=element.closest('[data-playback-profile="hero-intro"]');
   const word=hero?(hero.classList.contains('campaign-hero--refill')?'REFILL':'BAMBOO')
     :detail?.querySelector('.product-gallery__word')?.textContent||'BAMBOO';
-  const signature=JSON.stringify([width,height,scent,word,campaign,doc.fonts?.check?.('700 160px Campaign')]);
+  const design=doc.documentElement?.dataset.design||'current';
+  const signature=JSON.stringify([width,height,scent,word,campaign,design,doc.fonts?.check?.('700 160px Campaign')]);
   if(canvas.dataset.previewWorldSignature===signature)return true;
-  if(guide||intro||!hero&&!detail){context.setTransform(scale,0,0,scale,0,0);context.fillStyle=(guide?CAMPAIGN_WORLDS.aloe:CAMPAIGN_WORLDS[scent]||CAMPAIGN_WORLDS.aloe).base;context.fillRect(0,0,width,height);}
-  else paintCampaignWorld(context,{width,height,world:scent,word,layout:campaign?'campaign':'detail',scale});
+  if(guide||intro||!hero&&!detail){context.setTransform(scale,0,0,scale,0,0);context.fillStyle=campaignWorld(guide&&design!=='classic'?'aloe':scent,design).base;context.fillRect(0,0,width,height);}
+  else paintCampaignWorld(context,{width,height,world:scent,word,layout:campaign?'campaign':'detail',scale,design});
   canvas.dataset.previewWorldSignature=signature;
   return true;
 }
@@ -36,7 +37,10 @@ export function createScenePreviews({elements,base,version,window:win=window}){
   const records=new Map();
   function resize(record){
     const box=record.element.getBoundingClientRect();if(!box.width||!box.height)return;
-    const frame=record.profile?playbackPreviewBox({width:box.width,height:box.height,profile:record.profile,reserved:record.reserved})
+    const classicGuide=record.mode==='journey'&&record.element.ownerDocument?.documentElement.dataset.design==='classic';
+    const copyHeight=classicGuide?parseFloat(win.getComputedStyle(record.element.closest('.product-journey__sticky')).getPropertyValue('--journey-copy-height')):undefined;
+    const region=classicGuide?classicGuideRegion({width:box.width,height:box.height,copyHeight:copyHeight||undefined,viewportHeight:win.innerHeight}):undefined;
+    const frame=record.profile||classicGuide?playbackPreviewBox({width:box.width,height:box.height,profile:record.profile,reserved:record.reserved,region})
       :scenePreviewBox({width:box.width,height:box.height,mode:record.mode,campaign:record.campaign,reserved:record.reserved,pose:record.pose});
     for(const [name,value] of Object.entries(frame))record.element.style.setProperty(`--preview-${name}`,`${value}${name==='rotation'?'deg':'px'}`);
     paintScenePreviewWorld(record.element,{width:box.width,height:box.height,scent:record.scent,campaign:record.campaign});

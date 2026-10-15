@@ -2,7 +2,7 @@ import {TUBE_PROFILE} from './body-profile.js';
 import {shellRadiusAt} from './body.js';
 
 export const SURFACE_FINISH = Object.freeze({
- version:'culm-20261015-1', textureSize:2048, circumference:Math.PI*58, height:170,
+ version:'studio-20261015-2', textureSize:2048, circumference:Math.PI*58, height:170,
  engravingDepth:.065, reliefAssumed:true, angularSegments:256, axialSegments:256,
  source:'Original prototype photograph used as material reference; generated unlit culm albedo. Original SVG is the sole engraving mask.',
  limits:'Laser depth, microscopic roughness and optical coefficients are visual material settings, not measured manufacturing specifications.',
@@ -103,6 +103,11 @@ export function finishMicroSurface(material,{kind='silicone'}={}){
     float finishHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
     float finishNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(mix(finishHash(i),finishHash(i+vec3(1,0,0)),f.x),mix(finishHash(i+vec3(0,1,0)),finishHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(finishHash(i+vec3(0,0,1)),finishHash(i+vec3(1,0,1)),f.x),mix(finishHash(i+vec3(0,1,1)),finishHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
    `+shader.fragmentShader;
+  if(!isPET)shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+   // Mould texture changes highlight width even when its microscopic normal
+   // detail is subpixel. This is a material field, never silhouette noise.
+   roughnessFactor *= .96 + .08 * finishNoise(vFinishPosition * 2.8);
+  `);
   shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',/* glsl */`#include <normal_fragment_maps>
    float footprint=max(length(dFdx(vFinishPosition)),length(dFdy(vFinishPosition)));
    float finishHeight=finishNoise(vFinishPosition*18.0)*${amplitude.toFixed(6)}*(1.0-smoothstep(.025,.16,footprint));
@@ -114,8 +119,8 @@ export function finishMicroSurface(material,{kind='silicone'}={}){
   `);
  };
  material.customProgramCacheKey=()=>`${oldKey()}-${SURFACE_FINISH.version}-${kind}`;
- if(!isPET){Object.assign(material,{roughness:.59,metalness:0,clearcoat:0});if(material.isMeshPhysicalMaterial){material.ior=1.41;material.specularIntensity=.85;material.sheen=.06;material.sheenRoughness=.8;material.sheenColor.set('#d8ded4');}}
+ if(!isPET){Object.assign(material,{roughness:.46,metalness:0,clearcoat:0});if(material.isMeshPhysicalMaterial){material.ior=1.41;material.specularIntensity=1;material.sheen=0;}}
  material.userData.microSurface={kind,amplitudeMillimeters:amplitude,filtered:true,coordinateSpace:'object',profileUnchanged:true};material.needsUpdate=true;
 }
 
-export function finishCap(cap){cap.group.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])finishMicroSurface(m);});cap.metrics.surfaceFinish={version:SURFACE_FINISH.version,material:'pigmented moulded silicone',ior:1.41,roughness:.59,measured:false};return cap;}
+export function finishCap(cap){cap.group.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])finishMicroSurface(m);});cap.metrics.surfaceFinish={version:SURFACE_FINISH.version,material:'pigmented moulded silicone',ior:1.41,roughness:.46,measured:false};return cap;}

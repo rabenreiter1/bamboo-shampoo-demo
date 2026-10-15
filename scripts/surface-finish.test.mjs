@@ -45,7 +45,7 @@ test('silicone finish leaves cap geometry, deformation and independent pastel co
  finishCap(a);finishCap(b);
  for(const [mesh,positions]of meshes)assert.deepEqual(mesh.geometry.attributes.position.array,positions);
  const material=a.components.cap.children.find(o=>o.isMesh).material;
- assert.equal(material.roughness,.59);assert.equal(material.ior,1.41);assert.equal(material.clearcoat,0);
+ assert.equal(material.roughness,.46);assert.equal(material.ior,1.41);assert.equal(material.clearcoat,0);
  const old=material.customProgramCacheKey();finishCap(a);assert.equal(material.customProgramCacheKey(),old);
  a.setColors({cap:'#B6CBDE'});
  const bMaterial=b.components.cap.children.find(o=>o.isMesh).material;

@@ -1,10 +1,21 @@
-import { PRODUCT_THEMES } from './product-theme.js?v=shop-20261015-intro1';
+import { PRODUCT_THEMES } from './product-theme.js?v=shop-20261015-cycles9';
 
 // The hero's typography, coloured world and product share one opaque canvas.
 // Semantic HTML remains available while this source-derived stage is loading.
 export const CAMPAIGN_WORLDS = Object.freeze(Object.fromEntries(
   Object.entries(PRODUCT_THEMES).map(([scent, theme]) => [scent, theme.world]),
 ));
+
+// Presentation worlds are independent of PRODUCT_THEMES.capColors.
+export const CLASSIC_WORLDS = Object.freeze({
+  aloe: {base:'#c4e4ec',light:'#e9f8f8',accent:'#83c8d1',ink:'#24515b'},
+  argan: {base:'#ecd0d0',light:'#f9e7e5',accent:'#eea69c',ink:'#6b3e48'},
+  bamboo: {base:'#cdc0e8',light:'#f0e8ff',accent:'#b5d8e9',ink:'#413356'},
+});
+export function campaignWorld(world='bamboo',design='current') {
+  const worlds=design==='classic'?CLASSIC_WORLDS:CAMPAIGN_WORLDS;
+  return worlds[world]||worlds.bamboo;
+}
 
 export function campaignLayout(width, height) {
   const landscape = width > height && height <= 560;
@@ -16,8 +27,8 @@ export function campaignLayout(width, height) {
     wordY: compact ? .39 : .43, fontSize: width * (compact ? .32 : landscape ? .29 : .34) };
 }
 
-export function paintCampaignWorld(context,{width,height,world='bamboo',word='BAMBOO',layout='campaign',scale=1}){
-  const palette=CAMPAIGN_WORLDS[world]||CAMPAIGN_WORLDS.bamboo;
+export function paintCampaignWorld(context,{width,height,world='bamboo',word='BAMBOO',layout='campaign',scale=1,design='current'}){
+  const palette=campaignWorld(world,design);
   context.setTransform(scale,0,0,scale,0,0);
   context.fillStyle=palette.base; context.fillRect(0,0,width,height);
   const glow=context.createRadialGradient(width*.72,height*.35,0,width*.72,height*.35,width*.68);
@@ -37,7 +48,7 @@ export function paintCampaignWorld(context,{width,height,world='bamboo',word='BA
   context.globalAlpha=1;
 }
 
-export function createCampaignBackdrop({ THREE, world = 'bamboo', word = 'BAMBOO', layout = 'campaign' }) {
+export function createCampaignBackdrop({ THREE, world = 'bamboo', word = 'BAMBOO', layout = 'campaign',design='current' }) {
   const canvas = document.createElement('canvas'), context = canvas.getContext('2d');
   if (!context) throw new Error('The campaign backdrop needs a 2D canvas.');
   const makeTexture = () => {
@@ -62,7 +73,6 @@ export function createCampaignBackdrop({ THREE, world = 'bamboo', word = 'BAMBOO
   mesh.renderOrder = -10000;
   let width=1, height=1;
   function paint() {
-    const palette=CAMPAIGN_WORLDS[world] || CAMPAIGN_WORLDS.bamboo;
     const scale=Math.min(1.5, 2048 / Math.max(width,height));
     const nextWidth=Math.max(1,Math.round(width*scale)),nextHeight=Math.max(1,Math.round(height*scale));
     if(canvas.width!==nextWidth||canvas.height!==nextHeight){
@@ -71,7 +81,7 @@ export function createCampaignBackdrop({ THREE, world = 'bamboo', word = 'BAMBOO
       texture.dispose(); canvas.width=nextWidth; canvas.height=nextHeight;
       texture=makeTexture(); material.uniforms.backdropMap.value=texture;
     }
-    paintCampaignWorld(context,{width,height,world,word,layout,scale});
+    paintCampaignWorld(context,{width,height,world,word,layout,scale,design});
     texture.needsUpdate=true;
   }
   return { mesh, resize(w,h){width=w;height=h;paint();}, setWorld(value){world=value;paint();},

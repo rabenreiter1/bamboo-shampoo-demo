@@ -24,6 +24,24 @@ for(const file of files){
     assert.ok(fs.existsSync(target),`Broken local link ${match[1]} in ${path.relative(root,file)}`);
   }
 }
-assert.equal(pages,31);
+const localizedRoutes=['','shop/','refill/','story/','faq/','checkout/','products/aloe/','products/argan/','products/bamboo/','impressum/','privacy/'];
+for(const variant of ['','classic/'])for(const lang of ['de','en'])for(const route of localizedRoutes){
+  const text=fs.readFileSync(path.join(root,variant,lang,route,'index.html'),'utf8');
+  assert.match(text,new RegExp(`data-design="${variant?'classic':'current'}"`),'Correct presentation declared before first paint');
+  assert.ok(text.includes(`<link rel="canonical" href="https://rabenreiter1.github.io/bamboo-shampoo-demo/${lang}/${route}">`),'Comparison canonicals point to the public current design');
+  const ui=JSON.parse(text.match(/<script type="application\/json" id="ui-copy">([^]*?)<\/script>/)[1]);
+  assert.equal(ui.base,'/bamboo-shampoo-demo','Assets stay shared between variants');
+  assert.equal(ui.routeBase,`/bamboo-shampoo-demo${variant?'/classic':''}`,'Navigation stays inside its presentation');
+  assert.ok(text.includes('data-design-trigger')&&text.includes('data-design-options hidden'),'Every shop page exposes the same hidden inline comparison');
+  assert.ok(!text.includes('/classic/assets/')&&!text.includes('/classic/assembly/'),'No duplicated product or animation asset roots');
+  if(variant){
+    for(const href of text.matchAll(/<a\b[^>]*href="(\/bamboo-shampoo-demo\/(?:de|en)\/[^"#?]*)/g)){
+      const suffix=text.slice(href.index,href.index+href[0].length+50);
+      assert.ok(suffix.includes('data-design-target="current"'),'Classic ordinary navigation cannot escape its variant');
+    }
+  }
+}
+// 44 localized documents, 12 compatible product redirects, 2 entries/404 and the assembly page.
+assert.equal(pages,localizedRoutes.length*2*2+3*2*2+3);
 assert.ok(!fs.existsSync(path.join(root,'CNAME')));
 console.log(`Verified ${pages} pages: local links, assets, language, preview indexing, domain isolation and brand restriction.`);
