@@ -1,0 +1,75 @@
+{
+  "schema": "bamboo-current-studio-stills-v1",
+  "method": "Unretouched completed WebGL frames from the currently deployed finished product model. Full images are byte-identical copies of verified source frames; small images are resize/WebP derivatives only.",
+  "surfaceFinishVersion": "culm-20261015-1",
+  "surfaceFinishCodeSha256": "fec433ee86aac7fb694ce528a585e46eaa17d21155af3481e17dcc432d475de2",
+  "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa",
+  "assets": {
+    "studio-product-aloe-20261015.webp": {
+      "sourceFrame": "shop-detail-product-aloe.webp",
+      "sourceSha256": "52336a75aba7f0f26d0a9b519bf35d1a1b32b35bd6a1eb6f3f8f306ac0e3667d",
+      "sha256": "52336a75aba7f0f26d0a9b519bf35d1a1b32b35bd6a1eb6f3f8f306ac0e3667d",
+      "bytes": 164284,
+      "scent": "aloe",
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "byteIdenticalToSource": true
+    },
+    "studio-product-aloe-20261015-640.webp": {
+      "sourceFrame": "shop-detail-product-aloe.webp",
+      "sourceSha256": "52336a75aba7f0f26d0a9b519bf35d1a1b32b35bd6a1eb6f3f8f306ac0e3667d",
+      "sha256": "1e30b0574ea49221c3028af462eb9af8a4471e9d235b1f13b0ef959b268218d3",
+      "bytes": 44694,
+      "scent": "aloe",
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "byteIdenticalToSource": false
+    },
+    "studio-product-argan-20261015.webp": {
+      "sourceFrame": "shop-detail-product-argan.webp",
+      "sourceSha256": "0c6e71c8d3d1d6bd10a8a265411fb0f5fa6965fefd51486d06367478b9574d55",
+      "sha256": "0c6e71c8d3d1d6bd10a8a265411fb0f5fa6965fefd51486d06367478b9574d55",
+      "bytes": 165228,
+      "scent": "argan",
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "byteIdenticalToSource": true
+    },
+    "studio-product-argan-20261015-640.webp": {
+      "sourceFrame": "shop-detail-product-argan.webp",
+      "sourceSha256": "0c6e71c8d3d1d6bd10a8a265411fb0f5fa6965fefd51486d06367478b9574d55",
+      "sha256": "0585c478c5ea5d584ec103b8a6056c8816591c9209051a3176ee7a68586d394f",
+      "bytes": 44728,
+      "scent": "argan",
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "byteIdenticalToSource": false
+    },
+    "studio-product-bamboo-20261015.webp": {
+      "sourceFrame": "shop-detail-product-bamboo.webp",
+      "sourceSha256": "c03231b3cb6774ad04b4b1a9527b1135a0a5a185dc70903045179ce21356c7c3",
+      "sha256": "c03231b3cb6774ad04b4b1a9527b1135a0a5a185dc70903045179ce21356c7c3",
+      "bytes": 165180,
+      "scent": "bamboo",
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "byteIdenticalToSource": true
+    },
+    "studio-product-bamboo-20261015-640.webp": {
+      "sourceFrame": "shop-detail-product-bamboo.webp",
+      "sourceSha256": "c03231b3cb6774ad04b4b1a9527b1135a0a5a185dc70903045179ce21356c7c3",
+      "sha256": "e8f4aad349b5c5cf226d671487f507e5bea40626d188af525032f2c5fcbc25ff",
+      "bytes": 44812,
+      "scent": "bamboo",
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "byteIdenticalToSource": false
+    }
+  }
+}

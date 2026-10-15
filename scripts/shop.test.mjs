@@ -74,7 +74,7 @@ test('one form-owned priced selector below each model chooses starter set or ref
     assert.match(selector,/12,50|12\.50/); assert.match(selector,/4,50|4\.50/);
     assert.match(selector,lang==='de'?/Starter-Set/:/Starter Set/);
     assert.match(selector,/Refill/);
-    assert.match(main,new RegExp(`photo-product-${scent}\\.webp`));
+    assert.match(main,new RegExp(`studio-product-${scent}-20261015\\.webp`));
   }
 });
 
@@ -174,7 +174,7 @@ test('navigation is consistent and the useful first product image is prioritized
    const html=readPage(lang,route);
    const scent=route.startsWith('products/')?route.split('/')[1]:'aloe';
    const family=route==='refill/'?'teaser':route.startsWith('products/')?'detail':'guide';
-   const expected=route.startsWith('products/')?`${base}/assets/photo-product-${scent}.webp`:`${base}/assets/shop-${family}-product-${scent}.webp`;
+   const expected=route.startsWith('products/')?`${base}/assets/studio-product-${scent}-20261015.webp`:`${base}/assets/shop-${family}-product-${scent}.webp`;
    const leadImage=tags(html,'img').map(attrs).find(image=>image.fetchpriority==='high');
    assert.ok(leadImage?.src.startsWith(expected),`${lang}/${route} prioritizes its matching scent and camera poster`);
    assert.ok(links(html).some(link=>link.rel==='preload'&&link.as==='image'&&link.href===leadImage.src),'the exact first visible poster is preloaded before GPU warmup');
