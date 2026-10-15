@@ -1,4 +1,5 @@
-/** Photographic stills are deliberately separate from matched animation frames. */
+/** Source-mesh still renders are separate from matched animation frames.
+ * The legacy photo-* asset names stay compatible with product/cart URLs. */
 export function productPhotoAsset(mode='product',scent='aloe',small=false){
   const fragrance=['aloe','argan','bamboo'].includes(scent)?scent:'aloe';
   const name=mode==='shell'?'photo-shell':mode==='cap'?'photo-cap-argan':

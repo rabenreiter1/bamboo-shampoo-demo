@@ -1,0 +1,442 @@
+{
+  "schema": "bamboo-source-stills-v1",
+  "method": "Deterministic WebGL rendering of approved animation factories. No generative product imagery.",
+  "source": {
+    "assembly/body.js": "0f6c145bfa092fe9dd97fc94bc14b793019b268d3f0bb62beacc021aa8c351c9",
+    "assembly/body-profile.js": "761ecc7dbe8b3372c5fa04733f4b65b86111046cf6bed72188e40f076351bbc5",
+    "assembly/cap-data.js": "b90e7523bc79df16d609317a8127ee5c4b80317709316df287a05bc523f6e9b3",
+    "assembly/ritual-cap.js": "419e390f0ccfea8c7c4f7e19c5197ea70514551ed530b1ba7eafd849bb717051",
+    "assembly/ritual-effects.js": "f0fe0904777000ffa1f2e6f1b1d2ff84ea162540a950da362e7895fa094f4438",
+    "assembly/original-engraving.svg": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa",
+    "assembly/cap-reference.jpg": "dbd0fd9d44a9bc04225e9430fe4d2cd9accadf9a59b2912d20fd49e05a495a41",
+    "product-theme.js": "49208e0467c5212e1ea1c54bbd1323869369b88982a1b341142debb46c2dd596",
+    "actual250Drawing": "7fe76412fe08f68561b2613a2a8d0cbaa771f14f38d3e1084c96b2b0522d9272"
+  },
+  "captureScriptSha256": "3d080a98eea26c02f0d9c6945c1d20e2e8b1b85907f50ca11c655ca4ab4e719d",
+  "geometry": {
+    "identical": true,
+    "meshes": {
+      "Bamboo_outer_sourced_contour_and_original_engraving": {
+        "normal": "9ef6c78966a6ceee4d168eae2f3a5970bac17d25fb20bcede5d38379431a5426",
+        "position": "3d62616aa4cd1c5a55f4e661fde8efa041d950f0a702acd9fccb3a90742aaab2",
+        "tangent": "d29c93417b7d1162a1afc84d77657698fbf58624b6559c2267434a625d60e8a5",
+        "uv": "7738c80e6949aad79d3c30e34e3e0001084826af5cff28fd3606a3f330cd066f",
+        "index": "7e39f0fe14db626330c167b360c7e06f01d8cbe8beb6b9971115b3e8da8bd9e9"
+      },
+      "Bamboo_inner_bore_D48": {
+        "normal": "49f9dafffc3dd5e26a7263bc5a55e40d9d09e030dcccca036b64090f201500da",
+        "position": "1a51e29f78386a72c0be4df33684efd680e4458f690d169969004cab7c7f5fb5",
+        "uv": "7b09ffe96afdaff0bfaafe8f0d0a7972f0ba5e17971bed854f585b04fb83d61a",
+        "index": "af7689d072f54bbc6b4749ca827e3f3111dad094abace5af541d287afe1261bd"
+      },
+      "Bamboo_top_rim_D58_D48": {
+        "normal": "61d082106196ff2e18fa492878ae206d9dd8311c752052dff00107fca8c74385",
+        "position": "6eb51d61850e9fe448c9974aa188058a98579e561f92548de807b96dbc616fe8",
+        "uv": "2da42743e46a7156e9f3e29874c5165679b6e3f99f6af96c2927bf1e52c11d30",
+        "index": "288a0692c885000af17e97e410db940cb76f19d228f0229d0983def0c0300c96"
+      },
+      "Bamboo_external_bottom": {
+        "normal": "5fd574e68c64abe14700acea3166a7885e05955bdace947516ffdaad0ee7edda",
+        "position": "f96fa4a82992bf79cf91f17838d1dbc6cfe4156ad6dfdf08783bbcf82ee60288",
+        "uv": "c148eedefd4c6b769f4e0ee2bda2170b852d1a16a505a1575ab19d9b18558cea",
+        "index": "b1fd68a6d246854415d4855476b9c8cb4e49c552f4d4940628ddcc1f4837cb60"
+      },
+      "Bamboo_internal_floor_visual_Y5": {
+        "normal": "b9b0da4c55c2de10129ccfffd90401b34c4a8a7ab471450398b32c444f530b29",
+        "position": "2e6352728403da968c88c757615610a49ae7c13c4bec4f94034fc7553712c8e8",
+        "uv": "c148eedefd4c6b769f4e0ee2bda2170b852d1a16a505a1575ab19d9b18558cea",
+        "index": "b1fd68a6d246854415d4855476b9c8cb4e49c552f4d4940628ddcc1f4837cb60"
+      },
+      "PET_hollow_body_D47_H165": {
+        "normal": "b92e353709db906a90524ca3c9cdde1b73f0696df74f73bf9776331163d4db6f",
+        "position": "1e05fb792eec569c0802114abc3fce911949d7595c3323cac6a1defd700d979b",
+        "uv": "de358a227120c9e05c57bc7faea6d228577e7599a7b0f20cd144996e31806c1d",
+        "index": "5b0fa3e60ff0f7ce56f65874b28672677efff878ea03183e2a9437ce7ce6eb57"
+      },
+      "PET_sealing_flange_D58_radial5_5": {
+        "normal": "062a9e598d25432a7782c9433f027d072db6960ed72947d60101e449796bd4ec",
+        "position": "3e5b6a92df3df74518ac085323cdf0c4bf4100c9f9c4b5c5f8d0635d2c3a0be2",
+        "uv": "d358a601849d7afee266599161d334176259ba83430425abb6c816654c4f64b5",
+        "index": "8fb4ea5c6478796fcc71316d3bd2d506c3a99d47bfc9b8ebc7f98817fc2c6820"
+      },
+      "integral-molded-silicone-pedestal": {
+        "normal": "5d16e6532df43fa3a9ced94865c7c6914adcb31b4d960753eccb173dbb65533a",
+        "position": "d75079a0716ec69b594d72ef6fa80c23c08a1da5332a306121076685ceca8f72"
+      },
+      "teardrop-button-traced-original": {
+        "normal": "52ea1e745391d2a2e0e4f07cf825afd04b26daed68dbde426695afb939e1caf7",
+        "position": "b89c55953b40fd1916c37c32b935adc4b6b71b7e42e8dfbd68cdc8c12bb1624d"
+      },
+      "original-J-sprig-logo-traced-original": {
+        "normal": "0bc1f1d55677484ced7463ddd5dd611bcffe485e8f802a58298c66578b65198c",
+        "position": "291f64bd4a666a109a46cc653922f43cc3e5a3a8697ba1b79da5c828413d5fd3"
+      },
+      "button-circular-inset-outline-traced-original": {
+        "normal": "443cb578ff2b6ffaffd003f7925152dfcd4e60539f56cc5bd48bf54068730715",
+        "position": "0e99d7e185b02f23ca40c6c7a37c871fa91a2eb460eb1d7bd49651f7b962998d"
+      },
+      "cap-collar-OD59-seat-OD58-wall0.5": {
+        "normal": "7001fdba098f0139862861dc5081e436609c71e747b0f528c58eae0dd672af80",
+        "position": "9ffa0bad320ad572c2c5400db769f3d196f3e6727d1dfe8dc533c2f71ed4d745",
+        "uv": "f433e5574cc5c37d2701c9547002f40b28c583591682d6edd3f9a005fbad59f9",
+        "index": "e729bd1505616318104c109cd9fd1bcb0250853e257e1755536834bf5e367e17"
+      },
+      "cap-roof-with-open-dosing-aperture": {
+        "normal": "9d99152ff7e58c5116e3176ad508781412acfae63ee11a900a4687c8a4a7a818",
+        "position": "e5b50465311bed56cdf4aba5ec2254606ef6bc5f1e5d46b50d26e4b6ec711378"
+      },
+      "PRESS-TO-DOSE-traced-original": {
+        "normal": "524d24cae9de9ac588f992d93ad38f2f39c8167d56e89b7fb9aee07b2018fee4",
+        "position": "b096f791bca875e107b513a5d196bf2c0cfd5ba5bf5d9dca9b81965953e66cd3"
+      },
+      "hidden-circular-captive-bearing": {
+        "normal": "bec1733b283b2c467fc740ef007157c342f1a9cd11521455e90a2ff7352c053a",
+        "position": "8213691c71940070c012851dd71e92f82cef3a60e5068628dde24cf7662d2d9e"
+      },
+      "ring-and-two-discs-traced-original": {
+        "normal": "6576c9e2412eeb9d96c1a60a0453e677f7fa4c6f55630a04119869ec4a8da01e",
+        "position": "e7e5740c1ee919878388c4dc1b281bc289dbfa9f354efcb2f8478faf18e10a19"
+      },
+      "shallow-nipple-plug-provisional-D5.8": {
+        "normal": "8df9b349a0d13be364ab77fd056e0a7a9ef501ed908e054097fb1ee54acce8c9",
+        "position": "421ad2dce4959b6a02f3651573277a0cd2cbfedcc3df8161f34976ddce1de405"
+      }
+    }
+  },
+  "dimensions": {
+    "shellHeight": 170,
+    "shellOuterDiameter": 58,
+    "shellInnerDiameter": 48,
+    "shellRimWall": 5,
+    "gripZoneHeight": 20,
+    "inlayBodyOuterDiameter": 47,
+    "inlayBodyHeight": 165,
+    "flangeOuterDiameter": 58,
+    "flangeRadialWidth": 5.5,
+    "nominalFillMilliliters": 250
+  },
+  "limits": [
+    "PET body and flange thickness 0.3mm are visual placeholders; only thin PET was specified.",
+    "Bamboo inner floor at Y5 is a fit visualization; source does not dimension the bottom thickness.",
+    "Seal thickness0.08mm, tab shape and0.08mm peel gap are functional visual placeholders.",
+    "Outer contour is sampled from the actual dimensioned drawing raster, tolerance about0.21mm; no manufacturing curve radii are inferred.",
+    "Engraving is registered above Y0; its source aspect gives150.003mm wrap height at nominal Ø58. Production registration offset is not dimensioned.",
+    "Original planar contours are current CAD-image pixel traces calibrated to diameter 59 mm, approximately 0.06 mm pixel precision.",
+    "Roof underside is 0.25 mm above the placeholder PET flange top to clear the closed film and folded tab; roof thickness 0.5 mm.",
+    "Lower notch seat Y149.9–150.6 and shoulder Y150.6–151.0 are fitted to the actual tube raster contour, approximately 0.2 mm precision.",
+    "Outlet diameter 6 mm, shallow plug diameter 5.8 mm, circular bearing bore radius 7.74 mm and stem radius 7.55 mm are hidden visual construction assumptions.",
+    "The integral teardrop retains the source footprint; its unmeasured lower face is Y172.45. The roof and feature share an analytic 1.2 mm center deformation, constant through R11, quintic to zero at the supported R23.5 annulus.",
+    "The short closure bridge flexes to lift the stopper 1.4 mm and follows its local deformed roof while the circular carrier follows the center; no exposed pump internals are inferred.",
+    "Nipple lift, silicone deflection, bearing axial depths, embossing heights and all internal sealing surfaces require current production CAD before manufacture.",
+    "Film thickness0.08mm, pull-tab outline and folded0.1mm height are functional visual assumptions.",
+    "The3mm peel radius and120degree pull angle illustrate progressive peeling; adhesive mechanics are not simulated."
+  ],
+  "materialReference": {
+    "patchRect": [
+      95,
+      335,
+      135,
+      140
+    ],
+    "sha256": "7566b143d43ad4ca97a3aaa7eb1c5e38a1779fbcc64658137c8dd69440d7b8e9",
+    "source": "User photograph, C2C2DB76/1-Photo-1.jpg, real bamboo material only; does not supply geometry."
+  },
+  "frames": {
+    "photo-product-aloe": {
+      "mode": "product",
+      "elevation": 12,
+      "yaw": 0,
+      "center": [
+        0,
+        87.2000015258789,
+        5.051370620727539
+      ],
+      "worldHeight": 202.7907012229742,
+      "camera": [
+        0,
+        253.5293541800864,
+        787.5694512077721
+      ],
+      "left": -81.11628048918969,
+      "right": 81.11628048918969,
+      "top": 101.3953506114871,
+      "bottom": -101.3953506114871,
+      "width": 1280,
+      "height": 1600,
+      "scent": "aloe",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    },
+    "photo-product-argan": {
+      "mode": "product",
+      "elevation": 12,
+      "yaw": 0,
+      "center": [
+        0,
+        87.2000015258789,
+        5.051370620727539
+      ],
+      "worldHeight": 202.7907012229742,
+      "camera": [
+        0,
+        253.5293541800864,
+        787.5694512077721
+      ],
+      "left": -81.11628048918969,
+      "right": 81.11628048918969,
+      "top": 101.3953506114871,
+      "bottom": -101.3953506114871,
+      "width": 1280,
+      "height": 1600,
+      "scent": "argan",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    },
+    "photo-product-bamboo": {
+      "mode": "product",
+      "elevation": 12,
+      "yaw": 0,
+      "center": [
+        0,
+        87.2000015258789,
+        5.051370620727539
+      ],
+      "worldHeight": 202.7907012229742,
+      "camera": [
+        0,
+        253.5293541800864,
+        787.5694512077721
+      ],
+      "left": -81.11628048918969,
+      "right": 81.11628048918969,
+      "top": 101.3953506114871,
+      "bottom": -101.3953506114871,
+      "width": 1280,
+      "height": 1600,
+      "scent": "bamboo",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    },
+    "photo-refill-aloe": {
+      "mode": "refill",
+      "elevation": 10,
+      "yaw": 0,
+      "center": [
+        0,
+        87.6500015258789,
+        0
+      ],
+      "worldHeight": 192.209305874137,
+      "camera": [
+        0,
+        226.56854365942317,
+        787.8462024097664
+      ],
+      "left": -76.8837223496548,
+      "right": 76.8837223496548,
+      "top": 96.1046529370685,
+      "bottom": -96.1046529370685,
+      "width": 1280,
+      "height": 1600,
+      "scent": "aloe",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    },
+    "photo-refill-argan": {
+      "mode": "refill",
+      "elevation": 10,
+      "yaw": 0,
+      "center": [
+        0,
+        87.6500015258789,
+        0
+      ],
+      "worldHeight": 192.209305874137,
+      "camera": [
+        0,
+        226.56854365942317,
+        787.8462024097664
+      ],
+      "left": -76.8837223496548,
+      "right": 76.8837223496548,
+      "top": 96.1046529370685,
+      "bottom": -96.1046529370685,
+      "width": 1280,
+      "height": 1600,
+      "scent": "argan",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    },
+    "photo-refill-bamboo": {
+      "mode": "refill",
+      "elevation": 10,
+      "yaw": 0,
+      "center": [
+        0,
+        87.6500015258789,
+        0
+      ],
+      "worldHeight": 192.209305874137,
+      "camera": [
+        0,
+        226.56854365942317,
+        787.8462024097664
+      ],
+      "left": -76.8837223496548,
+      "right": 76.8837223496548,
+      "top": 96.1046529370685,
+      "bottom": -96.1046529370685,
+      "width": 1280,
+      "height": 1600,
+      "scent": "bamboo",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    },
+    "photo-shell": {
+      "mode": "shell",
+      "elevation": 18,
+      "yaw": 0,
+      "center": [
+        0,
+        85,
+        0
+      ],
+      "worldHeight": 197.67441860465118,
+      "camera": [
+        0,
+        332.21359549995793,
+        760.8452130361228
+      ],
+      "left": -79.06976744186048,
+      "right": 79.06976744186048,
+      "top": 98.83720930232559,
+      "bottom": -98.83720930232559,
+      "width": 1280,
+      "height": 1600,
+      "scent": "aloe",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    },
+    "photo-cap-argan": {
+      "mode": "cap",
+      "elevation": 56,
+      "yaw": -0.12,
+      "center": [
+        0,
+        162.1499984741211,
+        5.051370620727539
+      ],
+      "worldHeight": 86,
+      "camera": [
+        0,
+        825.3800565181546,
+        452.40569339732497
+      ],
+      "left": -34.4,
+      "right": 34.4,
+      "top": 43,
+      "bottom": -43,
+      "width": 1280,
+      "height": 1600,
+      "scent": "argan",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    },
+    "photo-refill-detail": {
+      "mode": "detail",
+      "elevation": 22,
+      "yaw": 0,
+      "center": [
+        0,
+        153,
+        0
+      ],
+      "worldHeight": 64,
+      "camera": [
+        0,
+        452.6852747327296,
+        741.74708365343
+      ],
+      "left": -48,
+      "right": 48,
+      "top": 32,
+      "bottom": -32,
+      "width": 1536,
+      "height": 1024,
+      "scent": "aloe",
+      "sourceGeometryIdentical": true,
+      "engravingSha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa"
+    }
+  },
+  "assets": {
+    "photo-product-aloe.webp": {
+      "sha256": "47e11b94121e7c67a222480e865f26c865ff87287f1c399518a30d5ee5f817b8",
+      "bytes": 138962
+    },
+    "photo-product-aloe-640.webp": {
+      "sha256": "d51f1d2ac02cab879fc3167740d64b204b1064684516c7166c3cba7245adff13",
+      "bytes": 37322
+    },
+    "photo-refill-aloe.webp": {
+      "sha256": "292258c98f1923f7e5e49ead719a97e2ecf63f422c96bb9d99f57f8e44ba8630",
+      "bytes": 71710
+    },
+    "photo-refill-aloe-640.webp": {
+      "sha256": "4d9b264d8be79bc4f5d3a2d330326155aabcf19313cd599e710c0f5c2b6fb607",
+      "bytes": 24004
+    },
+    "photo-product-argan.webp": {
+      "sha256": "3bf05377051b56ca298bbad436bbb2f138e2b461fa89cec00681dd51874452cd",
+      "bytes": 138550
+    },
+    "photo-product-argan-640.webp": {
+      "sha256": "f785ab24109633794b40cb10d84c4cf5801c898f6dd7ef75e57fe9597601c0fc",
+      "bytes": 37308
+    },
+    "photo-refill-argan.webp": {
+      "sha256": "b3ecd66c893c7f1f9c1938b65b1a042aff1066172a1cc45a12ce8920c4a00244",
+      "bytes": 72512
+    },
+    "photo-refill-argan-640.webp": {
+      "sha256": "11e76be0574e7b2fea8135d8a59245c39aca6f0dd4c1c8d4efc5d33e0a8eca8e",
+      "bytes": 24284
+    },
+    "photo-product-bamboo.webp": {
+      "sha256": "c30d674e5aa2df33c07a7e444ac3d26814e8f158de0337ca243b40393aca055f",
+      "bytes": 138862
+    },
+    "photo-product-bamboo-640.webp": {
+      "sha256": "19b6ad00da9c932ca1aca3f9444cc7f58b9c214a1d611c4d5b0c8ae9f8c5b752",
+      "bytes": 37258
+    },
+    "photo-refill-bamboo.webp": {
+      "sha256": "23512ecf9e75158576f375a693e0618512413582565225a108aa03fe39f4f994",
+      "bytes": 71198
+    },
+    "photo-refill-bamboo-640.webp": {
+      "sha256": "d5085f24ca2bf5732217bc9af044e0b2e52b3c0bb3522b9c569008d18169ad65",
+      "bytes": 23984
+    },
+    "photo-shell.webp": {
+      "sha256": "7a15fdf52218413ed473023e4cb810e788d2b8d4a50522c485c273a17590f10d",
+      "bytes": 166082
+    },
+    "photo-shell-640.webp": {
+      "sha256": "779e0f409aad08bd80b7ddff7a324eb1e842d25fdf6a0389b4b1ef52afcd9205",
+      "bytes": 46820
+    },
+    "photo-cap-argan.webp": {
+      "sha256": "d4186f14cdeef642a64fe528a987b06402be7b5efeee6f79ce695756b80000d4",
+      "bytes": 435880
+    },
+    "photo-cap-argan-640.webp": {
+      "sha256": "b07e73645d6497e7a599129126ddfe29187091c3864f247a2523894c845495cf",
+      "bytes": 119800
+    },
+    "photo-refill-detail.webp": {
+      "sha256": "1a458078aae027de1f01663358f68657b774cbfd2ec195e980cf4bf3b7a2689c",
+      "bytes": 22036
+    }
+  },
+  "codeHashConvention": "UTF-8 with LF newlines; binary references and SVG remain byte-exact"
+}
