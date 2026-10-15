@@ -149,17 +149,31 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc, vers
 
   function homeHero(lang) {
     const t = shopCopy[lang];
-    return `<section class="campaign-hero campaign-hero--home scent-aloe" id="discover" data-journey-chapter="discover" data-world="aloe" data-world-kind="product">
-      <div class="campaign-atmosphere" aria-hidden="true"></div>
-      <div class="campaign-topline">${eyebrow(L(lang, 'PFLEGE, DIE BLEIBT.', 'CARE THAT STAYS.'))}<span>250 ML / ALOE · ARGAN · BAMBOO</span></div>
-      <div class="campaign-lettering" data-parallax="0.045"><h1 class="campaign-word">BAMBOO<span class="sr-only"> Shampoo</span></h1></div>
-      ${viewer(lang, 'product', 'aloe', 'campaign-product', true, 'campaign')}
-      <div class="campaign-deck campaign-deck--home">
-        <p class="hero-statement">${L(lang, '250 ml.<br>Immer wieder.', '250 ml.<br>Again & again.')}</p>
-        <div class="campaign-switch" role="group" aria-label="${L(lang, 'Duft wählen', 'Choose your scent')}">${orderedScents.map(id => `<button class="world-choice scent-${id}" type="button" data-world-scent="${id}" aria-pressed="${id === 'aloe'}"><span class="world-choice__swatch" aria-hidden="true"></span><span>${t.names[id]}</span></button>`).join('')}</div>
-        <a class="hero-buy" href="${path(lang, 'products/aloe/')}" data-world-link data-native-route><span><strong>${L(lang, 'Starter-Set entdecken', 'Explore starter set')}</strong><small>${price('shampoo', lang)}</small></span><span class="hero-buy__arrow">${icon('arrow')}</span></a>
+    return `<section class="campaign-hero campaign-hero--home intro-hero scent-aloe" id="discover" data-journey-chapter="discover" data-world="aloe" data-world-kind="product" data-playback-profile="hero-intro">
+      <div class="intro-copy">
+        ${eyebrow(L(lang, '250 ML · SHAMPOO & REFILL', '250 ML · SHAMPOO & REFILL'))}
+        <h1 class="intro-title">${L(lang, 'Shampoo zum<br><em>Nachfüllen.</em>', 'A fresh take<br><em>on refilling.</em>')}</h1>
+        <p class="intro-description">${L(lang, 'Die Bambushülle bleibt.<br>Du wechselst nur den Einsatz.', 'Keep the bamboo shell.<br>Just change the insert.')}</p>
       </div>
-      <a class="campaign-scroll" href="#collection"><span>${L(lang, 'Deinen Duft entdecken', 'Find your scent')}</span>${icon('down')}</a>
+      <div class="intro-visual">
+        <div class="shop-scene intro-stage scene-preview" data-shop-scene="journey" data-art-direction="intro" data-scent="aloe" role="group" aria-label="${L(lang, 'Animiertes Refill-Prinzip: Die Kappe hebt sich, der versiegelte Einsatz gleitet aus der Bambushülle und wieder hinein. Ziehen zum Drehen.', 'Animated refill principle: the cap lifts, the sealed insert slides out of the bamboo shell and back in. Drag to rotate.')}">${image('shop-guide-product-aloe.webp', L(lang, 'Das Bamboo Starter-Set mit wiederverwendbarer Kappe und Bambushülle', 'The Bamboo starter set with its reusable cap and bamboo shell'), true, 'shop-scene__fallback')}</div>
+        <div class="intro-annotations" aria-hidden="true">
+          <svg class="intro-leaders" viewBox="0 0 1000 1000" preserveAspectRatio="none"><path data-intro-line="cap" pathLength="1"/><path data-intro-line="insert" pathLength="1"/><path data-intro-line="shell" pathLength="1"/></svg>
+          <span class="intro-label intro-label--cap" data-intro-anchor="cap"><span>${L(lang, 'Kappe behalten', 'Keep the cap')}</span></span>
+          <span class="intro-label intro-label--insert" data-intro-anchor="insert"><span>${L(lang, 'Refill wechseln', 'Change the refill')}</span></span>
+          <span class="intro-label intro-label--shell" data-intro-anchor="shell"><span>${L(lang, 'Hülle behalten', 'Keep the shell')}</span></span>
+        </div>
+        <div class="intro-transport" data-playback-controls>
+          <button type="button" class="intro-loop-caption" data-playback-at=".52" aria-label="${L(lang, 'Refill-Prinzip im Detail ansehen', 'Inspect the refill principle')}" disabled>${L(lang, 'Das Refill-Prinzip', 'The refill principle')} <span aria-hidden="true">↗</span></button>
+          <button class="playback-toggle" type="button" data-playback-toggle aria-label="${L(lang, 'Animation pausieren', 'Pause animation')}" disabled><span class="playback-toggle__icon" aria-hidden="true"></span><span data-playback-toggle-label>Pause</span></button>
+          <span class="intro-loop-track" aria-hidden="true"></span>
+        </div>
+      </div>
+      <div class="intro-actions">
+        <div class="campaign-switch" role="group" aria-label="${L(lang, 'Duft wählen', 'Choose your scent')}">${orderedScents.map(id => `<button class="world-choice scent-${id}" type="button" data-world-scent="${id}" aria-pressed="${id === 'aloe'}"><span class="world-choice__swatch" aria-hidden="true"></span><span>${t.names[id]}</span></button>`).join('')}</div>
+        <a class="hero-buy intro-buy" href="${path(lang, 'products/aloe/')}" data-world-link data-native-route><span><strong>${L(lang, 'Starter-Set entdecken', 'Explore the starter set')}</strong><small>${price('shampoo', lang)}</small></span><span class="hero-buy__arrow">${icon('arrow')}</span></a>
+      </div>
+      <a class="intro-explain" href="#ritual"><span>${L(lang, 'So funktioniert das Refill', 'How the refill works')}</span>${icon('down')}</a>
     </section>`;
   }
 

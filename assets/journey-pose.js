@@ -141,6 +141,7 @@ export function createJourneySpace({ THREE }) {
     offset.set(0, 1, 0).transformDirection(matrix).multiplyScalar(state.cap.position[1]);
     offset.add(componentOffset(pose, 'cap'));
     cylinder(40, 149.9, 173.4, offset);
+    if (pose.intro) cylinder(29, 5 + state.oldRefill.position[1], 170.5 + state.oldRefill.position[1]);
     const foil = state.framing.foil;
     if (foil > 0) cylinder(29 + 35 * foil, 170, 170 + 64 * foil);
     const pour = easeRange(state.progress, .445, .49) * (1 - easeRange(state.progress, .67, .72));

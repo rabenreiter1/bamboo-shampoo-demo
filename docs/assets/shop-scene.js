@@ -1,14 +1,15 @@
 import * as THREE from '../assembly/vendor/three.module.js';
-import { staticSceneFrame, refillTeaserRegion } from './scene-framing.js?v=shop-20261014-sage1';
-import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261014-sage1';
-import { PRODUCT_THEMES, BRAND_THEME } from './product-theme.js?v=shop-20261014-sage1';
+import { staticSceneFrame, refillTeaserRegion } from './scene-framing.js?v=shop-20261015-intro1';
+import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261015-intro1';
+import { PRODUCT_THEMES, BRAND_THEME } from './product-theme.js?v=shop-20261015-intro1';
 import { createStudioEnvironment } from '../assembly/studio-environment.js?v=ritual-20261013-1';
 import { createBody, shellRadiusAt } from '../assembly/body.js?v=ritual-20261013-1';
-import { createRitualCap } from '../assembly/ritual-cap.js?v=shop-20261014-sage1';
+import { createRitualCap } from '../assembly/ritual-cap.js?v=shop-20261015-intro1';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from '../assembly/ritual-effects.js?v=ritual-20261013-visibility-1';
 import { computeCycleState, TILT_AXIS, clamp } from '../assembly/ritual-timeline.js?v=ritual-20261012-4';
-import { createRitualSpace } from '../assembly/ritual-space.js?v=shop-20261014-sage1';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261014-sage1';
+import { createRitualSpace } from '../assembly/ritual-space.js?v=shop-20261015-intro1';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261015-intro1';
+import { computeIntroPose } from './intro-pose.js?v=shop-20261015-intro1';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
@@ -239,7 +240,7 @@ export function mountShopScene(container, options = {}) {
   function applyState() {
     const ritual = mode === 'ritual';
     const journey = mode === 'journey', animated = ritual || journey;
-    if (journey) { journeyPose = computeJourneyPose(progress); state = journeyPose.state; }
+    if (journey) { journeyPose = options.playbackProfile === 'hero-intro' ? computeIntroPose(progress) : computeJourneyPose(progress); state = journeyPose.state; }
     else state = computeCycleState(ritual ? progress : 0);
     tiltRig.quaternion.setFromAxisAngle(tiltAxis, animated ? state.tilt : 0);
     tiltRig.position.y = 0;

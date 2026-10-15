@@ -1,17 +1,17 @@
-import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261014-sage1';
-import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261014-sage1';
-import {scenePreviewBox,playbackPreviewBox} from './scene-framing.js?v=shop-20261014-sage1';
+import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261015-intro1';
+import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261015-intro1';
+import {scenePreviewBox,playbackPreviewBox} from './scene-framing.js?v=shop-20261015-intro1';
 
 // This changes only the loading illustration, never the stored pose. A closed
 // poster must not contradict a restored, open or manually rotated product.
 export function needsPlaybackRestorePreview(snapshot,profile){
-  const duration=profile==='home-cycle'?32:profile==='refill-teaser'?14:0;
+  const duration=profile==='home-cycle'?32:profile==='refill-teaser'?14:profile==='hero-intro'?16:0;
   if(!duration||!snapshot||snapshot.version!==1||snapshot.profile!==profile
     ||!Number.isFinite(snapshot.elapsed)||snapshot.elapsed<0||typeof snapshot.paused!=='boolean'
     ||snapshot.yaw!==undefined&&!Number.isFinite(snapshot.yaw))return false;
   const elapsed=snapshot.elapsed%duration,yaw=snapshot.yaw||0;
   const rotated=Math.abs(Math.atan2(Math.sin(yaw),Math.cos(yaw)))>.0001;
-  return rotated||(profile==='home-cycle'?elapsed>2&&elapsed<30:elapsed>.0001);
+  return rotated||(profile==='home-cycle'?elapsed>2&&elapsed<30:profile==='hero-intro'?elapsed>2&&elapsed<14:elapsed>.0001);
 }
 
 // Serialized into the static document and run before its first paint. The main

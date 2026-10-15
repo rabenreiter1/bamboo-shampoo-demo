@@ -10,6 +10,9 @@ const freezeProfile = (duration, checkpoints, chapters, independentYaw = false) 
 });
 
 export const PLAYBACK_PROFILES = Object.freeze({
+  'hero-intro': freezeProfile(16,
+    [[0, 0], [2, 0], [4, .30], [6, .44], [9, .64], [12, .78], [14, 1], [16, 1]],
+    [[0, 0], [.30, .52], [.78, 1]]),
   'home-cycle': freezeProfile(32,
     [[0, 0], [2, 0], [5, .15], [9, .27], [12, .35], [20, .72], [24, .83], [29, .96], [30, 1], [32, 1]],
     [[0, .10], [.15, .20], [.35, .54], [.72, .875]]),

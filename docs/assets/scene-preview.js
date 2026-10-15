@@ -1,5 +1,5 @@
-import { scenePreviewBox, playbackPreviewBox } from './scene-framing.js?v=shop-20261014-sage1';
-import { paintCampaignWorld, CAMPAIGN_WORLDS } from './campaign-backdrop.js?v=shop-20261014-sage1';
+import { scenePreviewBox, playbackPreviewBox } from './scene-framing.js?v=shop-20261015-intro1';
+import { paintCampaignWorld, CAMPAIGN_WORLDS } from './campaign-backdrop.js?v=shop-20261015-intro1';
 
 export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=element.ownerDocument}){
   if(!doc?.createElement)return false;
@@ -11,11 +11,12 @@ export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
   const hero=element.closest('.campaign-hero'),detail=element.closest('.product-gallery__primary');
   const guide=element.closest('[data-playback-profile="home-cycle"]');
+  const intro=element.closest('[data-playback-profile="hero-intro"]');
   const word=hero?(hero.classList.contains('campaign-hero--refill')?'REFILL':'BAMBOO')
     :detail?.querySelector('.product-gallery__word')?.textContent||'BAMBOO';
   const signature=JSON.stringify([width,height,scent,word,campaign,doc.fonts?.check?.('700 160px Campaign')]);
   if(canvas.dataset.previewWorldSignature===signature)return true;
-  if(guide||!hero&&!detail){context.setTransform(scale,0,0,scale,0,0);context.fillStyle=(guide?CAMPAIGN_WORLDS.aloe:CAMPAIGN_WORLDS[scent]||CAMPAIGN_WORLDS.aloe).base;context.fillRect(0,0,width,height);}
+  if(guide||intro||!hero&&!detail){context.setTransform(scale,0,0,scale,0,0);context.fillStyle=(guide?CAMPAIGN_WORLDS.aloe:CAMPAIGN_WORLDS[scent]||CAMPAIGN_WORLDS.aloe).base;context.fillRect(0,0,width,height);}
   else paintCampaignWorld(context,{width,height,world:scent,word,layout:campaign?'campaign':'detail',scale});
   canvas.dataset.previewWorldSignature=signature;
   return true;

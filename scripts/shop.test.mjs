@@ -22,18 +22,20 @@ const links = html => tags(html, 'link').map(attrs);
 const scriptData = (html, id) => JSON.parse(html.match(new RegExp(`<script[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)<\\/script>`))[1]);
 const unescape = value => value.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
 
-test('the graphic hero leads to scent selection and a finite, controllable automatic use cycle', () => {
+test('the editorial hero illustrates refilling before scent selection and the complete automatic use cycle', () => {
   for (const lang of locales) {
     const main = readPage(lang).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
     assert.equal(tags(main, 'div').filter(tag => attrs(tag)['data-shop-scene']).length, 2);
     assert.match(main, /campaign-hero--home/);
-    assert.match(main, /<h1 class="campaign-word">BAMBOO/);
+    assert.match(main, /<h1 class="intro-title">/);
+    assert.doesNotMatch(main, /<h1 class="campaign-word">BAMBOO/);
+    assert.match(main, /data-playback-profile="hero-intro"/);
     assert.ok(main.indexOf('campaign-hero--home') < main.indexOf('id="collection"'));
     assert.ok(main.indexOf('id="collection"') < main.indexOf('data-playback-profile="home-cycle"'));
     assert.doesNotMatch(main, /data-product-journey|data-ritual-scroll/, 'home explanation is no longer a pinned native-scroll track');
     const scenes = tags(main, 'div').map(attrs).filter(tag => tag['data-shop-scene']);
-    assert.deepEqual(scenes.map(tag => tag['data-shop-scene']), ['product', 'journey']);
-    assert.equal(scenes[0]['data-art-direction'], 'campaign');
+    assert.deepEqual(scenes.map(tag => tag['data-shop-scene']), ['journey', 'journey']);
+    assert.equal(scenes[0]['data-art-direction'], 'intro');
     assert.equal(scenes[0]['data-scent'], 'aloe', 'a new visit begins with the sage Aloe world');
     assert.ok(tags(main, 'div').some(tag => attrs(tag)['data-shop-scene'] === 'journey'));
     const phases = tags(main, 'article').map(attrs).filter(tag => tag['data-journey-caption']);
@@ -170,7 +172,7 @@ test('navigation is consistent and the useful first product image is prioritized
  for(const lang of locales)for(const route of ['','refill/',...productRoutes]){
    const html=readPage(lang,route);
    const scent=route.startsWith('products/')?route.split('/')[1]:'aloe';
-   const family=route==='refill/'?'teaser':route.startsWith('products/')?'detail':'campaign';
+   const family=route==='refill/'?'teaser':route.startsWith('products/')?'detail':'guide';
    const expected=`${base}/assets/shop-${family}-product-${scent}.webp`;
    const leadImage=tags(html,'img').map(attrs).find(image=>image.fetchpriority==='high');
    assert.ok(leadImage?.src.startsWith(expected),`${lang}/${route} prioritizes its matching scent and camera poster`);
@@ -367,7 +369,7 @@ test('published 3D assets retain approved artwork and exclude rejected legacy re
   assert.equal(publishedViewer, sourceViewer.replaceAll('./assembly/', '../assembly/'), 'published shop viewer only adapts the approved module directory');
   const imports = [...publishedViewer.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)].map(match => match[1]);
   for (const specifier of imports) {
-    assert.ok(specifier.startsWith('../assembly/') || ['./journey-pose.js','./campaign-backdrop.js','./scene-framing.js','./product-theme.js'].includes(specifier.split('?')[0]), 'approved models use the pose adapter, shared preview framing and coherent fragrance theme');
+    assert.ok(specifier.startsWith('../assembly/') || ['./intro-pose.js','./journey-pose.js','./campaign-backdrop.js','./scene-framing.js','./product-theme.js'].includes(specifier.split('?')[0]), 'approved models use the pose adapter, shared preview framing and coherent fragrance theme');
     assert.ok(fs.existsSync(path.resolve(root, 'assets', specifier.split('?')[0])), `${specifier} resolves after publishing`);
   }
   const poseSource = fs.readFileSync(path.join('assets', 'journey-pose.js'), 'utf8');
