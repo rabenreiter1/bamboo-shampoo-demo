@@ -1,7 +1,7 @@
-import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261015-intro1';
-import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261015-intro1';
-import {scenePreviewBox,playbackPreviewBox} from './scene-framing.js?v=shop-20261015-intro1';
-import {primeProductPhotos} from './product-photos.js?v=shop-20261015-tip8';
+import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261015-cycles9';
+import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261015-cycles9';
+import {scenePreviewBox,playbackPreviewBox,classicGuideRegion} from './scene-framing.js?v=shop-20261015-cycles9';
+import {primeProductPhotos} from './product-photos.js?v=shop-20261015-cycles9';
 
 // This changes only the loading illustration, never the stored pose. A closed
 // poster must not contradict a restored, open or manually rotated product.
@@ -23,19 +23,26 @@ export function primeShop({doc,storage,href,ui}){
   const read=key=>{try{return JSON.parse(storage.getItem(key));}catch{return null;}};
   const main=doc.querySelector('main'),form=doc.querySelector('main.pdp-page [data-product-form]');
   const format=new URL(href).searchParams.get('format');
-  const choice=normalizeChoice(form?{scent:form.dataset.id,format}:read('bamboo-journey-choice-v1'));
+  for(const link of doc.querySelectorAll('a.lang-switch')){
+    const target=new URL(link.href,href);
+    if(['refill','shampoo'].includes(format))target.searchParams.set('format',format);
+    else target.searchParams.delete('format');
+    link.href=target.href;
+  }
+  const choice=normalizeChoice(form?{scent:form.dataset.id,format}:read('bamboo-journey-choice-v1'),{scent:ui.design==='classic'?'bamboo':'aloe',format:'shampoo'});
   doc.documentElement.dataset.selectedScent=choice.scent;
-  const bookmark=normalizeBookmark(read('bamboo-journey-return-v1'));
+  const routeBase=ui.routeBase||ui.base;
+  const bookmark=normalizeBookmark(read(ui.design==='classic'?'bamboo-journey-return-v1:classic':'bamboo-journey-return-v1'),ui.design==='classic'?'classic-scroll-guide-v1':undefined);
   for(const link of doc.querySelectorAll('[data-resume-journey]')){
     link.hidden=!!main?.hasAttribute('data-journey')||!bookmark;
-    if(bookmark)link.href=`${ui.base}/${ui.lang}/?resume=1#${bookmark.chapter}`;
+    if(bookmark)link.href=`${routeBase}/${ui.lang}/?resume=1#${bookmark.chapter}`;
   }
   for(const world of doc.querySelectorAll('[data-world]')){
     world.dataset.world=choice.scent;
     world.classList.remove('scent-aloe','scent-argan','scent-bamboo');world.classList.add(`scent-${choice.scent}`);
     world.querySelectorAll('[data-world-name]').forEach(el=>el.textContent=ui.names[choice.scent]);
     world.querySelectorAll('[data-world-description]').forEach(el=>el.textContent=ui.scentDescriptions[choice.scent]);
-    world.querySelectorAll('[data-world-link]').forEach(el=>el.href=`${ui.base}/${ui.lang}/products/${choice.scent}/${el.dataset.worldFormat==='refill'?'?format=refill':''}`);
+    world.querySelectorAll('[data-world-link]').forEach(el=>el.href=`${routeBase}/${ui.lang}/products/${choice.scent}/${el.dataset.worldFormat==='refill'?'?format=refill':''}`);
   }
   doc.querySelectorAll('[data-world-scent]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.worldScent===choice.scent)));
   if(form){
@@ -62,7 +69,10 @@ export function primeShop({doc,storage,href,ui}){
     const image=element.querySelector('img'),name=scenePreviewAsset({mode,scent,campaign,profile});
     if(image&&name){image.src=`${ui.base}/assets/${name}?v=${ui.version}`;const label=ui.productGallery?.[mode];if(label){image.alt=label;element.setAttribute('aria-label',label);}}
     const rect=element.getBoundingClientRect();if(!rect.width||!rect.height)continue;
-    const frame=profile?playbackPreviewBox({width:rect.width,height:rect.height,profile,reserved:!!element.closest('.campaign-hero')})
+    const classicGuide=mode==='journey'&&ui.design==='classic';
+    const copyHeight=classicGuide?parseFloat(doc.defaultView?.getComputedStyle(element.closest('.product-journey__sticky')).getPropertyValue('--journey-copy-height')):undefined;
+    const region=classicGuide?classicGuideRegion({width:rect.width,height:rect.height,copyHeight:copyHeight||undefined,viewportHeight:doc.defaultView?.innerHeight}):undefined;
+    const frame=profile||classicGuide?playbackPreviewBox({width:rect.width,height:rect.height,profile,reserved:!!element.closest('.campaign-hero'),region})
       :scenePreviewBox({width:rect.width,height:rect.height,mode,campaign,reserved:!!element.closest('.campaign-hero')});
     for(const [name,value] of Object.entries(frame))element.style.setProperty(`--preview-${name}`,`${value}${name==='rotation'?'deg':'px'}`);
     paintScenePreviewWorld(element,{width:rect.width,height:rect.height,scent,campaign,doc});

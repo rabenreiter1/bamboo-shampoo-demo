@@ -1,16 +1,16 @@
 import * as THREE from '../assembly/vendor/three.module.js';
-import { staticSceneFrame, refillTeaserRegion } from './scene-framing.js?v=shop-20261015-intro1';
-import { createCampaignBackdrop } from './campaign-backdrop.js?v=shop-20261015-intro1';
-import { PRODUCT_THEMES, BRAND_THEME } from './product-theme.js?v=shop-20261015-intro1';
-import { createStudioEnvironment } from '../assembly/studio-environment.js?v=culm-20261015-1';
-import { finishBamboo, finishCap, finishMicroSurface } from '../assembly/surface-finish.js?v=culm-20261015-1';
+import { staticSceneFrame, refillTeaserRegion } from './scene-framing.js?v=shop-20261015-cycles9';
+import { createCampaignBackdrop, campaignWorld } from './campaign-backdrop.js?v=shop-20261015-cycles9';
+import { PRODUCT_THEMES, BRAND_THEME } from './product-theme.js?v=shop-20261015-cycles9';
+import { createStudioEnvironment } from '../assembly/studio-environment.js?v=studio-20261015-2';
+import { finishBamboo, finishCap, finishMicroSurface } from '../assembly/surface-finish.js?v=studio-20261015-2';
 import { createBody, shellRadiusAt } from '../assembly/body.js?v=ritual-20261013-1';
 import { createRitualCap } from '../assembly/ritual-cap.js?v=tip-20261015-2';
 import { createPeelSeal, createGel, configurePetReflectionSkin } from '../assembly/ritual-effects.js?v=ritual-20261013-visibility-1';
 import { computeCycleState, TILT_AXIS, clamp } from '../assembly/ritual-timeline.js?v=ritual-20261012-4';
-import { createRitualSpace } from '../assembly/ritual-space.js?v=shop-20261015-intro1';
-import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261015-intro1';
-import { computeIntroPose } from './intro-pose.js?v=shop-20261015-intro1';
+import { createRitualSpace } from '../assembly/ritual-space.js?v=shop-20261015-cycles9';
+import { computeJourneyPose, createJourneySpace, createJourneyCollarFlex } from './journey-pose.js?v=shop-20261015-cycles9';
+import { computeIntroPose } from './intro-pose.js?v=shop-20261015-cycles9';
 
 // The shop shares the approved component factories and original source artwork.
 // Body geometry/materials never deform, so concurrent viewers can share them.
@@ -90,7 +90,7 @@ export function mountShopScene(container, options = {}) {
   const opaque = hasBackdrop || options.opaque === true || (initialMode === 'journey' && !options.capture);
   const artDirection = ['campaign', 'detail'].includes(options.artDirection) ? options.artDirection : 'studio';
   const campaign = artDirection === 'campaign';
-  const worlds = Object.fromEntries(Object.entries(PRODUCT_THEMES).map(([id, theme]) => [id, theme.world.base]));
+  const worlds = Object.fromEntries(Object.keys(PRODUCT_THEMES).map(id => [id, campaignWorld(id,options.design).base]));
   let world = Object.hasOwn(worlds, options.scent) ? options.scent : 'bamboo';
   let backgroundColor = options.background || (initialMode === 'journey' ? BRAND_THEME.sage : artDirection === 'campaign' ? worlds[world] : BRAND_THEME.ivory);
   let poseProgress = clamp(finite(options.poseProgress),0,1), targetPoseProgress = poseProgress,
@@ -551,7 +551,7 @@ export function mountShopScene(container, options = {}) {
   function makeEnvironment() {
     const previous = environment;
     environment = createStudioEnvironment({ THREE, renderer });
-    scene.environment = environment.texture; scene.environmentIntensity = .55;
+    scene.environment = environment.texture; scene.environmentIntensity = .32;
     previous?.dispose();
   }
 
@@ -676,19 +676,19 @@ export function mountShopScene(container, options = {}) {
       if (hasBackdrop) {
         await document.fonts.load('700 160px Campaign');
         if (disposed) return;
-        backdrop = createCampaignBackdrop({ THREE, world, word: options.backdropWord || 'BAMBOO', layout: options.backdrop }); scene.add(backdrop.mesh);
+        backdrop = createCampaignBackdrop({ THREE, world, word: options.backdropWord || 'BAMBOO', layout: options.backdrop, design:options.design }); scene.add(backdrop.mesh);
       }
       camera = new THREE.PerspectiveCamera(30, 1, .5, 5000);
       makeEnvironment();
-      scene.add(new THREE.HemisphereLight('#fffaf2', '#777d6f', .25));
-      key = new THREE.DirectionalLight('#fff8ed', 2.4);
+      scene.add(new THREE.HemisphereLight('#fffaf2', '#777d6f', .12));
+      key = new THREE.DirectionalLight('#fff8ed', 2.2);
       key.position.set(-230, 370, 350); key.castShadow = true;
       key.shadow.mapSize.set(1024, 1024);
       Object.assign(key.shadow.camera, { left: -350, right: 350, top: 450, bottom: -250, near: 1, far: 1600 });
       key.shadow.camera.updateProjectionMatrix();
       key.shadow.bias = -.00016; key.shadow.normalBias = .28; key.shadow.radius = 4; scene.add(key);
-      const fill = new THREE.DirectionalLight('#f4f7fb', .40); fill.position.set(250, 160, 340); scene.add(fill);
-      const rim = new THREE.DirectionalLight('#fffaf3', .85); rim.position.set(130, 320, -210); scene.add(rim);
+      const fill = new THREE.DirectionalLight('#f4f7fb', .16); fill.position.set(250, 160, 340); scene.add(fill);
+      const rim = new THREE.DirectionalLight('#fffaf3', .40); rim.position.set(130, 320, -210); scene.add(rim);
       floor = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.ShadowMaterial({ color: '#586145', opacity: .065 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -85.4; floor.receiveShadow = true; scene.add(floor);
       const built = await Promise.allSettled([acquireBody(), initialMode === 'shell' ? Promise.resolve(null) : createRitualCap({ THREE, colors: PRODUCT_THEMES[world].capColors })]);

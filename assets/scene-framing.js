@@ -77,8 +77,13 @@ export function playbackSceneFrame({width,height,profile='home-cycle',reserved=f
   return {center,distance,zoom,region,aim,cameraPosition:add(aim,direction,distance/zoom),direction,right,up,tanV,tanH,points};
 }
 
-export function playbackPreviewBox({width,height,profile='home-cycle',reserved=false}){
-  const reference=playbackSceneFrame({width:1280,height:1600,profile}),current=playbackSceneFrame({width,height,profile,reserved});
+export function classicGuideRegion({width,height,copyHeight=width<=760?156:132,viewportHeight=height}){
+  return viewportHeight<=560&&width>viewportHeight?{minX:.36,maxX:.97,minY:.10,maxY:.93,layout:'beside'}
+    :{minX:width<=760?.035:.105,maxX:width<=760?.965:.895,minY:.075,maxY:Math.max(.22,Math.min(.82,(height-copyHeight-32)/Math.max(1,height))),layout:'studio'};
+}
+
+export function playbackPreviewBox({width,height,profile='home-cycle',reserved=false,region}){
+  const reference=playbackSceneFrame({width:1280,height:1600,profile}),current=playbackSceneFrame({width,height,profile,reserved,region});
   const center=projectScenePoint(current.center,current,width,height),scale=height/1600*reference.distance/current.distance;
   return {left:center.x,top:center.y,width:1280*scale,height:1600*scale,rotation:0};
 }

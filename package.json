@@ -13,10 +13,11 @@
     "test": "node --test scripts/*.test.mjs && node scripts/check.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.9.0"
   },
   "devDependencies": {
     "gltf-validator": "^2.0.0-dev.3.10",
+    "sharp": "0.35.5",
     "three": "^0.186.1"
   }
 }

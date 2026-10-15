@@ -1,5 +1,5 @@
 {
-  "version": "culm-20261015-1",
+  "version": "studio-20261015-2",
   "method": "Built-in ImageGen material-only synthesis referenced to the real prototype photograph. Standard WebP encoding only; geometry and engraving are separately source-controlled.",
   "sourceSha256": "6319771852f19ad64ff295ba54cd340ec4ae96962d656b229ba1c8774a74d9a2",
   "assetSha256": "b5af979448f86249eb8c9ca14a54ae31d805bf20625cd7147c13682af6eff2d0",
@@ -14,18 +14,18 @@
   "engravingDepthMillimeters": 0.065,
   "depthMeasured": false,
   "code": {
-    "assembly/surface-finish.js": "fec433ee86aac7fb694ce528a585e46eaa17d21155af3481e17dcc432d475de2",
+    "assembly/surface-finish.js": "40f1a787715327b7a8dd6a0d6058433bd3303fa6757506239b5ad7340b3e8597",
     "assembly/studio-environment.js": "2c8a5e414e93c8a611721f60f36ca2fdc0e3acc2c9aa1ee76fe302084ee50ec8"
   },
   "loadingFrames": {
     "method": "Source-derived WebGL factory capture; native browser alpha conversion; no retouching or baked background",
     "source": {
       "product-theme.js": "49208e0467c5212e1ea1c54bbd1323869369b88982a1b341142debb46c2dd596",
-      "shop-scene.js": "a57fbcec1b1a3966a0758ee06b2bc3eb8164c918cb163416627cc4a183d8a2f6",
-      "scene-framing.js": "638b7d4050f3ed702484e16493b739ceb01836a21bae9ef6585dd7920d0e97a5",
-      "campaign-backdrop.js": "94d14048172cc3e1541260c1f4ea9d48c9522c7d78528641592504df580688c0",
+      "shop-scene.js": "e391ab9e1bc362578b50c9241d3eb151146cfe246260b4992791ef96f9e6eef1",
+      "scene-framing.js": "45fce9fce367b1bdd7b1bb36c21cbb89e534cfa3d8a61966d366bc1b8af59669",
+      "campaign-backdrop.js": "acf61650b393000d4193c01ee034ad793739eed24ea657968a889fc05bfc8044",
       "journey-pose.js": "4ed3046e985a739f0563269a23abe28d5f7293685a250881c670b203a2394844",
-      "assembly/surface-finish.js": "fec433ee86aac7fb694ce528a585e46eaa17d21155af3481e17dcc432d475de2",
+      "assembly/surface-finish.js": "40f1a787715327b7a8dd6a0d6058433bd3303fa6757506239b5ad7340b3e8597",
       "assembly/bamboo-culm-albedo.webp": "b5af979448f86249eb8c9ca14a54ae31d805bf20625cd7147c13682af6eff2d0",
       "assembly/studio-environment.js": "2c8a5e414e93c8a611721f60f36ca2fdc0e3acc2c9aa1ee76fe302084ee50ec8",
       "assembly/body.js": "0f6c145bfa092fe9dd97fc94bc14b793019b268d3f0bb62beacc021aa8c351c9",
@@ -37,64 +37,64 @@
     },
     "assets": {
       "shop-detail-product-aloe.webp": {
-        "sha256": "2deff3094b0ee2154704ef64e00f8c8365a58b22b32e3e9fe8eb85cfc04ee51e",
-        "bytes": 164416,
+        "sha256": "0e561609343539f15dd14cd1261bfa8f09f2fc834606678ddf5ac78ae184917a",
+        "bytes": 174378,
         "scent": "aloe",
         "mode": "product",
         "progress": 0
       },
       "shop-detail-product-argan.webp": {
-        "sha256": "757da59a9e162d746309bae81905adeab635ac7cdaa8ee2ffd78e8fb24c7304f",
-        "bytes": 165142,
+        "sha256": "45abb3066918c591c596d898ddb1a5d49cc2a897211b2c609ebdd36b7aaf246c",
+        "bytes": 175644,
         "scent": "argan",
         "mode": "product",
         "progress": 0
       },
       "shop-detail-product-bamboo.webp": {
-        "sha256": "1b30cbdd9fd72ddb451a4e174cb1befe286062ef06c15b252b396be24af31b2c",
-        "bytes": 165172,
+        "sha256": "32bdc13741d60e09fe0b24cada59623eeacff9faaeaa805f7c268c51c2ea0430",
+        "bytes": 174866,
         "scent": "bamboo",
         "mode": "product",
         "progress": 0
       },
       "shop-guide-product-aloe.webp": {
-        "sha256": "fa45b7147dfa8e77c133e2779388e39343676cab3ca0a2609a3b09f6658e5026",
-        "bytes": 175550,
+        "sha256": "5cd349a4c31e0516b5ac25e9315a78e7b69c28484e3570d1750ecf7d0da5d32b",
+        "bytes": 183680,
         "scent": "aloe",
         "mode": "journey",
         "progress": 0
       },
       "shop-guide-product-argan.webp": {
-        "sha256": "b27773e19ec3043666e2888b140a03bae706554207fd10246bb83f3b8eb4dfcf",
-        "bytes": 175746,
+        "sha256": "b7a325529a733bbf81997d21b3fc53d8efbd5b10aa6a4bc92905bd70f7b19639",
+        "bytes": 184394,
         "scent": "argan",
         "mode": "journey",
         "progress": 0
       },
       "shop-guide-product-bamboo.webp": {
-        "sha256": "d355e311ab6c953b28bbfed6bdbe56280d7c83681c8dc26047f323fde7afa971",
-        "bytes": 175482,
+        "sha256": "6ecd1fb2f89ea7ec593178346547ad25ad40336f3ec42574de08b973c8e09073",
+        "bytes": 183548,
         "scent": "bamboo",
         "mode": "journey",
         "progress": 0
       },
       "shop-teaser-product-aloe.webp": {
-        "sha256": "2ab812dd9844d0393e9a189aba93a48586fb2b4e29556e0f7aa7e449922afab4",
-        "bytes": 155428,
+        "sha256": "8e5b555975ff99bcf901b75966fdd0641234e8e1032cdfa81296638ea69c1ee5",
+        "bytes": 163784,
         "scent": "aloe",
         "mode": "ritual",
         "progress": 0.72
       },
       "shop-teaser-product-argan.webp": {
-        "sha256": "12d61bf0abaeca387aaddc7fd30d26a907b3ca73368856f3494b0539591c3dfb",
-        "bytes": 156218,
+        "sha256": "947295d7c64e2002d86caeed15afcafc1718265bae184f67ec89bc8565af5c58",
+        "bytes": 165546,
         "scent": "argan",
         "mode": "ritual",
         "progress": 0.72
       },
       "shop-teaser-product-bamboo.webp": {
-        "sha256": "0ebfa6d77bcf39a1123f0ef1d6980169178f8554c4a17e86c78097b33a46c0b7",
-        "bytes": 155976,
+        "sha256": "0224d158b411987571b51aaa232bea10e908df9b44cda61c914d89b3c99438c7",
+        "bytes": 164264,
         "scent": "bamboo",
         "mode": "ritual",
         "progress": 0.72

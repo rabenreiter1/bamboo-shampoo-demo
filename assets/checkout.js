@@ -1,3 +1,4 @@
+import {productPhotoAsset} from './product-photos.js?v=shop-20261015-cycles9';
 import { formatPrice, prices, productKey, sanitizeCart } from './catalog.js';
 import { CHECKOUT_STEPS, restoreCheckoutState, normalizeDemoReceipt, reduceCheckout, checkoutTotals, checkoutCartFingerprint,
   updateCheckoutQuantity, removeCheckoutItem } from './checkout-state.js';
@@ -13,7 +14,7 @@ const icon = name => `<svg class="icon" width="20" height="20" viewBox="0 0 24 2
  * session. No personal details, network requests or payment providers.
  */
 export function initializeCheckout({
-  root = globalThis.document?.querySelector('[data-checkout-root]'), lang = 'de', base = '',
+  root = globalThis.document?.querySelector('[data-checkout-root]'), lang = 'de', base = '', routeBase = base,
   getCart = () => [], onCartChange = () => {}, onComplete = () => {}, completionDelay = 420, receiptStore
 } = {}) {
   if (!root) return null;
@@ -47,8 +48,8 @@ export function initializeCheckout({
   if (!state.receipt) discardReceipt();
 
   const label = format => format === 'refill' ? 'Refill' : text('Starter-Set', 'Starter Set');
-  const productURL = item => `${base}/${lang}/products/${item.scent}/${item.format === 'refill' ? '?format=refill' : ''}`;
-  const imageURL = item => `${base}/assets/photo-${item.format === 'refill' ? 'refill' : 'product'}-${item.scent}-640.webp`;
+  const productURL = item => `${routeBase}/${lang}/products/${item.scent}/${item.format === 'refill' ? '?format=refill' : ''}`;
+  const imageURL = item => `${base}/assets/${productPhotoAsset(item.format === 'refill' ? 'refill' : 'product',item.scent,true)}`;
   const deliveryLabel = id => id === 'pickup' ? text('Beispiel-Abholpunkt', 'Sample pickup point') : text('Beispieladresse', 'Sample address');
   const paymentLabel = id => id === 'wallet' ? 'Demo-Wallet' : text('Demo-Karte · •••• 4242', 'Demo card · •••• 4242');
   const address = id => id === 'pickup'

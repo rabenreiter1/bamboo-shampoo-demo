@@ -4,6 +4,31 @@ German: https://rabenreiter1.github.io/bamboo-shampoo-demo/de/
 English: https://rabenreiter1.github.io/bamboo-shampoo-demo/en/
 Fullscreen 3D product ritual: https://rabenreiter1.github.io/bamboo-shampoo-demo/assembly/
 
+## Current studio images and design comparison
+
+The default routes retain the sage/ivory presentation and automatic explanation. `/classic/de/` and `/classic/en/` restore the graphic composition and typography from `a5071f1`, with the current corrected components, pastel caps and shared commerce code. The classic home explanation follows native scrolling in both directions. No retired detail dialogs or duplicate format selectors are restored.
+
+Double activate the copyright line in the footer within 450 ms to reveal **Aktuelles Design / Früheres Design** (English equivalents on English pages). Enter or Space opens the inline choices; Escape closes them. The hit area is at least 44 px. The matching route, language, fragrance, queried format and session bag survive a switch; the new presentation starts at the top. The mobile purchase dock hides when the footer enters view so it cannot cover these links. Explicit classic URLs do not change the default entry route. Journey bookmarks are separated by presentation.
+
+Static packaging assets use Blender 4.5.9 LTS Cycles, with responsive WebP output. `scripts/current-studio-stills-manifest.json` records the fresh operative-factory GLB, exact source POSITION/UV/index buffers and transforms, Blender before/after geometry checks, original engraving hash, recipe snapshots and individual PNG/WebP hashes. Material-only changes provide moulded silicone, clear PET and separate absorbing liquid, with soft studio lighting. No geometry modifier or generative product-image edit is used. Static images have no switch to a realtime viewer. The animation loading images remain actual matching WebGL frames, not Cycles stills substituted into motion stages.
+
+Reproduce the private source export and image pipeline locally (Blender is obtained separately from its official distribution):
+
+```sh
+npm ci
+node scripts/cycles-serve.mjs
+# Open the printed localhost URL; export and download the verified source JSON.
+node scripts/cycles-job.mjs <blender-executable> <downloaded-source.json> qa/cycles-output
+node scripts/cycles-encode.mjs qa/cycles-output
+node scripts/build.mjs
+node --test --test-concurrency=1 scripts/*.test.mjs
+node scripts/check.mjs
+```
+
+The export harness is local only; the Pages build does not publish it, raw source bundles, Blender or private technical drawings. The serialized GLB check explicitly reports GLTFExporter's normal-vector normalization; positions, UVs, indices and transforms remain byte-identical. Optical coefficients are visual material choices, not measured lab values. The unchanged procedural liquid has a 0.204364 mm contact gap between its side and concave free-surface perimeter. The single-object Cycles optical approximation retains and documents that gap rather than adding geometry. Packaging images retain a neutral studio backdrop through transmitting surfaces to avoid noisy glass-alpha coverage; their exterior background remains transparent.
+
+This revision passes 282 automated tests and the 59-page checker (44 localized content pages, 12 preserved redirects, entry, 404 and the fullscreen approval page). The archived assembly GLB validates with zero errors and warnings. The 17 Cycles WebPs are 28–58 KB at small sizes and 34–152 KB at full sizes, within their 120/240 KB limits. Codex in-app Chromium checks covered the footer double activation and keyboard navigation, variant/language/Argan-refill preservation, the shared bag and a complete €4.50 classic demo checkout. Layout measurements across phone, tablet, landscape and ultrawide sizes found no document overflow on the inspected home, collection, refill, story and checkout routes. Native card snapping aligned the next card within one CSS pixel. Isolated local reduced-motion and forced-WebGL-failure fixtures exposed all eight written steps in both designs. A private ten-second model-module delay retained the matched Aloe poster, the 844 px hero height and scroll position0 when the viewer became ready. These are desktop-browser checks; physical iPhone/Safari, native multi-touch and field performance remain unverified.
+
 A bilingual storefront preview built around the approved 3D product. The homepage opens with “Shampoo zum Nachfüllen.” and a short automatic construction study, followed by three fragrance cards and the complete automatic product explanation. Ivory, sage and dark green frame pastel-green Aloe, rose Argan and pastel-blue Bamboo caps. Aloe has pale aqua liquid, Argan warm amber and Bamboo soft green; bulk, surface, stream, droplets and refill posters share each scent's palette. The standalone approval animation retains its grapefruit-coral appearance and scroll controls. The collection, product configuration, editorial story, FAQ, bag and simulated checkout have dedicated routes and responsive layouts. It accepts no orders, payments or customer contact details.
 
 The sage/autoplay revision passes 247 automated tests and the 31-page build checker. Chrome viewport checks cover 320×568, 390×844, 430×932, 768×1024, 844×390, 1440×900, 1920×1080 and 3440×1440: no document overflow in the inspected layouts, all eight captions fit their stable space, and chapter touch targets exceed 44px. Browser checks include snapped fragrance cards with a visible next-card preview, menu suspension without elapsed-time catch-up, manual inspection pause, restored paused playback, a deliberately delayed asset cold start, readable renderer-failure fallbacks, and a complete €17 mixed Starter-Set/Refill demo checkout including refresh-safe confirmation. These are desktop Chrome viewport and local fixture checks, not physical iPhone/Safari or hardware frame-rate certification.

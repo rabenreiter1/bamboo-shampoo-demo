@@ -1046,9 +1046,9 @@ html:has([data-playback-profile]) { scroll-padding-top: calc(var(--header) + 12p
 .photo-viewer > .product-photograph { position: absolute; inset: 0; display: block; inline-size: 100%; block-size: 100%; object-fit: contain; padding: 18px 0; z-index: 2; pointer-events: none; }
 .story-product-stage > .photo-viewer { position: absolute; inset: 0; }
 .story-product-stage > .photo-viewer > .product-photograph { padding-block: 30px 70px; }
-.product-card__art > img[src*='/photo-'] { padding: 20px 0 39px; }
-.product-card[data-format='refill'] .product-card__art > img[src*='/photo-'] { transform: scale(1.03); }
-.product-card[data-format='refill']:hover .product-card__art > img[src*='/photo-'] { transform: translateY(-4px) scale(1.05); }
+.product-card__art > img[src*='/cycles-'] { padding: 20px 0 39px; }
+.product-card[data-format='refill'] .product-card__art > img[src*='/cycles-'] { transform: scale(1.03); }
+.product-card[data-format='refill']:hover .product-card__art > img[src*='/cycles-'] { transform: translateY(-4px) scale(1.05); }
 @media (max-width: 760px) {
   .photo-viewer > .product-photograph { padding: 12px 0; }
   .story-product-stage > .photo-viewer > .product-photograph { padding-block-end: 86px; }
