@@ -1,6 +1,6 @@
 // Finished, versioned crawler images. These use the approved product rendering;
 // the shop itself continues to load the interactive scene and its matched poster.
-export const SHARE_CARD_VERSION = '20261015-photographic';
+export const SHARE_CARD_VERSION = '20261015-source';
 export const SHARE_CARD_SIZE = Object.freeze({ width: 1200, height: 630 });
 const scents = ['aloe', 'argan', 'bamboo'];
 const names = { aloe: 'Aloe', argan: 'Argan', bamboo: 'Bamboo' };

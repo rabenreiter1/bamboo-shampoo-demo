@@ -9,7 +9,7 @@ import { fragrances, formatPrice } from '../assets/catalog.js';
 import { createShopPages, shopCopy } from './shop-pages.mjs';
 import { shareCardFor, shareCardSpecs } from './share-cards.mjs';
 import { themeCss } from '../assets/product-theme.js';
-const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-photo1';
+const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-source2';
 const out=path.resolve('docs');
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 // Publish finished assets only; rejected concept models/artwork stay local.
@@ -19,6 +19,8 @@ const photoAssets=['aloe','argan','bamboo'].flatMap(scent=>['product','refill'].
 const approvedAssets=[...photoAssets,'product-photos.js',...sageAssets,'intro-pose.js','product-theme.js','playback.js',...shareCardSpecs.map(card=>card.file),'prime-shop.js','scene-framing.js','scene-preview.js','shop-detail-product.webp','shop-campaign-product.webp',...['detail','campaign'].flatMap(family=>['aloe','argan','bamboo'].map(scent=>`shop-${family}-refill-${scent}.webp`)),'polish.css','navigation.js','scene-loader.js','checkout.js','checkout-state.js','app.js','journey.js','journey-caption.js','journey-pose.js','style.css','catalog.js','shop-scene.js','campaign-backdrop.js','shop-product-front.webp','shop-shell.webp','shop-product.jpg','shop-refill.jpg','shop-cap.jpg','shop-product.webp','shop-refill.webp','shop-refill-aloe.webp','shop-refill-argan.webp','shop-refill-bamboo.webp','shop-cap.webp','bamboo-water.webp','gel-macro.webp','display.woff2','display-LICENSE.txt','forest.webp','favicon.svg','editorial.woff2','editorial-italic.woff2','editorial-LICENSE.txt','sans.woff2','sans-LICENSE.txt'];
 // Retire only these known generated packaging concepts from the published tree.
 for(const name of ['hero.webp','product.webp','aloe.webp','argan.webp','refill.webp'])fs.rmSync(path.join(out,'assets',name),{force:true});
+// These rejected generated product pictures must not remain active share URLs.
+for(const lang of ['de','en'])for(const id of ['home','aloe','argan','bamboo','refill'])fs.rmSync(path.join(out,'assets',`share-${id}-${lang}-20261015-photographic.jpg`),{force:true});
 for(const name of approvedAssets){
   const source=path.join('assets',name), target=path.join(out,'assets',name);
   if(!fs.existsSync(source))throw new Error(`Missing shop asset: ${name}`);
