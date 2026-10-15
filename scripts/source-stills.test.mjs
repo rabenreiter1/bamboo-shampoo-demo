@@ -10,6 +10,24 @@ const photographic=JSON.parse(fs.readFileSync('scripts/photographic-stills-manif
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const codeSha=bytes=>sha(Buffer.from(bytes.toString('utf8').replaceAll('\r\n','\n')));
 
+test('selected photographic lower profiles stay within reviewed source-silhouette tolerance',()=>{
+ const review=JSON.parse(fs.readFileSync('scripts/photographic-profile-review.json','utf8'));
+ assert.equal(review.schema,'bamboo-photo-profile-review-v1');
+ assert.equal(review.approvedBaseToCap,58/59);
+ assert.ok(review.toleranceRelativeToCap<=.012);
+ assert.match(review.limits,/does not certify/);
+ assert.deepEqual(Object.keys(review.variants).sort(),['aloe','argan','bamboo']);
+ for(const [scent,{reference,selected}]of Object.entries(review.variants)){
+  const provenance=photographic.generated[`photo-product-${scent}`];
+  assert.equal(selected.sha256,provenance.sourceSha256,'profile review belongs to the selected final image');
+  assert.equal(reference.sha256,provenance.baselineCaptureSha256,'profile comparison uses the approved source capture');
+  for(const [height,sample]of Object.entries(selected.samples)){
+   assert.ok(sample.widthRelativeToCap<1,`${scent}: the lower body must not flare wider than the cap`);
+   assert.ok(Math.abs(sample.widthRelativeToCap-reference.samples[height].widthRelativeToCap)<=review.toleranceRelativeToCap,`${scent}: lower silhouette differs from reviewed source`);
+  }
+ }
+});
+
 test('photographic material retouches have recorded output hashes and an honest unchanged source baseline',()=>{
  assert.equal(manifest.schema,'bamboo-source-stills-v1');
  assert.equal(photographic.schema,'bamboo-photographic-stills-v1');

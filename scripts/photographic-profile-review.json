@@ -1,0 +1,237 @@
+{
+  "schema": "bamboo-photo-profile-review-v1",
+  "method": "Read-only alpha silhouette measurement: longest alpha > 230 run per row; body heights normalized from opaque silhouette; widths normalized to maximum cap width in first 16% of height.",
+  "limits": "Sampled projected lower silhouette only. This does not certify engraving pixels, all surface geometry, manufacturing accuracy or generative image identity.",
+  "toleranceRelativeToCap": 0.012,
+  "approvedBaseToCap": 0.9830508474576272,
+  "variants": {
+    "aloe": {
+      "reference": {
+        "file": "qa/source-stills/photo-product-aloe.png",
+        "sha256": "1ec9b0c02035d42cef2f6bc1963fddf85d4e06579444374421aa0b8095819d4e",
+        "dimensions": [
+          1280,
+          1600
+        ],
+        "top": 99,
+        "bottom": 1508,
+        "capWidth": 464,
+        "samples": {
+          "0.7": {
+            "widthRelativeToCap": 0.9353448275862069,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.8": {
+            "widthRelativeToCap": 0.9482758620689655,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.9": {
+            "widthRelativeToCap": 0.9698275862068966,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.94": {
+            "widthRelativeToCap": 0.978448275862069,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.955": {
+            "widthRelativeToCap": 0.9827586206896551,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.97": {
+            "widthRelativeToCap": 0.9827586206896551,
+            "centerRelativeToCap": -0.0010775862068965517
+          }
+        }
+      },
+      "selected": {
+        "file": "qa/ultra-photography/photo-product-aloe.png",
+        "sha256": "60668fb8045601fa5527af2f0c26717e7666d517803207a7381ffb4c0af70b58",
+        "dimensions": [
+          1121,
+          1403
+        ],
+        "top": 82,
+        "bottom": 1326,
+        "capWidth": 411,
+        "samples": {
+          "0.7": {
+            "widthRelativeToCap": 0.9440389294403893,
+            "centerRelativeToCap": -0.0024330900243309003
+          },
+          "0.8": {
+            "widthRelativeToCap": 0.9562043795620438,
+            "centerRelativeToCap": -0.0036496350364963502
+          },
+          "0.9": {
+            "widthRelativeToCap": 0.975669099756691,
+            "centerRelativeToCap": -0.0036496350364963502
+          },
+          "0.94": {
+            "widthRelativeToCap": 0.9829683698296837,
+            "centerRelativeToCap": -0.0024330900243309003
+          },
+          "0.955": {
+            "widthRelativeToCap": 0.9854014598540146,
+            "centerRelativeToCap": -0.0036496350364963502
+          },
+          "0.97": {
+            "widthRelativeToCap": 0.9805352798053528,
+            "centerRelativeToCap": -0.0036496350364963502
+          }
+        }
+      }
+    },
+    "argan": {
+      "reference": {
+        "file": "qa/source-stills/photo-product-argan.png",
+        "sha256": "3b67c5b8eb8f9c2e8bdda648886b72efb4da880a78e9fd8c9a2513cef547d6bb",
+        "dimensions": [
+          1280,
+          1600
+        ],
+        "top": 99,
+        "bottom": 1508,
+        "capWidth": 464,
+        "samples": {
+          "0.7": {
+            "widthRelativeToCap": 0.9353448275862069,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.8": {
+            "widthRelativeToCap": 0.9482758620689655,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.9": {
+            "widthRelativeToCap": 0.9698275862068966,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.94": {
+            "widthRelativeToCap": 0.978448275862069,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.955": {
+            "widthRelativeToCap": 0.9827586206896551,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.97": {
+            "widthRelativeToCap": 0.9827586206896551,
+            "centerRelativeToCap": -0.0010775862068965517
+          }
+        }
+      },
+      "selected": {
+        "file": "qa/ultra-photography/photo-product-argan.png",
+        "sha256": "5c6fb7c77832b10d0a07052c164cc881093b81a04b16eb274019dd7c35617531",
+        "dimensions": [
+          1121,
+          1403
+        ],
+        "top": 84,
+        "bottom": 1324,
+        "capWidth": 408,
+        "samples": {
+          "0.7": {
+            "widthRelativeToCap": 0.9387254901960784,
+            "centerRelativeToCap": -0.003676470588235294
+          },
+          "0.8": {
+            "widthRelativeToCap": 0.9509803921568627,
+            "centerRelativeToCap": -0.004901960784313725
+          },
+          "0.9": {
+            "widthRelativeToCap": 0.9705882352941176,
+            "centerRelativeToCap": -0.004901960784313725
+          },
+          "0.94": {
+            "widthRelativeToCap": 0.9803921568627451,
+            "centerRelativeToCap": -0.004901960784313725
+          },
+          "0.955": {
+            "widthRelativeToCap": 0.9852941176470589,
+            "centerRelativeToCap": -0.004901960784313725
+          },
+          "0.97": {
+            "widthRelativeToCap": 0.9803921568627451,
+            "centerRelativeToCap": -0.004901960784313725
+          }
+        }
+      }
+    },
+    "bamboo": {
+      "reference": {
+        "file": "qa/source-stills/photo-product-bamboo.png",
+        "sha256": "aef1433c3d7d06a51add98f5604e59d86f6eea25bc42e8a40ffef4687d32d000",
+        "dimensions": [
+          1280,
+          1600
+        ],
+        "top": 99,
+        "bottom": 1508,
+        "capWidth": 464,
+        "samples": {
+          "0.7": {
+            "widthRelativeToCap": 0.9353448275862069,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.8": {
+            "widthRelativeToCap": 0.9482758620689655,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.9": {
+            "widthRelativeToCap": 0.9698275862068966,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.94": {
+            "widthRelativeToCap": 0.978448275862069,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.955": {
+            "widthRelativeToCap": 0.9827586206896551,
+            "centerRelativeToCap": -0.0010775862068965517
+          },
+          "0.97": {
+            "widthRelativeToCap": 0.9827586206896551,
+            "centerRelativeToCap": -0.0010775862068965517
+          }
+        }
+      },
+      "selected": {
+        "file": "qa/ultra-photography/photo-product-bamboo.png",
+        "sha256": "e573eb8a9c5e49507b6a87e733a5385e5ba622e4fdab3fe9143d2aad87c7306e",
+        "dimensions": [
+          1121,
+          1403
+        ],
+        "top": 82,
+        "bottom": 1325,
+        "capWidth": 410,
+        "samples": {
+          "0.7": {
+            "widthRelativeToCap": 0.9439024390243902,
+            "centerRelativeToCap": -0.003658536585365854
+          },
+          "0.8": {
+            "widthRelativeToCap": 0.9585365853658536,
+            "centerRelativeToCap": -0.003658536585365854
+          },
+          "0.9": {
+            "widthRelativeToCap": 0.9780487804878049,
+            "centerRelativeToCap": -0.003658536585365854
+          },
+          "0.94": {
+            "widthRelativeToCap": 0.9878048780487805,
+            "centerRelativeToCap": -0.003658536585365854
+          },
+          "0.955": {
+            "widthRelativeToCap": 0.9902439024390244,
+            "centerRelativeToCap": -0.0024390243902439024
+          },
+          "0.97": {
+            "widthRelativeToCap": 0.9829268292682927,
+            "centerRelativeToCap": -0.003658536585365854
+          }
+        }
+      }
+    }
+  }
+}

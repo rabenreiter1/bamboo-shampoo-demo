@@ -9,7 +9,7 @@ import { fragrances, formatPrice } from '../assets/catalog.js';
 import { createShopPages, shopCopy } from './shop-pages.mjs';
 import { shareCardFor, shareCardSpecs } from './share-cards.mjs';
 import { themeCss } from '../assets/product-theme.js';
-const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-ultra4';
+const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-base5';
 const out=path.resolve('docs');
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 // Publish finished assets only; rejected concept models/artwork stay local.

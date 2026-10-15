@@ -5,8 +5,8 @@ import { createSceneLoader } from './scene-loader.js?v=shop-20261015-intro1';
 import { initializeJourney, normalizeBookmark } from './journey.js?v=shop-20261015-intro1';
 import { initializePlayback, playbackAt, playbackTimeForProgress, PLAYBACK_VERSION } from './playback.js?v=shop-20261015-intro1';
 import { BRAND_THEME } from './product-theme.js?v=shop-20261015-intro1';
-import { needsPlaybackRestorePreview } from './prime-shop.js?v=shop-20261015-ultra4';
-import { productPhotoAsset, updateProductPhoto } from './product-photos.js?v=shop-20261015-ultra4';
+import { needsPlaybackRestorePreview } from './prime-shop.js?v=shop-20261015-base5';
+import { productPhotoAsset, updateProductPhoto } from './product-photos.js?v=shop-20261015-base5';
 import { initializeProductJourney } from './journey-caption.js?v=shop-20261015-intro1';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
