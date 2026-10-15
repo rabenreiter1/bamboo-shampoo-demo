@@ -71,7 +71,7 @@ test('capture uses the actual 250 ml contour, current cap reference and byte-ide
  assert.ok(manifest.limits.some(value=>value.includes('placeholder')),'undimensioned details remain explicitly unverified');
 });
 
-test('every rendered body and cap mesh matches the current approved factory geometry',async()=>{
+test('unmodified body and cap factories retain the geometry used by the approved baseline captures',async()=>{
  const body=await createBody({THREE}),cap=await createRitualCap({THREE});
  try{
   const actual={};
