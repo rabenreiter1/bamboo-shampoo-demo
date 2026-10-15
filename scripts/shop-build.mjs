@@ -8,19 +8,19 @@ import { fragrances, formatPrice } from '../assets/catalog.js';
 import { createShopPages, shopCopy } from './shop-pages.mjs';
 import { shareCardFor, shareCardSpecs } from './share-cards.mjs';
 import { themeCss } from '../assets/product-theme.js';
-const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261014-sage1';
+const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-intro1';
 const out=path.resolve('docs');
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 // Publish finished assets only; rejected concept models/artwork stay local.
 const sageScents=['aloe','argan','bamboo'];
 const sageAssets=sageScents.flatMap(id=>['detail','campaign'].flatMap(family=>['product','refill'].map(mode=>`shop-${family}-${mode}-${id}.webp`)).concat(['product-front','guide-product','teaser-product','cap'].map(family=>`shop-${family}-${id}.webp`)));
-const approvedAssets=[...sageAssets,'product-theme.js','playback.js',...shareCardSpecs.map(card=>card.file),'prime-shop.js','scene-framing.js','scene-preview.js','shop-detail-product.webp','shop-campaign-product.webp',...['detail','campaign'].flatMap(family=>['aloe','argan','bamboo'].map(scent=>`shop-${family}-refill-${scent}.webp`)),'polish.css','navigation.js','scene-loader.js','checkout.js','checkout-state.js','app.js','journey.js','journey-caption.js','journey-pose.js','style.css','catalog.js','shop-scene.js','campaign-backdrop.js','shop-product-front.webp','shop-shell.webp','shop-product.jpg','shop-refill.jpg','shop-cap.jpg','shop-product.webp','shop-refill.webp','shop-refill-aloe.webp','shop-refill-argan.webp','shop-refill-bamboo.webp','shop-cap.webp','bamboo-water.webp','gel-macro.webp','display.woff2','display-LICENSE.txt','forest.webp','favicon.svg','editorial.woff2','editorial-italic.woff2','editorial-LICENSE.txt','sans.woff2','sans-LICENSE.txt'];
+const approvedAssets=[...sageAssets,'intro-pose.js','product-theme.js','playback.js',...shareCardSpecs.map(card=>card.file),'prime-shop.js','scene-framing.js','scene-preview.js','shop-detail-product.webp','shop-campaign-product.webp',...['detail','campaign'].flatMap(family=>['aloe','argan','bamboo'].map(scent=>`shop-${family}-refill-${scent}.webp`)),'polish.css','navigation.js','scene-loader.js','checkout.js','checkout-state.js','app.js','journey.js','journey-caption.js','journey-pose.js','style.css','catalog.js','shop-scene.js','campaign-backdrop.js','shop-product-front.webp','shop-shell.webp','shop-product.jpg','shop-refill.jpg','shop-cap.jpg','shop-product.webp','shop-refill.webp','shop-refill-aloe.webp','shop-refill-argan.webp','shop-refill-bamboo.webp','shop-cap.webp','bamboo-water.webp','gel-macro.webp','display.woff2','display-LICENSE.txt','forest.webp','favicon.svg','editorial.woff2','editorial-italic.woff2','editorial-LICENSE.txt','sans.woff2','sans-LICENSE.txt'];
 // Retire only these known generated packaging concepts from the published tree.
 for(const name of ['hero.webp','product.webp','aloe.webp','argan.webp','refill.webp'])fs.rmSync(path.join(out,'assets',name),{force:true});
 for(const name of approvedAssets){
   const source=path.join('assets',name), target=path.join(out,'assets',name);
   if(!fs.existsSync(source))throw new Error(`Missing shop asset: ${name}`);
-  if(name==='shop-scene.js'||name==='journey-pose.js')fs.writeFileSync(target,fs.readFileSync(source,'utf8').replaceAll('./assembly/','../assembly/'));
+  if(name==='shop-scene.js'||name==='journey-pose.js'||name==='intro-pose.js')fs.writeFileSync(target,fs.readFileSync(source,'utf8').replaceAll('./assembly/','../assembly/'));
   else fs.copyFileSync(source,target);
 }
 const esc=text=>String(text).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');

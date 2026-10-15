@@ -1,12 +1,12 @@
-import { createScenePreviews } from './scene-preview.js?v=shop-20261014-sage1';
+import { createScenePreviews } from './scene-preview.js?v=shop-20261015-intro1';
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeNavigation } from './navigation.js?v=shop-20261014-sage1';
-import { createSceneLoader } from './scene-loader.js?v=shop-20261014-sage1';
-import { initializeJourney, normalizeBookmark } from './journey.js?v=shop-20261014-sage1';
-import { initializePlayback, playbackAt, playbackTimeForProgress, PLAYBACK_VERSION } from './playback.js?v=shop-20261014-sage1';
-import { BRAND_THEME } from './product-theme.js?v=shop-20261014-sage1';
-import { needsPlaybackRestorePreview } from './prime-shop.js?v=shop-20261014-sage1';
-import { initializeProductJourney } from './journey-caption.js?v=shop-20261014-sage1';
+import { initializeNavigation } from './navigation.js?v=shop-20261015-intro1';
+import { createSceneLoader } from './scene-loader.js?v=shop-20261015-intro1';
+import { initializeJourney, normalizeBookmark } from './journey.js?v=shop-20261015-intro1';
+import { initializePlayback, playbackAt, playbackTimeForProgress, PLAYBACK_VERSION } from './playback.js?v=shop-20261015-intro1';
+import { BRAND_THEME } from './product-theme.js?v=shop-20261015-intro1';
+import { needsPlaybackRestorePreview } from './prime-shop.js?v=shop-20261015-intro1';
+import { initializeProductJourney } from './journey-caption.js?v=shop-20261015-intro1';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
 const lang=ui.lang, de=lang==='de', base=ui.base;
@@ -138,10 +138,10 @@ async function mountScene(element){
   const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,
    progress:playback?.getProgress()??snapshot?.progress??productJourney?.getProgress()??0,
    playbackProfile,automaticYaw:playbackSnapshot?playbackAt(playbackProfile,playbackSnapshot.elapsed).automaticYaw:undefined,
-   cameraRegion:playbackProfile==='home-cycle'?{minX:.06,maxX:.94,minY:.05,maxY:.95,layout:'external'}:undefined,
+   cameraRegion:['home-cycle','hero-intro'].includes(playbackProfile)?{minX:.06,maxX:.94,minY:.05,maxY:.95,layout:'external'}:undefined,
    yaw:snapshot?.yaw??playbackSnapshot?.yaw??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionYaw)||0:0),
    zoom:snapshot?.zoom||1,reveal:1,poseProgress:snapshot?.pose||0,opaque:true,
-   backdrop:campaignHero?'campaign':productArt?'detail':undefined,
+   backdrop:campaignHero&&!campaignHero.classList.contains('intro-hero')?'campaign':productArt?'detail':undefined,
    backdropWord:campaignHero?(campaignHero.classList.contains('campaign-hero--refill')?'REFILL':'BAMBOO'):productArt?.querySelector('.product-gallery__word')?.textContent,
    inspection:element.hasAttribute('data-inspection'),paused:!!journey?.isLocked()&&element.closest('dialog')!==journey.getTopDialog(),
    background:playbackProfile==='home-cycle'?BRAND_THEME.sage:getComputedStyle(element).getPropertyValue('--world-bg').trim()||undefined,
@@ -150,6 +150,16 @@ async function mountScene(element){
     'Left and right arrow keys rotate the view. Home resets rotation.'+(element.hasAttribute('data-inspection')?' Plus and minus zoom. The slider moves the animation.':' Scroll to move through the page.'),onJourneyFrame:state=>{
    if(!pageActive||token.epoch!==sceneEpoch||reduced.matches)return;
    playback?.render(state);
+   if(playbackProfile==='hero-intro'){
+    const section=element.closest('.intro-hero'),q=state.q;
+    const reveal=Math.min(1,Math.max(0,(q-.30)/.12),Math.max(0,(.78-q)/.12));
+    section.style.setProperty('--intro-reveal',String(reveal));
+    for(const label of section.querySelectorAll('[data-intro-anchor]')){
+     const anchor=state.anchors?.[label.dataset.introAnchor];
+     const end={cap:[200,185],insert:[790,445],shell:[400,810]}[label.dataset.introAnchor];
+     if(anchor&&end)section.querySelector(`[data-intro-line="${label.dataset.introAnchor}"]`)?.setAttribute('d',`M${anchor.x*1000},${anchor.y*1000} L${end[0]},${end[1]} h${label.dataset.introAnchor==='insert'?45:-45}`);
+    }
+   }
    if(!productJourney)return;
    if(!productJourney.enhanced){productJourney.enhance(state);journey?.ready();scheduleScroll();}
    else productJourney.render(state);
