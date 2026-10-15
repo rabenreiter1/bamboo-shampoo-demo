@@ -9,13 +9,13 @@ import { fragrances, formatPrice } from '../assets/catalog.js';
 import { createShopPages, shopCopy } from './shop-pages.mjs';
 import { shareCardFor, shareCardSpecs } from './share-cards.mjs';
 import { themeCss } from '../assets/product-theme.js';
-const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-stills7';
+const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-tip8';
 const out=path.resolve('docs');
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 // Publish finished assets only; rejected concept models/artwork stay local.
 const sageScents=['aloe','argan','bamboo'];
 const sageAssets=sageScents.flatMap(id=>['detail','campaign'].flatMap(family=>['product','refill'].map(mode=>`shop-${family}-${mode}-${id}.webp`)).concat(['product-front','guide-product','teaser-product','cap'].map(family=>`shop-${family}-${id}.webp`)));
-const photoAssets=['aloe','argan','bamboo'].flatMap(scent=>['product','refill'].flatMap(mode=>[productPhotoAsset(mode,scent),productPhotoAsset(mode,scent,true)])).concat(['photo-shell.webp','photo-shell-640.webp','photo-cap-argan.webp','photo-cap-argan-640.webp','photo-refill-detail.webp']);
+const photoAssets=['aloe','argan','bamboo'].flatMap(scent=>['product','refill'].flatMap(mode=>[productPhotoAsset(mode,scent),productPhotoAsset(mode,scent,true)])).concat(['shell','cap'].flatMap(mode=>[productPhotoAsset(mode),productPhotoAsset(mode,'aloe',true)]).concat(['photo-refill-detail.webp']));
 const approvedAssets=[...photoAssets,'product-photos.js',...sageAssets,'intro-pose.js','product-theme.js','playback.js',...shareCardSpecs.map(card=>card.file),'prime-shop.js','scene-framing.js','scene-preview.js','shop-detail-product.webp','shop-campaign-product.webp',...['detail','campaign'].flatMap(family=>['aloe','argan','bamboo'].map(scent=>`shop-${family}-refill-${scent}.webp`)),'polish.css','navigation.js','scene-loader.js','checkout.js','checkout-state.js','app.js','journey.js','journey-caption.js','journey-pose.js','style.css','catalog.js','shop-scene.js','campaign-backdrop.js','shop-product-front.webp','shop-shell.webp','shop-product.jpg','shop-refill.jpg','shop-cap.jpg','shop-product.webp','shop-refill.webp','shop-refill-aloe.webp','shop-refill-argan.webp','shop-refill-bamboo.webp','shop-cap.webp','bamboo-water.webp','gel-macro.webp','display.woff2','display-LICENSE.txt','forest.webp','favicon.svg','editorial.woff2','editorial-italic.woff2','editorial-LICENSE.txt','sans.woff2','sans-LICENSE.txt'];
 // Retire only these known generated packaging concepts from the published tree.
 for(const name of ['hero.webp','product.webp','aloe.webp','argan.webp','refill.webp'])fs.rmSync(path.join(out,'assets',name),{force:true});

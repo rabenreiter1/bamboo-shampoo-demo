@@ -3,8 +3,8 @@
  * Product/cart format keys remain compatible. No live viewer is mounted. */
 export function productPhotoAsset(mode='product',scent='aloe',small=false){
   const fragrance=['aloe','argan','bamboo'].includes(scent)?scent:'aloe';
-  if(mode==='product')return `studio-product-${fragrance}-20261015${small?'-640':''}.webp`;
-  const name=mode==='shell'?'photo-shell':mode==='cap'?'photo-cap-argan':
+  if(mode==='product')return `studio-product-${fragrance}-20261015b${small?'-640':''}.webp`;
+  const name=mode==='shell'?'studio-shell-20261015b':mode==='cap'?'studio-cap-argan-20261015b':
     mode==='refill'?`photo-refill-${fragrance}`:null;
   return name?`${name}${small?'-640':''}.webp`:null;
 }

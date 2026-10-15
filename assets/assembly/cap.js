@@ -1,4 +1,4 @@
-import { CAP_SOURCE } from './cap-data.js';
+import { CAP_SOURCE } from './cap-data.js?v=tip-20261015-2';
 
 /**
  * Current cap proof. World coordinates are millimetres, Y up; the tether in
