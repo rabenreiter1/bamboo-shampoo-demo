@@ -91,8 +91,8 @@
   "prompts": "qa/ultra-photography/prompts.json",
   "assets": {
     "photo-product-aloe.webp": {
-      "sha256": "b90d64c6060c0fc7680bba2d1fcab29116524973b087d5bcf34e56b8e14ddb71",
-      "bytes": 177344,
+      "sha256": "97f0b4de7d1324bd1f08c34cd93642cd2922c3da2672673fec1ddc5c1e94822f",
+      "bytes": 156594,
       "width": 1280,
       "height": 1600,
       "hasAlpha": true,
@@ -101,8 +101,8 @@
       "budgetBytes": 240000
     },
     "photo-product-aloe-640.webp": {
-      "sha256": "d7f84597ef8a719d8c5de51a16e8ee1f62ee056c9e3174a86a5f5540192455b1",
-      "bytes": 60120,
+      "sha256": "7da1b0e80e6742b6f0d599c75ce011a3f21c8b5ad2fdb5c12a531b98d710dad8",
+      "bytes": 58678,
       "width": 640,
       "height": 800,
       "hasAlpha": true,
@@ -111,8 +111,8 @@
       "budgetBytes": 120000
     },
     "photo-product-argan.webp": {
-      "sha256": "fec67659fcb0d3fb9915296e628dfdda05f306afe9631831fcfe6a386f6d1153",
-      "bytes": 156484,
+      "sha256": "c19c1a6a729089dea76414538ae494d1e3b2b62b14ef3217fcc4eee8ab9957bf",
+      "bytes": 152032,
       "width": 1280,
       "height": 1600,
       "hasAlpha": true,
@@ -121,8 +121,8 @@
       "budgetBytes": 240000
     },
     "photo-product-argan-640.webp": {
-      "sha256": "092639f33a41c2129c88dea7380db0706ad8e44c14a775de06ce43d3cb8adb24",
-      "bytes": 58490,
+      "sha256": "042ae748f2cae30668abf0c2c23f5864606c8cb89bed999b40689c9cd47be5ff",
+      "bytes": 56592,
       "width": 640,
       "height": 800,
       "hasAlpha": true,
@@ -131,8 +131,8 @@
       "budgetBytes": 120000
     },
     "photo-product-bamboo.webp": {
-      "sha256": "94fd3a1ad8531b47f94960a2ccf5efefb467607edd72ff2e4b58abd2f736bdb3",
-      "bytes": 157480,
+      "sha256": "73ec51508aebe9609ad2046f7edd80824039021ac2720ac33cdec68da9a76e6c",
+      "bytes": 156600,
       "width": 1280,
       "height": 1600,
       "hasAlpha": true,
@@ -141,8 +141,8 @@
       "budgetBytes": 240000
     },
     "photo-product-bamboo-640.webp": {
-      "sha256": "a81826a84c5f9cca02330f8578c258d52d4eb561e72e7fe95565c80e68a8bc78",
-      "bytes": 58132,
+      "sha256": "61bb0a9a7fcb7300d98960d13b4ddd2e95e1e0779fca671a8ec7f509dfc515a6",
+      "bytes": 57382,
       "width": 640,
       "height": 800,
       "hasAlpha": true,
@@ -263,8 +263,8 @@
   },
   "generated": {
     "photo-product-aloe": {
-      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-dc238a3a-d1d9-4d74-ac09-b238b66f5774.png",
-      "sourceSha256": "19b0eed51207a8427e9c53d4498b5fe8e8a427f8478bc5b329875d2de8112d7f",
+      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-af86326f-fb48-4aa7-944c-897efa9a2a5f.png",
+      "sourceSha256": "60668fb8045601fa5527af2f0c26717e7666d517803207a7381ffb4c0af70b58",
       "sourceDimensions": [
         1121,
         1403
@@ -275,8 +275,8 @@
       "baselineCaptureSha256": "1ec9b0c02035d42cef2f6bc1963fddf85d4e06579444374421aa0b8095819d4e"
     },
     "photo-product-argan": {
-      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-3efc7d1c-a0e1-419d-9036-d6c9e3939e2e.png",
-      "sourceSha256": "1146c63e44913897f19b889bfea0abdfb652cf6b375dccc046497022d950ce9f",
+      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-1215f56d-cd22-4bd6-825a-d1b8516267fb.png",
+      "sourceSha256": "5c6fb7c77832b10d0a07052c164cc881093b81a04b16eb274019dd7c35617531",
       "sourceDimensions": [
         1121,
         1403
@@ -287,8 +287,8 @@
       "baselineCaptureSha256": "3b67c5b8eb8f9c2e8bdda648886b72efb4da880a78e9fd8c9a2513cef547d6bb"
     },
     "photo-product-bamboo": {
-      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-8e5f7b4b-4701-4b85-912b-ac5cff8c1e18.png",
-      "sourceSha256": "2d2170b2ebdf7a4395904ab41702ff461aec4a54a4a870407434e1fb627a9690",
+      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-4e3361ca-f667-40fc-bfbb-4651f25d8af7.png",
+      "sourceSha256": "e573eb8a9c5e49507b6a87e733a5385e5ba622e4fdab3fe9143d2aad87c7306e",
       "sourceDimensions": [
         1121,
         1403
