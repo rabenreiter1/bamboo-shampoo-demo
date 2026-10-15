@@ -6,19 +6,38 @@ import * as THREE from 'three';
 import {createBody} from '../assets/assembly/body.js';
 import {createRitualCap} from '../assets/assembly/ritual-cap.js';
 const manifest=JSON.parse(fs.readFileSync('scripts/still-capture-manifest.json','utf8'));
+const photographic=JSON.parse(fs.readFileSync('scripts/photographic-stills-manifest.json','utf8'));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const codeSha=bytes=>sha(Buffer.from(bytes.toString('utf8').replaceAll('\r\n','\n')));
 
-test('finished stills are the captured source-mesh renders, not substituted AI images',()=>{
+test('photographic material retouches have recorded output hashes and an honest unchanged source baseline',()=>{
  assert.equal(manifest.schema,'bamboo-source-stills-v1');
+ assert.equal(photographic.schema,'bamboo-photographic-stills-v1');
+ assert.match(photographic.disclosure,/not camera-captured photographs/);
+ assert.match(photographic.disclosure,/not claimed to be mesh-identical or pixel-exact/);
+ assert.equal(codeSha(fs.readFileSync(photographic.baseline.file)),photographic.baseline.codeSha256);
+ assert.deepEqual(photographic.baseline.source,manifest.source);
+ assert.deepEqual(photographic.baseline.assets,manifest.assets);
  assert.equal(codeSha(fs.readFileSync('scripts/still-studio.js')),manifest.captureScriptSha256);
- assert.equal(Object.keys(manifest.assets).length,17);
- for(const [file,entry] of Object.entries(manifest.assets)){
+ assert.equal(Object.keys(photographic.assets).length,17);
+ assert.equal(Object.keys(photographic.generated).length,9);
+ for(const [file,entry] of Object.entries(photographic.assets)){
   const bytes=fs.readFileSync(`assets/${file}`);
-  assert.equal(sha(bytes),entry.sha256,`${file} must be recaptured and verified when replaced`);
+  assert.equal(sha(bytes),entry.sha256,`${file} must match the selected photographic output`);
+  assert.equal(bytes.length,entry.bytes);
+  assert.ok(entry.bytes<entry.budgetBytes,`${file} exceeds its loading budget`);
+  assert.equal(entry.hasAlpha,true,`${file} preserves transparent edges`);
+  const expected=file.includes('detail')?[1536,1024]:file.includes('-640')?[640,800]:[1280,1600];
+  assert.deepEqual([entry.width,entry.height],expected);
   assert.ok(bytes.equals(fs.readFileSync(`docs/assets/${file}`)));
  }
+ for(const entry of Object.values(photographic.generated)){
+  assert.equal(entry.sourceHasAlpha,true);
+  if(fs.existsSync(entry.workspaceCopy))assert.equal(sha(fs.readFileSync(entry.workspaceCopy)),entry.sourceSha256);
+  if(fs.existsSync(entry.baselineCapture))assert.equal(sha(fs.readFileSync(entry.baselineCapture)),entry.baselineCaptureSha256);
+ }
  assert.equal(Object.keys(manifest.frames).length,9);
+ // This is a source-capture claim only. Generative material edits are validated separately above.
  for(const frame of Object.values(manifest.frames))assert.equal(frame.sourceGeometryIdentical,true);
 });
 
