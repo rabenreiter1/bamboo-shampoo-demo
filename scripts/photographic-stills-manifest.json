@@ -1,0 +1,378 @@
+{
+  "schema": "bamboo-photographic-stills-v1",
+  "created": "2026-10-15",
+  "method": "Built-in ImageGen material and lighting edits of drawing-derived source captures. Resize and WebP transcode only after generation.",
+  "disclosure": "AI-assisted photographic product visualizations, not camera-captured photographs. The source drawing/model/engraving files are unchanged; generative final pixels are not claimed to be mesh-identical or pixel-exact.",
+  "baseline": {
+    "file": "scripts/still-capture-manifest.json",
+    "codeSha256": "bc00bd1e3ba79d5e2a3951133e8dc09a2e649037895f8d114876ca1d1bbfa4f0",
+    "source": {
+      "assembly/body.js": "0f6c145bfa092fe9dd97fc94bc14b793019b268d3f0bb62beacc021aa8c351c9",
+      "assembly/body-profile.js": "761ecc7dbe8b3372c5fa04733f4b65b86111046cf6bed72188e40f076351bbc5",
+      "assembly/cap-data.js": "b90e7523bc79df16d609317a8127ee5c4b80317709316df287a05bc523f6e9b3",
+      "assembly/ritual-cap.js": "419e390f0ccfea8c7c4f7e19c5197ea70514551ed530b1ba7eafd849bb717051",
+      "assembly/ritual-effects.js": "f0fe0904777000ffa1f2e6f1b1d2ff84ea162540a950da362e7895fa094f4438",
+      "assembly/original-engraving.svg": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa",
+      "assembly/cap-reference.jpg": "dbd0fd9d44a9bc04225e9430fe4d2cd9accadf9a59b2912d20fd49e05a495a41",
+      "product-theme.js": "49208e0467c5212e1ea1c54bbd1323869369b88982a1b341142debb46c2dd596",
+      "actual250Drawing": "7fe76412fe08f68561b2613a2a8d0cbaa771f14f38d3e1084c96b2b0522d9272"
+    },
+    "assets": {
+      "photo-product-aloe.webp": {
+        "sha256": "47e11b94121e7c67a222480e865f26c865ff87287f1c399518a30d5ee5f817b8",
+        "bytes": 138962
+      },
+      "photo-product-aloe-640.webp": {
+        "sha256": "d51f1d2ac02cab879fc3167740d64b204b1064684516c7166c3cba7245adff13",
+        "bytes": 37322
+      },
+      "photo-refill-aloe.webp": {
+        "sha256": "292258c98f1923f7e5e49ead719a97e2ecf63f422c96bb9d99f57f8e44ba8630",
+        "bytes": 71710
+      },
+      "photo-refill-aloe-640.webp": {
+        "sha256": "4d9b264d8be79bc4f5d3a2d330326155aabcf19313cd599e710c0f5c2b6fb607",
+        "bytes": 24004
+      },
+      "photo-product-argan.webp": {
+        "sha256": "3bf05377051b56ca298bbad436bbb2f138e2b461fa89cec00681dd51874452cd",
+        "bytes": 138550
+      },
+      "photo-product-argan-640.webp": {
+        "sha256": "f785ab24109633794b40cb10d84c4cf5801c898f6dd7ef75e57fe9597601c0fc",
+        "bytes": 37308
+      },
+      "photo-refill-argan.webp": {
+        "sha256": "b3ecd66c893c7f1f9c1938b65b1a042aff1066172a1cc45a12ce8920c4a00244",
+        "bytes": 72512
+      },
+      "photo-refill-argan-640.webp": {
+        "sha256": "11e76be0574e7b2fea8135d8a59245c39aca6f0dd4c1c8d4efc5d33e0a8eca8e",
+        "bytes": 24284
+      },
+      "photo-product-bamboo.webp": {
+        "sha256": "c30d674e5aa2df33c07a7e444ac3d26814e8f158de0337ca243b40393aca055f",
+        "bytes": 138862
+      },
+      "photo-product-bamboo-640.webp": {
+        "sha256": "19b6ad00da9c932ca1aca3f9444cc7f58b9c214a1d611c4d5b0c8ae9f8c5b752",
+        "bytes": 37258
+      },
+      "photo-refill-bamboo.webp": {
+        "sha256": "23512ecf9e75158576f375a693e0618512413582565225a108aa03fe39f4f994",
+        "bytes": 71198
+      },
+      "photo-refill-bamboo-640.webp": {
+        "sha256": "d5085f24ca2bf5732217bc9af044e0b2e52b3c0bb3522b9c569008d18169ad65",
+        "bytes": 23984
+      },
+      "photo-shell.webp": {
+        "sha256": "7a15fdf52218413ed473023e4cb810e788d2b8d4a50522c485c273a17590f10d",
+        "bytes": 166082
+      },
+      "photo-shell-640.webp": {
+        "sha256": "779e0f409aad08bd80b7ddff7a324eb1e842d25fdf6a0389b4b1ef52afcd9205",
+        "bytes": 46820
+      },
+      "photo-cap-argan.webp": {
+        "sha256": "d4186f14cdeef642a64fe528a987b06402be7b5efeee6f79ce695756b80000d4",
+        "bytes": 435880
+      },
+      "photo-cap-argan-640.webp": {
+        "sha256": "b07e73645d6497e7a599129126ddfe29187091c3864f247a2523894c845495cf",
+        "bytes": 119800
+      },
+      "photo-refill-detail.webp": {
+        "sha256": "1a458078aae027de1f01663358f68657b774cbfd2ec195e980cf4bf3b7a2689c",
+        "bytes": 22036
+      }
+    }
+  },
+  "prompts": "qa/ultra-photography/prompts.json",
+  "assets": {
+    "photo-product-aloe.webp": {
+      "sha256": "b90d64c6060c0fc7680bba2d1fcab29116524973b087d5bcf34e56b8e14ddb71",
+      "bytes": 177344,
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-product-aloe",
+      "budgetBytes": 240000
+    },
+    "photo-product-aloe-640.webp": {
+      "sha256": "d7f84597ef8a719d8c5de51a16e8ee1f62ee056c9e3174a86a5f5540192455b1",
+      "bytes": 60120,
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-product-aloe",
+      "budgetBytes": 120000
+    },
+    "photo-product-argan.webp": {
+      "sha256": "fec67659fcb0d3fb9915296e628dfdda05f306afe9631831fcfe6a386f6d1153",
+      "bytes": 156484,
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-product-argan",
+      "budgetBytes": 240000
+    },
+    "photo-product-argan-640.webp": {
+      "sha256": "092639f33a41c2129c88dea7380db0706ad8e44c14a775de06ce43d3cb8adb24",
+      "bytes": 58490,
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-product-argan",
+      "budgetBytes": 120000
+    },
+    "photo-product-bamboo.webp": {
+      "sha256": "94fd3a1ad8531b47f94960a2ccf5efefb467607edd72ff2e4b58abd2f736bdb3",
+      "bytes": 157480,
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-product-bamboo",
+      "budgetBytes": 240000
+    },
+    "photo-product-bamboo-640.webp": {
+      "sha256": "a81826a84c5f9cca02330f8578c258d52d4eb561e72e7fe95565c80e68a8bc78",
+      "bytes": 58132,
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-product-bamboo",
+      "budgetBytes": 120000
+    },
+    "photo-shell.webp": {
+      "sha256": "7976b86aa65f7c9a5edd57170ba6251a17ff7e77c7c10225183380a43ebaa52b",
+      "bytes": 218562,
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-shell",
+      "budgetBytes": 600000
+    },
+    "photo-shell-640.webp": {
+      "sha256": "6d4dd0b8d2be3c317f2e0851db4ea42bb40e762074e8f98afb326cd8fd1a52fd",
+      "bytes": 72472,
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-shell",
+      "budgetBytes": 120000
+    },
+    "photo-cap-argan.webp": {
+      "sha256": "535b83a270f74e4dc2be60063ab9c7bf118b050534d06a986a4304a5b29e3ccf",
+      "bytes": 205910,
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-cap-argan",
+      "budgetBytes": 600000
+    },
+    "photo-cap-argan-640.webp": {
+      "sha256": "fec3a5267cf27f637f65c85e4785ab0115aff61f1bb19ff815946163471e220f",
+      "bytes": 57148,
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-cap-argan",
+      "budgetBytes": 120000
+    },
+    "photo-refill-aloe.webp": {
+      "sha256": "eea75de3bcbc889776d039abb2e6d7d2846b331389be994e5c5a351bf810aaf3",
+      "bytes": 101920,
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-refill-aloe",
+      "budgetBytes": 240000
+    },
+    "photo-refill-aloe-640.webp": {
+      "sha256": "16d5b78a718cc1b099fa318175e510cff0caabbe92ede08310560b2ce02d7780",
+      "bytes": 35952,
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-refill-aloe",
+      "budgetBytes": 120000
+    },
+    "photo-refill-argan.webp": {
+      "sha256": "e87007f50c1e7206e0b251daf5357f40259abdae6d1bd280d07612b46fb1db3d",
+      "bytes": 97178,
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-refill-argan",
+      "budgetBytes": 240000
+    },
+    "photo-refill-argan-640.webp": {
+      "sha256": "65312aa6ae84d0b674cf3c01088b29aa20c4c6ab7f88878b8c1168b4e6696354",
+      "bytes": 35548,
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-refill-argan",
+      "budgetBytes": 120000
+    },
+    "photo-refill-bamboo.webp": {
+      "sha256": "db92e974c43d2a4978874c62fd778feab62da580282aca2d0e532df8472029b3",
+      "bytes": 84070,
+      "width": 1280,
+      "height": 1600,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-refill-bamboo",
+      "budgetBytes": 240000
+    },
+    "photo-refill-bamboo-640.webp": {
+      "sha256": "3c7a9aae7ce16ec91945fd999ea02bc7d4556d8dadc9d78ffa551051f3c8295c",
+      "bytes": 30626,
+      "width": 640,
+      "height": 800,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-refill-bamboo",
+      "budgetBytes": 120000
+    },
+    "photo-refill-detail.webp": {
+      "sha256": "e282c117f161b2eb3fc2ac8781633204705deb16f0bf4e25fa072adcbc9f4114",
+      "bytes": 92714,
+      "width": 1536,
+      "height": 1024,
+      "hasAlpha": true,
+      "quality": 92,
+      "generated": "photo-refill-detail",
+      "budgetBytes": 240000
+    }
+  },
+  "generated": {
+    "photo-product-aloe": {
+      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-dc238a3a-d1d9-4d74-ac09-b238b66f5774.png",
+      "sourceSha256": "19b0eed51207a8427e9c53d4498b5fe8e8a427f8478bc5b329875d2de8112d7f",
+      "sourceDimensions": [
+        1121,
+        1403
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-product-aloe.png",
+      "baselineCapture": "qa/source-stills/photo-product-aloe.png",
+      "baselineCaptureSha256": "1ec9b0c02035d42cef2f6bc1963fddf85d4e06579444374421aa0b8095819d4e"
+    },
+    "photo-product-argan": {
+      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-3efc7d1c-a0e1-419d-9036-d6c9e3939e2e.png",
+      "sourceSha256": "1146c63e44913897f19b889bfea0abdfb652cf6b375dccc046497022d950ce9f",
+      "sourceDimensions": [
+        1121,
+        1403
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-product-argan.png",
+      "baselineCapture": "qa/source-stills/photo-product-argan.png",
+      "baselineCaptureSha256": "3b67c5b8eb8f9c2e8bdda648886b72efb4da880a78e9fd8c9a2513cef547d6bb"
+    },
+    "photo-product-bamboo": {
+      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-8e5f7b4b-4701-4b85-912b-ac5cff8c1e18.png",
+      "sourceSha256": "2d2170b2ebdf7a4395904ab41702ff461aec4a54a4a870407434e1fb627a9690",
+      "sourceDimensions": [
+        1121,
+        1403
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-product-bamboo.png",
+      "baselineCapture": "qa/source-stills/photo-product-bamboo.png",
+      "baselineCaptureSha256": "aef1433c3d7d06a51add98f5604e59d86f6eea25bc42e8a40ffef4687d32d000"
+    },
+    "photo-shell": {
+      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-3ad59027-2d76-4ec0-819e-4150e288ef37.png",
+      "sourceSha256": "8810e4eab0f3d4321f75dad0cf1abb0d9444134bda8ef0e1147f31fe1a6747b1",
+      "sourceDimensions": [
+        1121,
+        1403
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-shell.png",
+      "baselineCapture": "qa/source-stills/photo-shell.png",
+      "baselineCaptureSha256": "ad82387695b1d74498d3b48fcad882850c9b1f2791a0c99cc0969e1a46255243"
+    },
+    "photo-cap-argan": {
+      "sourceFile": "generated_images/01a13006-f069-7a00-89ee-2680a00d2756/exec-c495a023-9799-4d44-ad55-cac096008368.png",
+      "sourceSha256": "3b3a1ff44745d85f57127f44b7d0348d133d1813815a871a36c6dbe9ea182186",
+      "sourceDimensions": [
+        1121,
+        1403
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-cap-argan.png",
+      "baselineCapture": "qa/source-stills/photo-cap-argan.png",
+      "baselineCaptureSha256": "5acea130093b7532f239a868703820b3f4e2b1105746df70ea0e12e8d1e18cc6"
+    },
+    "photo-refill-aloe": {
+      "sourceFile": "generated_images/01a13ecf-c453-7631-a02e-358339d4a13a/exec-fab709b5-a923-42c3-ad81-b41d717271cb.png",
+      "sourceSha256": "d03c73080582c6800668b1c6d6e65ebed3b2a97d1c1c03bda9e3b6f2b35760eb",
+      "sourceDimensions": [
+        1121,
+        1403
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-refill-aloe.png",
+      "baselineCapture": "qa/source-stills/photo-refill-aloe.png",
+      "baselineCaptureSha256": "555a3e284b363934f8aefcda489cd1e350aaec1e317f5c42f50b820f1759c74e"
+    },
+    "photo-refill-argan": {
+      "sourceFile": "generated_images/01a13ecf-c453-7631-a02e-358339d4a13a/exec-417c359a-4574-4f59-b7cc-45625d1c9e72.png",
+      "sourceSha256": "7b59a7b1109ccf70faa9a065129df7db7206750b809f785456b3e3fb7a3a5b57",
+      "sourceDimensions": [
+        1121,
+        1403
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-refill-argan.png",
+      "baselineCapture": "qa/source-stills/photo-refill-argan.png",
+      "baselineCaptureSha256": "eb1629fee670c2abc0a471d989db6262048e837b5013354ae85c1154fce82236"
+    },
+    "photo-refill-bamboo": {
+      "sourceFile": "generated_images/01a13ecf-c453-7631-a02e-358339d4a13a/exec-67b3f3ee-8ff3-4cc6-a03c-d373a72c30a3.png",
+      "sourceSha256": "21c48fbbee7601947ba176272b806a87f3516906e9175535d85bb145ee746af9",
+      "sourceDimensions": [
+        1121,
+        1403
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-refill-bamboo.png",
+      "baselineCapture": "qa/source-stills/photo-refill-bamboo.png",
+      "baselineCaptureSha256": "cced4455cd73d605520c951c77b9b4e4d171399442106be7d74ae1fd217de93f"
+    },
+    "photo-refill-detail": {
+      "sourceFile": "generated_images/01a13ecf-c453-7631-a02e-358339d4a13a/exec-947ee6d4-01c7-4767-ac7a-fd0dd67c02ba.png",
+      "sourceSha256": "f10c06276b25e76cf12422e573cdee8eeed80e7a46c8473cdb15011c6086d9e9",
+      "sourceDimensions": [
+        1536,
+        1024
+      ],
+      "sourceHasAlpha": true,
+      "workspaceCopy": "qa/ultra-photography/photo-refill-detail.png",
+      "baselineCapture": "qa/source-stills/photo-refill-detail.png",
+      "baselineCaptureSha256": "37883b5f0ccb7803af29c02f17b203e8b0cc963564c30167a864310264c9e6c5"
+    }
+  },
+  "validation": {
+    "geometry": "Existing baseline mesh comparison verifies approved source factories only, not the retouched final images.",
+    "rasterProcessing": "Source PNG copied unchanged. Standard contain resize preserving aspect ratio and alpha; WebP encoding. No warp, generative fill, relabeling or geometry manipulation after generation."
+  }
+}

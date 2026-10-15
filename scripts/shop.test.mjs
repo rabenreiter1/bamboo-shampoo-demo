@@ -69,12 +69,12 @@ test('one form-owned priced selector below each model chooses starter set or ref
     assert.deepEqual(choices.map(tag=>tag.value),['shampoo','refill']);
     assert.ok(choices.every(tag=>tag.form===`product-form-${scent}`),'both choices belong to the actual purchasing form');
     assert.equal(tags(main,'form').filter(tag=>attrs(tag).id===`product-form-${scent}`).length,1);
-    assert.ok(main.indexOf('product-format')>main.indexOf('data-shop-scene="product"'));
+    assert.ok(main.indexOf('product-format')>main.indexOf('data-product-photo-viewer'));
     const selector=main.match(/<fieldset class="product-format">([\s\S]*?)<\/fieldset>/)[1];
     assert.match(selector,/12,50|12\.50/); assert.match(selector,/4,50|4\.50/);
     assert.match(selector,lang==='de'?/Starter-Set/:/Starter Set/);
     assert.match(selector,/Refill/);
-    assert.match(main,new RegExp(`shop-detail-product-${scent}\\.webp`));
+    assert.match(main,new RegExp(`photo-product-${scent}\\.webp`));
   }
 });
 
@@ -112,8 +112,9 @@ test('informational routes contain no inspection or explanation popup, and shell
   for(const lang of locales){
     const story=readPage(lang,'story/');
     const firstComponent=story.match(/<article class="component-row"[^>]*>([\s\S]*?)<\/article>/)[1];
-    assert.match(firstComponent,/shop-shell\.webp/); assert.doesNotMatch(firstComponent,/shop-product\.webp/);
-    assert.match(firstComponent,/data-shop-scene="shell"/, 'the actual empty tube is an interactive viewer');
+    assert.match(firstComponent,/photo-shell\.webp/); assert.doesNotMatch(firstComponent,/\bsrc="[^"]*\/photo-product/);
+    assert.match(firstComponent,/data-photo-default-mode="shell"/, 'the image depicts the actual empty tube');
+    assert.doesNotMatch(firstComponent,/data-shop-scene|data-product-media/, 'the still has no hidden inspector or view switch');
   }
 });
 

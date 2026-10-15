@@ -1,5 +1,5 @@
-/** Source-mesh still renders are separate from matched animation frames.
- * The legacy photo-* asset names stay compatible with product/cart URLs. */
+/** Photographic material studies stay separate from matched animation frames.
+ * The photo-* asset names remain compatible with product/cart URLs. */
 export function productPhotoAsset(mode='product',scent='aloe',small=false){
   const fragrance=['aloe','argan','bamboo'].includes(scent)?scent:'aloe';
   const name=mode==='shell'?'photo-shell':mode==='cap'?'photo-cap-argan':
@@ -27,8 +27,6 @@ export function primeProductPhotos({doc,base,version,choice}){
     const mode=form?(choice.format==='refill'?'refill':'product'):root.dataset.photoDefaultMode;
     const scent=form?form.dataset.id:root.closest('[data-world]')?choice.scent:root.dataset.photoDefaultScent;
     updateProductPhoto(root,{base,version,mode,scent});
-    const scene=root.querySelector('[data-shop-scene]');
-    if(scene){scene.dataset.scent=scent;scene.dataset.requestedMode=mode;}
     const image=root.querySelector('[data-product-photo]');
     if(image&&['product','refill'].includes(mode)){image.alt=root.dataset[mode==='refill'?'photoRefillAlt':'photoProductAlt']||image.alt;}
   }

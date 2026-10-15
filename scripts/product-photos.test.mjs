@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createShopPages} from './shop-pages.mjs';
 import { productPhotoAsset,updateProductPhoto,primeProductPhotos } from '../assets/product-photos.js';
 
 function root(mode,scent,{form,world=false}={}){
- const image={alt:`original ${mode} description`},scene={dataset:{}};
- const data={photoDefaultMode:mode,photoDefaultScent:scent,mediaView:'photo',photoProductAlt:'The filled starter set',photoRefillAlt:'The sealed refill only'};
+ const image={alt:`original ${mode} description`};
+ const data={photoDefaultMode:mode,photoDefaultScent:scent,photoProductAlt:'The filled starter set',photoRefillAlt:'The sealed refill only'};
  return {dataset:data,closest:selector=>selector==='main.pdp-page'&&form?{querySelector:()=>form}:selector==='[data-world]'&&world?{}:null,
-   querySelector:selector=>selector==='[data-product-photo]'?image:selector==='[data-shop-scene]'?scene:null,image,scene};
+   querySelector:selector=>selector==='[data-product-photo]'?image:null,image};
 }
 test('all six photo variants have small responsive derivatives and keep animation images separate',()=>{
  for(const scent of ['aloe','argan','bamboo'])for(const mode of ['product','refill'])for(const small of [false,true]){
@@ -30,30 +31,35 @@ test('an explicit refill route gets the matching photograph before the first pai
  primeProductPhotos({doc,base:'/demo',version:'photography',choice:{format:'refill',scent:'bamboo'}});
  assert.equal(pdp.image.src,'/demo/assets/photo-refill-argan.webp?v=photography');
  assert.match(pdp.image.srcset,/photo-refill-argan-640\.webp\?v=photography 640w/);
- assert.equal(pdp.scene.dataset.requestedMode,'refill');assert.equal(pdp.image.alt,'The sealed refill only');
- assert.equal(pdp.dataset.mediaView,'photo','prepaint never requests the GPU view');
+ assert.equal(pdp.dataset.photoMode,'refill');assert.equal(pdp.image.alt,'The sealed refill only');
  assert.equal(cap.image.src,'/demo/assets/photo-cap-argan.webp?v=photography');
  assert.equal(cap.image.alt,'original cap description');
  assert.equal(shell.image.src,'/demo/assets/photo-shell.webp?v=photography');
 });
-test('changing one photographic viewer does not change its neighbouring scent or model choice',()=>{
+test('changing one photographic viewer does not change its neighbouring scent',()=>{
  const aloe=root('product','aloe'),bamboo=root('refill','bamboo');
  updateProductPhoto(aloe,{base:'/demo',mode:'refill',scent:'argan'});
  assert.equal(aloe.image.src,'/demo/assets/photo-refill-argan.webp');
  assert.equal(bamboo.image.src,undefined);assert.equal(bamboo.dataset.photoDefaultScent,'bamboo');
  assert.equal(updateProductPhoto(null,{base:'/demo'}),false);
 });
-test('product images are the default while automatic stories retain their original matched loading frames',()=>{
+test('static galleries have no 3D inspector while motion stages retain their matched loading frames',()=>{
+ const pages=createShopPages({BASE:'/demo',icon:()=>'',fragrances:['aloe','argan','bamboo'],formatPrice:value=>String(value),esc:value=>value});
  for(const lang of ['de','en']){
-  const home=fs.readFileSync(`docs/${lang}/index.html`,'utf8');
+  const home=pages[lang].home;
   const hero=home.slice(home.indexOf('class="shop-scene intro-stage'),home.indexOf('class="intro-annotations'));
   assert.match(hero,/shop-guide-product-aloe\.webp/);assert.doesNotMatch(hero,/photo-product/);
   for(const scent of ['aloe','argan','bamboo']){
-   const page=fs.readFileSync(`docs/${lang}/products/${scent}/index.html`,'utf8');
-   assert.match(page,/data-product-photo-viewer data-media-view="photo"/);
-   assert.match(page,new RegExp(`data-product-photo src="[^"]*photo-product-${scent}\\.webp`));
-   assert.match(page,/data-product-media="model" aria-pressed="false"/);
-   assert.match(page,/data-shop-scene="product"[^>]*aria-hidden="true" inert/);
+   const page=pages[lang].products[scent];
+   assert.match(page,/data-product-photo-viewer data-photo-default-mode="product"/);
+   assert.ok(page.includes('data-product-photo src="/demo/assets/photo-product-'+scent+'.webp'));
+   assert.doesNotMatch(page,/data-product-media|data-media-view|data-shop-scene="product"|product-gallery__hint/);
+   assert.equal((page.match(/name="format"/g)||[]).length,2,'one starter-set/refill selector is retained');
   }
+  assert.doesNotMatch(pages[lang].story,/data-product-media|data-media-view|data-shop-scene="(?:product|shell|cap|refill)"|scene-hint/);
+  assert.match(pages[lang].refill,/data-shop-scene="ritual"/);
  }
+ const app=fs.readFileSync('assets/app.js','utf8');
+ assert.doesNotMatch(app,/data-product-media|mediaView/,'the dormant inspector controller is removed');
+ assert.match(app,/if\(photograph\)\{[\s\S]*?updateProductPhoto[\s\S]*?return;/,'format changes update the still without requesting a renderer');
 });
