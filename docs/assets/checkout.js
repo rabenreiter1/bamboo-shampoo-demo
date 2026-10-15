@@ -48,7 +48,7 @@ export function initializeCheckout({
 
   const label = format => format === 'refill' ? 'Refill' : text('Starter-Set', 'Starter Set');
   const productURL = item => `${base}/${lang}/products/${item.scent}/${item.format === 'refill' ? '?format=refill' : ''}`;
-  const imageURL = item => `${base}/assets/${item.format === 'refill' ? `shop-detail-refill-${item.scent}.webp` : `shop-product-front-${item.scent}.webp`}`;
+  const imageURL = item => `${base}/assets/photo-${item.format === 'refill' ? 'refill' : 'product'}-${item.scent}-640.webp`;
   const deliveryLabel = id => id === 'pickup' ? text('Beispiel-Abholpunkt', 'Sample pickup point') : text('Beispieladresse', 'Sample address');
   const paymentLabel = id => id === 'wallet' ? 'Demo-Wallet' : text('Demo-Karte · •••• 4242', 'Demo card · •••• 4242');
   const address = id => id === 'pickup'

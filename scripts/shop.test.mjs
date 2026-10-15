@@ -173,7 +173,7 @@ test('navigation is consistent and the useful first product image is prioritized
    const html=readPage(lang,route);
    const scent=route.startsWith('products/')?route.split('/')[1]:'aloe';
    const family=route==='refill/'?'teaser':route.startsWith('products/')?'detail':'guide';
-   const expected=`${base}/assets/shop-${family}-product-${scent}.webp`;
+   const expected=route.startsWith('products/')?`${base}/assets/photo-product-${scent}.webp`:`${base}/assets/shop-${family}-product-${scent}.webp`;
    const leadImage=tags(html,'img').map(attrs).find(image=>image.fetchpriority==='high');
    assert.ok(leadImage?.src.startsWith(expected),`${lang}/${route} prioritizes its matching scent and camera poster`);
    assert.ok(links(html).some(link=>link.rel==='preload'&&link.as==='image'&&link.href===leadImage.src),'the exact first visible poster is preloaded before GPU warmup');

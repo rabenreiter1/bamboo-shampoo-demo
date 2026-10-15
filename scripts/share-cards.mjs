@@ -1,6 +1,6 @@
 // Finished, versioned crawler images. These use the approved product rendering;
 // the shop itself continues to load the interactive scene and its matched poster.
-export const SHARE_CARD_VERSION = '20261014-sage';
+export const SHARE_CARD_VERSION = '20261015-photographic';
 export const SHARE_CARD_SIZE = Object.freeze({ width: 1200, height: 630 });
 const scents = ['aloe', 'argan', 'bamboo'];
 const names = { aloe: 'Aloe', argan: 'Argan', bamboo: 'Bamboo' };
@@ -26,7 +26,7 @@ export const shareCardSpecs = Object.freeze(['de', 'en'].flatMap(lang =>
     id, lang, file: `share-${id}-${lang}-${SHARE_CARD_VERSION}.jpg`,
     word: id === 'home' ? 'BAMBOO' : id.toUpperCase(),
     world: scents.includes(id) ? id : 'aloe',
-    product: id === 'refill' ? 'shop-campaign-refill-aloe.webp' : `shop-campaign-product-${scents.includes(id)?id:'aloe'}.webp`,
+    product: id === 'refill' ? 'photo-refill-aloe.webp' : `photo-product-${scents.includes(id)?id:'aloe'}.webp`,
   }))));
 
 export function shareCardFor(lang, route = '') {

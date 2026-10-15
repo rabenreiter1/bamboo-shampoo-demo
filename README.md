@@ -4,7 +4,7 @@ German: https://rabenreiter1.github.io/bamboo-shampoo-demo/de/
 English: https://rabenreiter1.github.io/bamboo-shampoo-demo/en/
 Fullscreen 3D product ritual: https://rabenreiter1.github.io/bamboo-shampoo-demo/assembly/
 
-A bilingual storefront preview built around the approved 3D product. The homepage opens with the complete product in front of oversized BAMBOO lettering, followed by three fragrance cards and a normal-height, automatic product explanation. Ivory, sage and dark green frame pastel-green Aloe, rose Argan and pastel-blue Bamboo caps. Aloe has pale aqua liquid, Argan warm amber and Bamboo soft green; bulk, surface, stream, droplets and refill posters share each scent's palette. The standalone approval animation retains its grapefruit-coral appearance and scroll controls. The collection, product configuration, editorial story, FAQ, bag and simulated checkout have dedicated routes and responsive layouts. It accepts no orders, payments or customer contact details.
+A bilingual storefront preview built around the approved 3D product. The homepage opens with “Shampoo zum Nachfüllen.” and a short automatic construction study, followed by three fragrance cards and the complete automatic product explanation. Ivory, sage and dark green frame pastel-green Aloe, rose Argan and pastel-blue Bamboo caps. Aloe has pale aqua liquid, Argan warm amber and Bamboo soft green; bulk, surface, stream, droplets and refill posters share each scent's palette. The standalone approval animation retains its grapefruit-coral appearance and scroll controls. The collection, product configuration, editorial story, FAQ, bag and simulated checkout have dedicated routes and responsive layouts. It accepts no orders, payments or customer contact details.
 
 The sage/autoplay revision passes 247 automated tests and the 31-page build checker. Chrome viewport checks cover 320×568, 390×844, 430×932, 768×1024, 844×390, 1440×900, 1920×1080 and 3440×1440: no document overflow in the inspected layouts, all eight captions fit their stable space, and chapter touch targets exceed 44px. Browser checks include snapped fragrance cards with a visible next-card preview, menu suspension without elapsed-time catch-up, manual inspection pause, restored paused playback, a deliberately delayed asset cold start, readable renderer-failure fallbacks, and a complete €17 mixed Starter-Set/Refill demo checkout including refresh-safe confirmation. These are desktop Chrome viewport and local fixture checks, not physical iPhone/Safari or hardware frame-rate certification.
 
@@ -13,6 +13,15 @@ All 24 new 1280×1600 product posters were rendered from the current source fact
 Design and implementation evidence: [SHOP_REFERENCE_RESEARCH.md](SHOP_REFERENCE_RESEARCH.md) and [AI_DESIGN_PLAYBOOK.md](AI_DESIGN_PLAYBOOK.md). Reference observations, creator claims and implementation inferences are distinguished; no reference is claimed to be an AI-only build without evidence.
 
 The journey follow-up reviews all ten supplied references in [JOURNEY_REFERENCE_RESEARCH.md](JOURNEY_REFERENCE_RESEARCH.md), records baseline defects and their closure in [JOURNEY_AUDIT.md](JOURNEY_AUDIT.md), and separates measured CPU work from unverified phone/GPU performance in [JOURNEY_PERFORMANCE.md](JOURNEY_PERFORMANCE.md).
+
+
+## Photographic stills — 2026-10-15
+
+Nine reference-based photographic visualizations replace the static synthetic packshots: three starter sets, three filled refills, an empty sleeve, the complete cap and a close material detail of the sealed refill. Natural bamboo fibre variation, satin silicone and thin refractive PET use the real prototype photographs as material references. These remain AI-assisted visualizations, not photographs from a finished-product studio shoot. The source engraving SVG and all animation geometry, materials, poses and matched loading frames are unchanged.
+
+Product cards, default product/story images, basket, demo checkout and ten newly versioned social images use the photographic assets. Product pages and the idea page open on a photographic still; an explicit, inline “3D ansehen” switch loads the original inspector only on request. There is no automatic photo-to-render replacement or popup. The one priced Starter-Set/Refill selector remains the only format selector. Queried refill URLs select the matching photograph before first paint.
+
+Finished assets are assets/photo-product-{aloe,argan,bamboo}.webp, assets/photo-refill-{aloe,argan,bamboo}.webp, assets/photo-shell.webp, assets/photo-cap-argan.webp and assets/photo-refill-detail.webp. Transparent packshots have 640×800 and 1280×1600 variants; the full images are approximately 98–176 kB. Private source files, provenance hashes and final production briefs are retained under qa/photography/ and are excluded from publication. Built-in ImageGen was used; no API-key/CLI fallback.
 
 ## Graphic opening and a dedicated product story
 
