@@ -7,6 +7,7 @@ import {createBody} from '../assets/assembly/body.js';
 import {createRitualCap} from '../assets/assembly/ritual-cap.js';
 const manifest=JSON.parse(fs.readFileSync('scripts/still-capture-manifest.json','utf8'));
 const photographic=JSON.parse(fs.readFileSync('scripts/photographic-stills-manifest.json','utf8'));
+const correction=JSON.parse(fs.readFileSync('scripts/cap-profile-correction.json','utf8'));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const codeSha=bytes=>sha(Buffer.from(bytes.toString('utf8').replaceAll('\r\n','\n')));
 
@@ -64,6 +65,9 @@ test('capture uses the actual 250 ml contour, current cap reference and byte-ide
   if(file==='actual250Drawing'){
    assert.equal(hash,'7fe76412fe08f68561b2613a2a8d0cbaa771f14f38d3e1084c96b2b0522d9272');
    if(fs.existsSync('qa/reference/actual250.pdf'))assert.equal(sha(fs.readFileSync('qa/reference/actual250.pdf')),hash);
+  }else if(correction.files[file]){
+   assert.equal(correction.files[file].before,hash,'correction preserves the historical baseline');
+   assert.equal(codeSha(fs.readFileSync(`assets/${file}`)),correction.files[file].after);
   }else assert.equal((file.endsWith('.js')?codeSha:sha)(fs.readFileSync(`assets/${file}`)),hash,`${file} differs from the rendered source`);
  }
  assert.equal(manifest.source['assembly/original-engraving.svg'],'67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa');
@@ -80,7 +84,10 @@ test('unmodified body and cap factories retain the geometry used by the approved
    const attrs={};for(const key of Object.keys(o.geometry.attributes).sort())attrs[key]=sha(Buffer.from(o.geometry.attributes[key].array.buffer));
    if(o.geometry.index)attrs.index=sha(Buffer.from(o.geometry.index.array.buffer));actual[o.name]=attrs;
   });
-  assert.deepEqual(actual,manifest.geometry.meshes);
+  const expected=structuredClone(manifest.geometry.meshes);
+  assert.notDeepEqual(correction.correctedGeometry,expected[correction.changedMesh]);
+  expected[correction.changedMesh]=correction.correctedGeometry;
+  assert.deepEqual(actual,expected,'only the explicitly corrected button-tip contour may differ');
   assert.deepEqual(body.metrics.confirmed,manifest.dimensions);
  }finally{body.dispose();cap.dispose();}
 });

@@ -23,7 +23,7 @@ test('all six photo variants have small responsive derivatives and keep animatio
  }
  assert.equal(productPhotoAsset('journey','aloe'),null);
  assert.equal(productPhotoAsset('ritual','argan'),null);
- assert.equal(productPhotoAsset('product','bad-path'),'studio-product-aloe-20261015.webp');
+ assert.equal(productPhotoAsset('product','bad-path'),'studio-product-aloe-20261015b.webp');
 });
 test('an explicit refill route gets the matching photograph before the first paint',()=>{
  const form={dataset:{id:'argan'}},pdp=root('product','argan',{form}),cap=root('cap','argan'),shell=root('shell','aloe');
@@ -32,9 +32,9 @@ test('an explicit refill route gets the matching photograph before the first pai
  assert.equal(pdp.image.src,'/demo/assets/photo-refill-argan.webp?v=photography');
  assert.match(pdp.image.srcset,/photo-refill-argan-640\.webp\?v=photography 640w/);
  assert.equal(pdp.dataset.photoMode,'refill');assert.equal(pdp.image.alt,'The sealed refill only');
- assert.equal(cap.image.src,'/demo/assets/photo-cap-argan.webp?v=photography');
+ assert.equal(cap.image.src,'/demo/assets/studio-cap-argan-20261015b.webp?v=photography');
  assert.equal(cap.image.alt,'original cap description');
- assert.equal(shell.image.src,'/demo/assets/photo-shell.webp?v=photography');
+ assert.equal(shell.image.src,'/demo/assets/studio-shell-20261015b.webp?v=photography');
 });
 test('changing one photographic viewer does not change its neighbouring scent',()=>{
  const aloe=root('product','aloe'),bamboo=root('refill','bamboo');
@@ -52,7 +52,7 @@ test('static galleries have no 3D inspector while motion stages retain their mat
   for(const scent of ['aloe','argan','bamboo']){
    const page=pages[lang].products[scent];
    assert.match(page,/data-product-photo-viewer data-photo-default-mode="product"/);
-   assert.ok(page.includes('data-product-photo src="/demo/assets/studio-product-'+scent+'-20261015.webp'));
+   assert.ok(page.includes('data-product-photo src="/demo/assets/studio-product-'+scent+'-20261015b.webp'));
    assert.doesNotMatch(page,/data-product-media|data-media-view|data-shop-scene="product"|product-gallery__hint/);
    assert.equal((page.match(/name="format"/g)||[]).length,2,'one starter-set/refill selector is retained');
   }

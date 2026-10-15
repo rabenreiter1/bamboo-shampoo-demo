@@ -1,4 +1,4 @@
-import { CAP_SOURCE } from './cap-data.js';
+import { CAP_SOURCE } from './cap-data.js?v=tip-20261015-2';
 
 const clamp01 = value => Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 const smooth = value => value * value * (3 - 2 * value);
