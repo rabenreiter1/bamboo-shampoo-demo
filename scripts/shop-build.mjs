@@ -10,7 +10,7 @@ import {createClassicPages} from './classic-pages.mjs';
 import { createShopPages, shopCopy } from './shop-pages.mjs';
 import { shareCardFor, shareCardSpecs } from './share-cards.mjs';
 import { themeCss } from '../assets/product-theme.js';
-const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-cycles9';
+const BASE='/bamboo-shampoo-demo', ORIGIN='https://rabenreiter1.github.io', VERSION='shop-20261015-camera10';
 const out=path.resolve('docs');
 fs.mkdirSync(path.join(out,'assets'),{recursive:true});
 // Publish finished assets only; rejected concept models/artwork stay local.

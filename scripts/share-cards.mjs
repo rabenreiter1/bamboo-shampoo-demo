@@ -1,7 +1,7 @@
 // Finished, versioned crawler images share the selected photographic assets.
 // Motion stages retain their independent source-derived loading posters.
 import {productPhotoAsset} from '../assets/product-photos.js';
-export const SHARE_CARD_VERSION = '20261015-cycles';
+export const SHARE_CARD_VERSION = '20261015-perspective2';
 export const SHARE_CARD_SIZE = Object.freeze({ width: 1200, height: 630 });
 const scents = ['aloe', 'argan', 'bamboo'];
 const names = { aloe: 'Aloe', argan: 'Argan', bamboo: 'Bamboo' };

@@ -1168,18 +1168,21 @@
   "opticalBevelOnlyMetres": 0.000025,
   "frames": {
     "product-aloe": {
-      "elevation": 12,
-      "orthographicHeightMetres": 0.207,
+      "elevation": 23.37722359025312,
+      "projection": "PERSP",
+      "verticalFieldOfViewDegrees": 30,
+      "frameHeightMetres": 0.207,
       "camera": [
-        0,
-        -0.7825180888175964,
-        0.25132936239242554
+        0.06618230789899826,
+        -0.3483279049396515,
+        0.2382642924785614
       ],
       "center": [
         0,
         0,
         0.08500000089406967
       ],
+      "shadowCatcherVisible": false,
       "width": 1280,
       "height": 1600,
       "mode": "product",
@@ -1189,23 +1192,25 @@
       "minimumSamples": 32,
       "seconds": null,
       "reusedCompletedOpaqueFrame": true,
-      "renderRecipeSha256": "599959bb31fb1cff51fd2eeed95d89052b1ab9b9ec4f82da73fd75a0f5865c52",
-      "sha256": "e80d5df64348f7f8e173171ae8e6cfcb03559f3cfd7e9e42b0492fd4e7e25c86",
-      "reusedCompletedFrame": true
+      "renderRecipeSha256": "31054158c1aa586ae5ed78adfafc37ddee136dedcc4c4aa84a08dc4be3ab94f8",
+      "sha256": "6cb677b7c47dbb78e6da882a448b9a7dbcf4e9e288b3bd9fd060824377252302"
     },
     "product-argan": {
-      "elevation": 12,
-      "orthographicHeightMetres": 0.207,
+      "elevation": 23.37722359025312,
+      "projection": "PERSP",
+      "verticalFieldOfViewDegrees": 30,
+      "frameHeightMetres": 0.207,
       "camera": [
-        0,
-        -0.7825180888175964,
-        0.25132936239242554
+        0.06618230789899826,
+        -0.3483279049396515,
+        0.2382642924785614
       ],
       "center": [
         0,
         0,
         0.08500000089406967
       ],
+      "shadowCatcherVisible": false,
       "width": 1280,
       "height": 1600,
       "mode": "product",
@@ -1215,23 +1220,25 @@
       "minimumSamples": 32,
       "seconds": null,
       "reusedCompletedOpaqueFrame": true,
-      "renderRecipeSha256": "599959bb31fb1cff51fd2eeed95d89052b1ab9b9ec4f82da73fd75a0f5865c52",
-      "sha256": "cc95454422a65aa7c6030a628f3e6c0a55ff82a745a3a2835e659b36e8630cae",
-      "reusedCompletedFrame": true
+      "renderRecipeSha256": "31054158c1aa586ae5ed78adfafc37ddee136dedcc4c4aa84a08dc4be3ab94f8",
+      "sha256": "33a637eb76bcb7ae075e9f182d1f333725acb6f567d2399c23ae5c23575e15fd"
     },
     "product-bamboo": {
-      "elevation": 12,
-      "orthographicHeightMetres": 0.207,
+      "elevation": 23.37722359025312,
+      "projection": "PERSP",
+      "verticalFieldOfViewDegrees": 30,
+      "frameHeightMetres": 0.207,
       "camera": [
-        0,
-        -0.7825180888175964,
-        0.25132936239242554
+        0.06618230789899826,
+        -0.3483279049396515,
+        0.2382642924785614
       ],
       "center": [
         0,
         0,
         0.08500000089406967
       ],
+      "shadowCatcherVisible": false,
       "width": 1280,
       "height": 1600,
       "mode": "product",
@@ -1241,9 +1248,8 @@
       "minimumSamples": 32,
       "seconds": null,
       "reusedCompletedOpaqueFrame": true,
-      "renderRecipeSha256": "599959bb31fb1cff51fd2eeed95d89052b1ab9b9ec4f82da73fd75a0f5865c52",
-      "sha256": "41964f3cd04d7d944acc9bcdaf1052591cf2e65414f0a632a2f3328b1f88ef6e",
-      "reusedCompletedFrame": true
+      "renderRecipeSha256": "31054158c1aa586ae5ed78adfafc37ddee136dedcc4c4aa84a08dc4be3ab94f8",
+      "sha256": "86f634c2e31144130cd007bceb0fb3ba1f715e7f68e5be8704c553854b1f2df9"
     },
     "refill-aloe": {
       "elevation": 10,
@@ -1324,18 +1330,21 @@
       "reusedCompletedFrame": true
     },
     "shell-aloe": {
-      "elevation": 18,
-      "orthographicHeightMetres": 0.205,
+      "elevation": 15.63314255862509,
+      "projection": "PERSP",
+      "verticalFieldOfViewDegrees": 30,
+      "frameHeightMetres": 0.205,
       "camera": [
-        0,
-        -0.7608451843261719,
-        0.3322136104106903
+        0.012885550037026405,
+        -0.36815857887268066,
+        0.18808439373970032
       ],
       "center": [
         0,
         0,
         0.08500000089406967
       ],
+      "shadowCatcherVisible": false,
       "width": 1280,
       "height": 1600,
       "mode": "shell",
@@ -1343,11 +1352,10 @@
       "samples": 128,
       "adaptiveNoiseThreshold": 0.019999999552965164,
       "minimumSamples": 32,
-      "seconds": 275.24,
+      "seconds": 102.97,
       "reusedCompletedOpaqueFrame": false,
-      "renderRecipeSha256": "3ff7855e3b009367cc4e9ebbf4f577bb22c0577da6b56db8633e4bd17547fe59",
-      "sha256": "21c651e67077061bf3dddb14ab527d51a01cd848817b1259e2087d5306ed08d4",
-      "reusedCompletedFrame": true
+      "renderRecipeSha256": "c5e1e8de6d494dc2462c6baf14a3ccd6daf07f8d21e62e1f2f420d80802bcfae",
+      "sha256": "77e29f6f10c2b309a33e0520056571ada7c218200a4db03b37e1184b26da4436"
     },
     "cap-argan": {
       "elevation": 57,
@@ -1372,7 +1380,8 @@
       "seconds": 148.2,
       "reusedCompletedOpaqueFrame": false,
       "renderRecipeSha256": "44cb9fd154b298657d6a0d3bc0f672a8c27f54a37c0863d4c521599072fa7af1",
-      "sha256": "bb97d0bd72c38fdfa912c67668ff267acaf751fd1fc279b59c8cfe382c9bd72e"
+      "sha256": "bb97d0bd72c38fdfa912c67668ff267acaf751fd1fc279b59c8cfe382c9bd72e",
+      "reusedCompletedFrame": true
     },
     "detail-aloe": {
       "elevation": 22,
@@ -1401,16 +1410,16 @@
       "reusedCompletedFrame": true
     }
   },
-  "renderScriptSha256": "44cb9fd154b298657d6a0d3bc0f672a8c27f54a37c0863d4c521599072fa7af1",
+  "renderScriptSha256": "c5e1e8de6d494dc2462c6baf14a3ccd6daf07f8d21e62e1f2f420d80802bcfae",
   "exportScriptSha256": "351f43a37af9c424b4ac72a6d34bbe7d934dc7ca9a2aab2b0afcf90c6f7dffdf",
   "assets": {
-    "cycles-product-aloe-20261015.webp": {
+    "cycles-product-aloe-20261015-perspective2.webp": {
       "mode": "product",
       "scent": "aloe",
       "sourceFrame": "product-aloe",
-      "sourceSha256": "e80d5df64348f7f8e173171ae8e6cfcb03559f3cfd7e9e42b0492fd4e7e25c86",
-      "sha256": "f0270d91d30a3075342500d236b7e24f698af2dd2099924dc59196399ff26432",
-      "bytes": 136082,
+      "sourceSha256": "6cb677b7c47dbb78e6da882a448b9a7dbcf4e9e288b3bd9fd060824377252302",
+      "sha256": "7a63c5b183fef111a43df50b2e9e8b3d9a287cac82f8039483aefcfd6ffcfa05",
+      "bytes": 113622,
       "width": 1280,
       "height": 1600,
       "hasAlpha": true,
@@ -1418,13 +1427,13 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-product-aloe-20261015-640.webp": {
+    "cycles-product-aloe-20261015-perspective2-640.webp": {
       "mode": "product",
       "scent": "aloe",
       "sourceFrame": "product-aloe",
-      "sourceSha256": "e80d5df64348f7f8e173171ae8e6cfcb03559f3cfd7e9e42b0492fd4e7e25c86",
-      "sha256": "ac808d1a06a662498a7e9877ec3e836f56dd22a6286ec2e25522fb9e8bfc24aa",
-      "bytes": 51882,
+      "sourceSha256": "6cb677b7c47dbb78e6da882a448b9a7dbcf4e9e288b3bd9fd060824377252302",
+      "sha256": "ea20336c99848e83f07c01ab65c74cfc5982c798cf4d5c46b2b34baf093f8f82",
+      "bytes": 47048,
       "width": 640,
       "height": 800,
       "hasAlpha": true,
@@ -1432,13 +1441,13 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-product-argan-20261015.webp": {
+    "cycles-product-argan-20261015-perspective2.webp": {
       "mode": "product",
       "scent": "argan",
       "sourceFrame": "product-argan",
-      "sourceSha256": "cc95454422a65aa7c6030a628f3e6c0a55ff82a745a3a2835e659b36e8630cae",
-      "sha256": "f7dcb178fb4984e13ddf70e48494a3d5a01cdbb005822fb040219931e24e0990",
-      "bytes": 136180,
+      "sourceSha256": "33a637eb76bcb7ae075e9f182d1f333725acb6f567d2399c23ae5c23575e15fd",
+      "sha256": "3a2c355ff0605ae5a95e6254529ebe032cc3e2cdfb4b8304c92d7af0099ec59b",
+      "bytes": 113862,
       "width": 1280,
       "height": 1600,
       "hasAlpha": true,
@@ -1446,13 +1455,13 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-product-argan-20261015-640.webp": {
+    "cycles-product-argan-20261015-perspective2-640.webp": {
       "mode": "product",
       "scent": "argan",
       "sourceFrame": "product-argan",
-      "sourceSha256": "cc95454422a65aa7c6030a628f3e6c0a55ff82a745a3a2835e659b36e8630cae",
-      "sha256": "c6a202e2c29843ac8ddc11c6361e23e34468b7829b7360f39339f7940924572c",
-      "bytes": 51964,
+      "sourceSha256": "33a637eb76bcb7ae075e9f182d1f333725acb6f567d2399c23ae5c23575e15fd",
+      "sha256": "01eb3f1c8c084a00342c26453a512155c73d2da9012fab2216d08296a8b5bcac",
+      "bytes": 47022,
       "width": 640,
       "height": 800,
       "hasAlpha": true,
@@ -1460,13 +1469,13 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-product-bamboo-20261015.webp": {
+    "cycles-product-bamboo-20261015-perspective2.webp": {
       "mode": "product",
       "scent": "bamboo",
       "sourceFrame": "product-bamboo",
-      "sourceSha256": "41964f3cd04d7d944acc9bcdaf1052591cf2e65414f0a632a2f3328b1f88ef6e",
-      "sha256": "8b966d695ba9c9e2a39832707c04a1a8385da696a0f0b0ebcfe0e79827303f49",
-      "bytes": 136112,
+      "sourceSha256": "86f634c2e31144130cd007bceb0fb3ba1f715e7f68e5be8704c553854b1f2df9",
+      "sha256": "953ed503cdc1d22daee26d626ff7436805444f14d2411fe8a01257c8fd05c24d",
+      "bytes": 113706,
       "width": 1280,
       "height": 1600,
       "hasAlpha": true,
@@ -1474,13 +1483,13 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-product-bamboo-20261015-640.webp": {
+    "cycles-product-bamboo-20261015-perspective2-640.webp": {
       "mode": "product",
       "scent": "bamboo",
       "sourceFrame": "product-bamboo",
-      "sourceSha256": "41964f3cd04d7d944acc9bcdaf1052591cf2e65414f0a632a2f3328b1f88ef6e",
-      "sha256": "f9313039ec1bda8af6e30f77945b821b05108f59c4d7c4ee5aa56d5ea527b42a",
-      "bytes": 51936,
+      "sourceSha256": "86f634c2e31144130cd007bceb0fb3ba1f715e7f68e5be8704c553854b1f2df9",
+      "sha256": "3d88b49542d7c655d79fef29c6cb5a30eb20536ee9a26b101bbb18ad53e3c1a1",
+      "bytes": 47082,
       "width": 640,
       "height": 800,
       "hasAlpha": true,
@@ -1488,7 +1497,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-refill-aloe-20261015.webp": {
+    "cycles-refill-aloe-20261015-perspective2.webp": {
       "mode": "refill",
       "scent": "aloe",
       "sourceFrame": "refill-aloe",
@@ -1502,7 +1511,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-refill-aloe-20261015-640.webp": {
+    "cycles-refill-aloe-20261015-perspective2-640.webp": {
       "mode": "refill",
       "scent": "aloe",
       "sourceFrame": "refill-aloe",
@@ -1516,7 +1525,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-refill-argan-20261015.webp": {
+    "cycles-refill-argan-20261015-perspective2.webp": {
       "mode": "refill",
       "scent": "argan",
       "sourceFrame": "refill-argan",
@@ -1530,7 +1539,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-refill-argan-20261015-640.webp": {
+    "cycles-refill-argan-20261015-perspective2-640.webp": {
       "mode": "refill",
       "scent": "argan",
       "sourceFrame": "refill-argan",
@@ -1544,7 +1553,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-refill-bamboo-20261015.webp": {
+    "cycles-refill-bamboo-20261015-perspective2.webp": {
       "mode": "refill",
       "scent": "bamboo",
       "sourceFrame": "refill-bamboo",
@@ -1558,7 +1567,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-refill-bamboo-20261015-640.webp": {
+    "cycles-refill-bamboo-20261015-perspective2-640.webp": {
       "mode": "refill",
       "scent": "bamboo",
       "sourceFrame": "refill-bamboo",
@@ -1572,13 +1581,13 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-shell-20261015.webp": {
+    "cycles-shell-20261015-perspective2.webp": {
       "mode": "shell",
       "scent": "aloe",
       "sourceFrame": "shell-aloe",
-      "sourceSha256": "21c651e67077061bf3dddb14ab527d51a01cd848817b1259e2087d5306ed08d4",
-      "sha256": "52ff715c3a10c4c6461801f9b2440d0471ac2350f08ed25b7e5e1378ce33b509",
-      "bytes": 151412,
+      "sourceSha256": "77e29f6f10c2b309a33e0520056571ada7c218200a4db03b37e1184b26da4436",
+      "sha256": "fe3c2fac086be95264a225b80ff188b7179e74b42349042aa7fb20af0a4ba7ee",
+      "bytes": 130976,
       "width": 1280,
       "height": 1600,
       "hasAlpha": true,
@@ -1586,13 +1595,13 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-shell-20261015-640.webp": {
+    "cycles-shell-20261015-perspective2-640.webp": {
       "mode": "shell",
       "scent": "aloe",
       "sourceFrame": "shell-aloe",
-      "sourceSha256": "21c651e67077061bf3dddb14ab527d51a01cd848817b1259e2087d5306ed08d4",
-      "sha256": "55eb9eef2906c839cac04268cef11cc9db8f71f8afba54a235e27a1230d80284",
-      "bytes": 57190,
+      "sourceSha256": "77e29f6f10c2b309a33e0520056571ada7c218200a4db03b37e1184b26da4436",
+      "sha256": "9f236978afcc4ae025b7c1609481c4a4a215718316496a202311b9154033d06e",
+      "bytes": 52880,
       "width": 640,
       "height": 800,
       "hasAlpha": true,
@@ -1600,7 +1609,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-cap-argan-20261015.webp": {
+    "cycles-cap-argan-20261015-perspective2.webp": {
       "mode": "cap",
       "scent": "argan",
       "sourceFrame": "cap-argan",
@@ -1614,7 +1623,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-cap-argan-20261015-640.webp": {
+    "cycles-cap-argan-20261015-perspective2-640.webp": {
       "mode": "cap",
       "scent": "argan",
       "sourceFrame": "cap-argan",
@@ -1628,7 +1637,7 @@
       "quality": 94,
       "sourceGeometryIdentical": true
     },
-    "cycles-refill-detail-20261015.webp": {
+    "cycles-refill-detail-20261015-perspective2.webp": {
       "mode": "detail",
       "scent": "aloe",
       "sourceFrame": "detail-aloe",
@@ -1650,11 +1659,11 @@
   },
   "renderJob": {
     "method": "Recipe snapshotted and serialized factory geometry verified before launching Blender",
-    "recipeLastWriteUtc": "2026-10-15T20:36:35.248Z",
-    "snapshotCapturedUtc": "2026-10-15T20:36:39.314Z",
-    "renderRecipeSha256": "44cb9fd154b298657d6a0d3bc0f672a8c27f54a37c0863d4c521599072fa7af1",
+    "recipeLastWriteUtc": "2026-10-15T21:47:15.645Z",
+    "snapshotCapturedUtc": "2026-10-15T21:47:22.346Z",
+    "renderRecipeSha256": "c5e1e8de6d494dc2462c6baf14a3ccd6daf07f8d21e62e1f2f420d80802bcfae",
     "renderRecipeSnapshot": "executed-render-script.py",
-    "processStartedUtc": "2026-10-15T20:36:39.314Z"
+    "processStartedUtc": "2026-10-15T21:47:22.347Z"
   },
   "serializedGeometry": {
     "schema": "bamboo-cycles-serialized-geometry-verification-v1",
@@ -1935,21 +1944,20 @@
     "limits": "Verifies factory buffer hashes against serialized GLB accessors and hierarchy. Does not assert Blender import topology identity, watertight liquid boundaries or measured material coefficients."
   },
   "reusedOpaqueJob": {
-    "method": "Retrospective recipe snapshot: source last-write predates this render process start; recipe unchanged during job",
-    "processId": 34820,
-    "processStartedUtc": "2026-10-15T19:24:33.6774541Z",
-    "recipeLastWriteUtc": "2026-10-15T19:22:24.0219051Z",
-    "snapshotCapturedUtc": "2026-10-15T19:47:37.6481355Z",
-    "renderRecipeSha256": "599959bb31fb1cff51fd2eeed95d89052b1ab9b9ec4f82da73fd75a0f5865c52",
-    "renderRecipeSnapshot": "executed-render-script.py"
+    "method": "Recipe snapshotted and serialized factory geometry verified before launching Blender",
+    "recipeLastWriteUtc": "2026-10-15T21:34:50.084Z",
+    "snapshotCapturedUtc": "2026-10-15T21:36:20.636Z",
+    "renderRecipeSha256": "31054158c1aa586ae5ed78adfafc37ddee136dedcc4c4aa84a08dc4be3ab94f8",
+    "renderRecipeSnapshot": "executed-render-script.py",
+    "processStartedUtc": "2026-10-15T21:36:20.636Z"
   },
   "reusedFrameJob": {
     "method": "Recipe snapshotted and serialized factory geometry verified before launching Blender",
-    "recipeLastWriteUtc": "2026-10-15T19:57:12.549Z",
-    "snapshotCapturedUtc": "2026-10-15T19:57:37.060Z",
-    "renderRecipeSha256": "3ff7855e3b009367cc4e9ebbf4f577bb22c0577da6b56db8633e4bd17547fe59",
+    "recipeLastWriteUtc": "2026-10-15T20:36:35.248Z",
+    "snapshotCapturedUtc": "2026-10-15T20:36:39.314Z",
+    "renderRecipeSha256": "44cb9fd154b298657d6a0d3bc0f672a8c27f54a37c0863d4c521599072fa7af1",
     "renderRecipeSnapshot": "executed-render-script.py",
-    "processStartedUtc": "2026-10-15T19:57:37.060Z"
+    "processStartedUtc": "2026-10-15T20:36:39.314Z"
   },
   "macroSurfaceShading": {
     "method": "Corner-normal interpolation only on coincident side vertices; no weld, modifier or moved position",

@@ -114,8 +114,8 @@ def area(name,location,target,power,sx,sy,color):
     light=bpy.data.lights.new(name,'AREA');light.energy=power;light.shape='RECTANGLE';light.size=sx;light.size_y=sy;light.color=color
     obj=bpy.data.objects.new(name,light);scene.collection.objects.link(obj);obj.location=location;obj.rotation_euler=(Vector(target)-obj.location).to_track_quat('-Z','Y').to_euler();return obj
 target=(0,0,.085)
-area('Large softbox',(-.28,-.26,.24),target,18,.12,.30,(1,.96,.90))
-area('Soft bounce',(.30,-.12,.20),target,1,.20,.30,(.93,.96,1))
+area('Large softbox',(-.28,-.26,.36),target,18,.30,.40,(1,.98,.94))
+area('Soft bounce',(.30,-.12,.20),target,4,.25,.35,(.96,.98,1))
 area('Narrow rear reflection',(.19,.19,.29),target,3,.065,.24,(1,.98,.94))
 area('Overhead film reflection',(-.05,.03,.48),target,2,.23,.15,(1,1,1))
 # A real studio's pale backdrop is seen through clear packaging. Keep it out
@@ -170,13 +170,24 @@ def frame(mode):
         for obj in objects:obj.hide_render=name not in visible
     for obj in volume_parts:obj.hide_render=True
     liquid_proxy.hide_render='liquid' not in visible
-    elevation={'product':12,'shell':18,'cap':57,'refill':10,'detail':22}[mode]
+    elevation={'product':math.degrees(math.atan2(.44,math.hypot(.19,1))),'shell':math.degrees(math.atan2(.28,math.hypot(.035,1))),'cap':57,'refill':10,'detail':22}[mode]
     center=Vector((0,0,.085 if mode in ['product','shell'] else .088 if mode=='refill' else .163 if mode=='cap' else .156))
     height={'product':.207,'shell':.205,'cap':.087,'refill':.200,'detail':.070}[mode]
-    e=math.radians(elevation);camera.location=center+Vector((0,-math.cos(e)*.8,math.sin(e)*.8));camera.rotation_euler=(center-camera.location).to_track_quat('-Z','Y').to_euler();camera_data.ortho_scale=height
+    e=math.radians(elevation);camera_data.type='ORTHO';camera.location=center+Vector((0,-math.cos(e)*.8,math.sin(e)*.8));camera_data.ortho_scale=height
+    if mode in ['product','shell']:
+        # Match the real-time viewer's perspective, rather than flattening
+        # equal end diameters with an orthographic, low-elevation camera.
+        direction=Vector((.19,-1,.44) if mode=='product' else (.035,-1,.28)).normalized()
+        camera_data.type='PERSP';camera_data.sensor_fit='VERTICAL';camera_data.sensor_height=36
+        camera_data.lens=36/(2*math.tan(math.radians(30)/2))
+        camera.location=center+direction*(height/(2*math.tan(math.radians(30)/2)))
+    camera.rotation_euler=(center-camera.location).to_track_quat('-Z','Y').to_euler()
     scene.render.resolution_x=1536 if mode=='detail' and not proof else size;scene.render.resolution_y=1024 if mode=='detail' and not proof else int(size*1.25)
-    floor.hide_render=mode in ['cap','detail']
-    return {'elevation':elevation,'orthographicHeightMetres':height,'camera':list(camera.location),'center':list(center),'width':scene.render.resolution_x,'height':scene.render.resolution_y}
+    # A long shadow cropped by the transparent asset rectangle becomes a
+    # visible slab on the shop's colour fields. Opaque commerce views use a
+    # clean cut-out, like the live viewer's restrained studio presentation.
+    floor.hide_render=mode in ['product','shell','cap','detail']
+    return {'elevation':elevation,'projection':camera_data.type,'verticalFieldOfViewDegrees':30 if mode in ['product','shell'] else None,'frameHeightMetres':height,'camera':list(camera.location),'center':list(center),'shadowCatcherVisible':not floor.hide_render,'width':scene.render.resolution_x,'height':scene.render.resolution_y}
 def scent(name):
     sp.inputs['Base Color'].default_value=rgb(bundle['palette'][name]['cap'])
     appearance=bundle['liquidAppearances'][name];gp.inputs['Base Color'].default_value=rgb(appearance['color']);absorb.inputs['Color'].default_value=rgb(appearance['attenuationColor']);absorb.inputs['Density'].default_value=1/(appearance['attenuationDistance']*.001)
@@ -184,6 +195,9 @@ def scent(name):
         if node.type=='BSDF_PRINCIPLED':node.inputs['Base Color'].default_value=rgb(appearance['color'])
 
 jobs=[('cap','argan')] if '--cap-proof' in args else [('product','aloe'),('cap','argan')] if proof else [('product',s) for s in ['aloe','argan','bamboo']]+[('refill',s) for s in ['aloe','argan','bamboo']]+[('shell','aloe'),('cap','argan'),('detail','aloe')]
+if '--product-proof' in args:jobs=[('product','argan')]
+bamboo_correction='--bamboo-correction' in args
+if bamboo_correction:assert reuse_dir and reuse_frames_dir and not proof,'A correction needs both verified product frames and the previous complete set'
 if '--refill-proof' in args:jobs=[('refill','aloe')];scene.cycles.samples=32;scene.render.resolution_percentage=40
 frames={}
 reuse_job=None
@@ -197,15 +211,20 @@ if reuse_frames_dir:
 if reuse_dir:
     reuse_job=json.loads((reuse_dir/'job-provenance.json').read_text(encoding='utf-8-sig'))
     assert hashlib.sha256((reuse_dir/reuse_job['renderRecipeSnapshot']).read_bytes()).hexdigest()==reuse_job['renderRecipeSha256']
+    # A completed product can survive an interrupted later PET job only when
+    # its complete material, camera and geometry setup is byte-identical.
+    old_recipe=(reuse_dir/reuse_job['renderRecipeSnapshot']).read_bytes()
+    assert old_recipe.split(b'jobs=')[0]==pathlib.Path(__file__).read_bytes().split(b'jobs=')[0],'Product render setup changed; cannot reuse a partial job'
     assert hashlib.sha256((reuse_dir/'source-operative.glb').read_bytes()).hexdigest()==bundle['glb']['sha256']
     reuse_log=(reuse_dir.parent/(reuse_dir.name+'.log')).read_text(encoding='utf-8-sig')
 for mode,fragrance in jobs:
     scent(fragrance);projection=frame(mode);name=f'{mode}-{fragrance}';scene.render.filepath=str(output/f'{name}.png');start=time.time();print('SOURCE_LOCKED_RENDER',name,flush=True)
-    reused_complete=bool(complete_reuse and mode!='cap' and not proof)
+    reused_complete=bool(complete_reuse and not proof and (mode not in ['product','shell'] if bamboo_correction else mode!='cap'))
     if reused_complete:
         old=complete_reuse['frames'][name];raw=(reuse_frames_dir/f'{name}.png').read_bytes()
         assert hashlib.sha256(raw).hexdigest()==old['sha256'] and old['samples']>=128
-        assert all(old[key]==value for key,value in projection.items()),'Camera changed; frame reuse is invalid'
+        assert all(old[key]==projection[key] for key in ['camera','center','width','height']),'Camera changed; frame reuse is invalid'
+        assert complete_reuse['geometryBefore']==before,'Component source transforms or geometry changed'
         (output/f'{name}.png').write_bytes(raw)
         frames[name]={**old,'reusedCompletedFrame':True}
         continue
@@ -218,6 +237,6 @@ for mode,fragrance in jobs:
     frames[name]={**projection,'mode':mode,'scent':fragrance,'samples':samples,'adaptiveNoiseThreshold':scene.cycles.adaptive_threshold,'minimumSamples':scene.cycles.adaptive_min_samples,'seconds':None if reused else round(time.time()-start,2),'reusedCompletedOpaqueFrame':reused,'renderRecipeSha256':reuse_job['renderRecipeSha256'] if reused else executed_recipe_sha,'sha256':hashlib.sha256((output/f'{name}.png').read_bytes()).hexdigest()}
 after=geometry_digest();assert before==after,'Rendering changed source geometry or transforms'
 assert hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()==executed_recipe_sha,'Recipe changed during rendering'
-manifest={'schema':'bamboo-cycles-render-v1','blenderVersion':bpy.app.version_string,'sourceGlbSha256':bundle['glb']['sha256'],'source':bundle['source'],'geometryBefore':before,'geometryAfter':after,'geometryUnchanged':True,'liquidOpticalBoundary':proxy_proof,'macroSurfaceShading':macro_finish,'renderRecipeSha256':executed_recipe_sha,'reusedOpaqueJob':reuse_job or (complete_reuse or {}).get('reusedOpaqueJob'),'reusedFrameJob':complete_reuse_job,'originalEngravingSha256':bundle['source']['assembly/original-engraving.svg'],'renderer':'Cycles CPU','colorManagement':'AgX Medium High Contrast, exposure-2.5','geometryModifiers':[],'opticalBevelOnlyMetres':.000025,'frames':frames}
+manifest={'schema':'bamboo-cycles-render-v1','blenderVersion':bpy.app.version_string,'sourceGlbSha256':bundle['glb']['sha256'],'source':bundle['source'],'geometryBefore':before,'geometryAfter':after,'geometryUnchanged':True,'liquidOpticalBoundary':proxy_proof,'macroSurfaceShading':macro_finish,'renderRecipeSha256':executed_recipe_sha,'reusedOpaqueJob':reuse_job or (complete_reuse or {}).get('reusedOpaqueJob'),'reusedFrameJob':complete_reuse_job,'unchangedComponentFramesReused':bamboo_correction,'originalEngravingSha256':bundle['source']['assembly/original-engraving.svg'],'renderer':'Cycles CPU','colorManagement':'AgX Medium High Contrast, exposure-2.5','geometryModifiers':[],'opticalBevelOnlyMetres':.000025,'frames':frames}
 (output/'render-manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf8')
 print('SOURCE_LOCKED_RENDER_COMPLETE',len(frames),flush=True)

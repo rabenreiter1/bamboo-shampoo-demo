@@ -1,7 +1,7 @@
 import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261015-cycles9';
 import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261015-cycles9';
 import {scenePreviewBox,playbackPreviewBox,classicGuideRegion} from './scene-framing.js?v=shop-20261015-cycles9';
-import {primeProductPhotos} from './product-photos.js?v=shop-20261015-cycles9';
+import {primeProductPhotos} from './product-photos.js?v=shop-20261015-camera10';
 
 // This changes only the loading illustration, never the stored pose. A closed
 // poster must not contradict a restored, open or manually rotated product.

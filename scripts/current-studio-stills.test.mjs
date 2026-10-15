@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import {productPhotoAsset} from '../assets/product-photos.js';
 import {shareCardSpecs} from './share-cards.mjs';
+import {TUBE_PROFILE} from '../assets/assembly/body-profile.js';
+import sharp from 'sharp';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const codeHash=b=>hash(Buffer.from(b.toString().replaceAll('\r\n','\n')));
 const manifest=JSON.parse(fs.readFileSync('scripts/current-studio-stills-manifest.json','utf8'));
@@ -35,6 +37,35 @@ test('all seventeen static assets derive from completed Cycles frames within res
   assert.equal(entry.hasAlpha,true);assert.equal(entry.sourceGeometryIdentical,true);
   assert.ok(entry.bytes<(file.includes('-640')?120000:240000));assert.ok(entry.quality>=84);
   assert.deepEqual([entry.width,entry.height],entry.mode==='detail'?[1536,1024]:file.includes('-640')?[640,800]:[1280,1600]);
+ }
+});
+
+test('commerce perspective follows the live viewer and does not exaggerate the bamboo base',()=>{
+ for(const scent of ['aloe','argan','bamboo']){
+  const frame=manifest.frames[`product-${scent}`];
+  assert.equal(frame.projection,'PERSP');assert.equal(frame.verticalFieldOfViewDegrees,30);
+  assert.equal(frame.shadowCatcherVisible,false,'cut-out product images must not contain a clipped floor slab');
+  const offset=frame.camera.map((v,i)=>v-frame.center[i]);
+  assert.ok(Math.abs(offset[0]/-offset[1]-.19)<1e-6);
+  assert.ok(Math.abs(offset[2]/-offset[1]-.44)<1e-6);
+  const distance=Math.hypot(...offset),up=offset[2]/distance;
+  const diameterAt=(y,r)=>2*r*.001/(distance-(y*.001-frame.center[2])*up);
+  const [bottomY,bottomR]=TUBE_PROFILE[0],middle=TUBE_PROFILE.find(([y])=>y===84);
+  const apparentRatio=diameterAt(bottomY,bottomR)/diameterAt(...middle);
+  assert.ok(apparentRatio>.95&&apparentRatio<1.06,`base/middle projection ${apparentRatio} should read like the live product`);
+ }
+ assert.equal(manifest.frames['shell-aloe'].projection,'PERSP');
+ assert.equal(manifest.frames['shell-aloe'].shadowCatcherVisible,false);
+});
+
+test('bamboo cut-outs have transparent borders without cropped floor shadows',async()=>{
+ for(const scent of ['aloe','argan','bamboo'])for(const small of [false,true]){
+  const file=`assets/${productPhotoAsset('product',scent,small)}`,{width,height}=await sharp(file).metadata();
+  for(const edge of [{left:0,top:0,width,height:1},{left:0,top:height-1,width,height:1},{left:0,top:0,width:1,height},{left:width-1,top:0,width:1,height}]){
+   const {data,info}=await sharp(file).extract(edge).raw().toBuffer({resolveWithObject:true});
+   assert.equal(info.channels,4);
+   for(let i=3;i<data.length;i+=info.channels)assert.equal(data[i],0,`${file}: the product or floor shadow is clipped at an image border`);
+  }
  }
 });
 
