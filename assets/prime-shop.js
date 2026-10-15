@@ -1,6 +1,7 @@
 import {normalizeBookmark,normalizeChoice} from './journey.js?v=shop-20261015-intro1';
 import {scenePreviewAsset,paintScenePreviewWorld} from './scene-preview.js?v=shop-20261015-intro1';
 import {scenePreviewBox,playbackPreviewBox} from './scene-framing.js?v=shop-20261015-intro1';
+import {primeProductPhotos} from './product-photos.js?v=shop-20261015-photo1';
 
 // This changes only the loading illustration, never the stored pose. A closed
 // poster must not contradict a restored, open or manually rotated product.
@@ -46,10 +47,12 @@ export function primeShop({doc,storage,href,ui}){
     form.querySelector('[data-add-label]').textContent=ui.formatAdd[choice.format];
     form.querySelector('[data-format-note]').textContent=ui.formatNote[choice.format];
   }
+  primeProductPhotos({doc,base:ui.base,version:ui.version,choice});
   for(const element of doc.querySelectorAll('[data-shop-scene].scene-preview')){
-    const campaign=element.dataset.artDirection==='campaign',mode=form&&element.classList.contains('product-viewer')
+    const campaign=element.dataset.artDirection==='campaign',mode=form&&(element.classList.contains('product-viewer')||element.closest('.product-gallery'))
       ?choice.format==='refill'?'refill':'product':element.dataset.shopScene;
-    const scent=form?form.dataset.id:choice.scent,profile=element.closest('[data-playback-profile]')?.dataset.playbackProfile;
+    const photoRoot=element.closest('[data-product-photo-viewer]');
+    const scent=form?form.dataset.id:photoRoot&&!element.closest('[data-world]')?photoRoot.dataset.photoDefaultScent:choice.scent,profile=element.closest('[data-playback-profile]')?.dataset.playbackProfile;
     if(profile){
       const id=element.closest('[data-playback-profile]')?.dataset.playbackId||profile;
       const snapshot=read(`bamboo-playback-v1:${id}`);

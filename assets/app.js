@@ -5,7 +5,8 @@ import { createSceneLoader } from './scene-loader.js?v=shop-20261015-intro1';
 import { initializeJourney, normalizeBookmark } from './journey.js?v=shop-20261015-intro1';
 import { initializePlayback, playbackAt, playbackTimeForProgress, PLAYBACK_VERSION } from './playback.js?v=shop-20261015-intro1';
 import { BRAND_THEME } from './product-theme.js?v=shop-20261015-intro1';
-import { needsPlaybackRestorePreview } from './prime-shop.js?v=shop-20261015-intro1';
+import { needsPlaybackRestorePreview } from './prime-shop.js?v=shop-20261015-photo1';
+import { productPhotoAsset, updateProductPhoto } from './product-photos.js?v=shop-20261015-photo1';
 import { initializeProductJourney } from './journey-caption.js?v=shop-20261015-intro1';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
@@ -23,7 +24,7 @@ const show=dialog=>{if(dialog&&!dialog.open)dialog.showModal();};
 
 function itemMarkup(row){
  const key=productKey(row.scent,row.format);
- return `<article class="bag-item scent-${row.scent}" data-key="${key}"><img src="${base}/assets/shop-${row.format==='refill'?`detail-refill-${row.scent}`:`product-front-${row.scent}`}.webp" alt="${ui.names[row.scent]} · ${ui[row.format]}" width="80" height="114"><div><div class="bag-item-head"><h3><a href="${base}/${lang}/products/${row.scent}/${row.format==='refill'?'?format=refill':''}" data-native-route>${ui.names[row.scent]}</a></h3><span>${formatPrice(prices[row.format]*row.quantity,lang)}</span></div><p>${ui[row.format]} · 250 ml</p><div class="bag-item-actions"><div class="quantity-control"><button type="button" data-bag-change="-1" aria-label="${de?'Menge reduzieren':'Decrease quantity'}" ${row.quantity===1?'disabled':''}>${icon('minus')}</button><input aria-label="${ui.quantity}: ${ui.names[row.scent]} ${ui[row.format]}" type="number" min="1" max="20" value="${row.quantity}" inputmode="numeric" data-bag-quantity><button type="button" data-bag-change="1" aria-label="${de?'Menge erhöhen':'Increase quantity'}" ${row.quantity===20?'disabled':''}>${icon('plus')}</button></div><button type="button" class="bag-remove" data-remove>${ui.remove}</button></div></div></article>`;
+ return `<article class="bag-item scent-${row.scent}" data-key="${key}"><img src="${base}/assets/${productPhotoAsset(row.format==='refill'?'refill':'product',row.scent,true)}" alt="${ui.names[row.scent]} · ${ui[row.format]}" width="80" height="114"><div><div class="bag-item-head"><h3><a href="${base}/${lang}/products/${row.scent}/${row.format==='refill'?'?format=refill':''}" data-native-route>${ui.names[row.scent]}</a></h3><span>${formatPrice(prices[row.format]*row.quantity,lang)}</span></div><p>${ui[row.format]} · 250 ml</p><div class="bag-item-actions"><div class="quantity-control"><button type="button" data-bag-change="-1" aria-label="${de?'Menge reduzieren':'Decrease quantity'}" ${row.quantity===1?'disabled':''}>${icon('minus')}</button><input aria-label="${ui.quantity}: ${ui.names[row.scent]} ${ui[row.format]}" type="number" min="1" max="20" value="${row.quantity}" inputmode="numeric" data-bag-quantity><button type="button" data-bag-change="1" aria-label="${de?'Menge erhöhen':'Increase quantity'}" ${row.quantity===20?'disabled':''}>${icon('plus')}</button></div><button type="button" class="bag-remove" data-remove>${ui.remove}</button></div></div></article>`;
 }
 function renderCart(){
  const count=cart.reduce((n,r)=>n+r.quantity,0), total=formatPrice(cartTotal(cart),lang);
@@ -118,6 +119,8 @@ function updateRitualCopy(section,progress){
 }
 async function mountScene(element){
  if(!pageActive||viewers.has(element)||mounting.has(element))return;
+ const photoRoot=element.closest('[data-product-photo-viewer]');
+ if(photoRoot&&photoRoot.dataset.mediaView!=='model')return;
  if(reduced.matches&&(element.closest('[data-product-journey]')||playbackFor(element))){element.dataset.sceneStatus='static';return;}
  if(element.closest('dialog') && (!element.closest('dialog').open || element.closest('[data-detour-panel]')?.hidden))return;
  const token={epoch:sceneEpoch};mounting.set(element,token);
@@ -126,6 +129,7 @@ async function mountScene(element){
   sceneModule??=import(`${base}/assets/shop-scene.js?v=${ui.version}`);
   const {mountShopScene}=await sceneModule;
   if(!current())return;
+  if(photoRoot&&photoRoot.dataset.mediaView!=='model')return;
   const section=element.closest('[data-ritual-scroll]');
   const productJourney=productJourneys.get(element.closest('[data-product-journey]'));
   const playback=playbackFor(element),playbackSnapshot=playback?.getSnapshot();
@@ -170,6 +174,7 @@ async function mountScene(element){
    if(productJourney&&state.status==='error')productJourney.fallback();
   }});
   viewers.set(element,view);await view.ready;
+  if(photoRoot&&photoRoot.dataset.mediaView!=='model')view.setPaused(true);
   if(!current()||viewers.get(element)!==view){view.destroy();return;}
   if(section&&reduced.matches)staticRitual(section);
   playback?.attach(view);
@@ -191,12 +196,30 @@ const sceneLoader=createSceneLoader({mount:mountScene,rootMargin:'280px 0px'});
 scenes.filter(el=>!el.closest('dialog')).forEach(el=>sceneLoader.observe(el));
 rituals.forEach(section=>{if(reduced.matches)staticRitual(section);});
 
+for(const root of document.querySelectorAll('[data-product-photo-viewer]')){
+ const scene=root.querySelector('[data-shop-scene]'),photo=root.querySelector('[data-product-photo]');
+ for(const button of root.querySelectorAll('[data-product-media]'))button.addEventListener('click',()=>{
+  const model=button.dataset.productMedia==='model';root.dataset.mediaView=model?'model':'photo';
+  for(const choice of root.querySelectorAll('[data-product-media]'))choice.setAttribute('aria-pressed',String(choice===button));
+  scene.inert=!model;scene.setAttribute('aria-hidden',String(!model));photo.setAttribute('aria-hidden',String(model));
+  const hint=root.closest('.product-gallery')?.querySelector('.product-gallery__hint');if(hint)hint.hidden=!model;
+  const view=viewers.get(scene);
+  if(model){
+   scenePreviews.update(scene);if(view){view.setMode(scene.dataset.requestedMode||scene.dataset.shopScene);view.setPaused(false);view.resize();}
+   else sceneLoader.retry(scene);
+  }else view?.setPaused(true);
+  root.querySelector('[data-product-media-status]').textContent=model?(de?'3D-Ansicht. Ziehen zum Drehen.':'3D view. Drag to rotate.'):(de?'Produktbild.':'Product image.');
+ });
+}
+
 function setGallery(gallery,mode){
  const element=gallery?.querySelector('[data-shop-scene]');if(!element)return;
  element.dataset.requestedMode=mode; element.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}.`);
+ const photoRoot=element.closest('[data-product-photo-viewer]');
+ if(photoRoot){updateProductPhoto(photoRoot,{base,version:ui.version,mode,scent:element.dataset.scent});photoRoot.querySelector('[data-product-photo]').alt=photoRoot.dataset[mode==='refill'?'photoRefillAlt':'photoProductAlt'];}
  const matchedPreview=scenePreviews.update(element,mode);
  const poster=element.querySelector('img');if(poster){if(!matchedPreview)poster.src=`${base}/assets/shop-${mode==='refill'?`refill-${element.dataset.scent||'bamboo'}`:mode==='product'?'product-front':mode}.webp?v=${ui.version}`;poster.alt=ui.productGallery?.[mode]||ui.modelNote;}
- const view=viewers.get(element);if(view)view.setMode(mode);else sceneLoader.request(element);
+ const view=viewers.get(element);if(!photoRoot||photoRoot.dataset.mediaView==='model'){if(view)view.setMode(mode);else sceneLoader.request(element);}
  element.querySelector('.shop-product-canvas')?.setAttribute('aria-label',`${ui.productGallery?.[mode]||ui.modelNote}. ${ui.drag}. ${de?'Pfeiltasten links und rechts drehen die Ansicht.':'Left and right arrow keys rotate the view.'}`);
 }
 for(const form of document.querySelectorAll('[data-product-form]')){
@@ -301,8 +324,10 @@ journey=initializeJourney({ui,reduced,
  onReady:()=>{for(const [section,controller]of productJourneys)if(controller.enhanced)viewers.get(section.querySelector('[data-shop-scene]'))?.setProgress(controller.getProgress(),{immediate:true});},
  onChoice:choice=>{
   for(const el of scenes){
-   const scent=el.closest('main.pdp-page')?.querySelector('[data-product-form]')?.dataset.id||choice.scent;
+   const photoRoot=el.closest('[data-product-photo-viewer]');
+   const scent=el.closest('main.pdp-page')?.querySelector('[data-product-form]')?.dataset.id||(photoRoot&&!el.closest('[data-world]')?photoRoot.dataset.photoDefaultScent:choice.scent);
    el.dataset.scent=scent;
+   if(photoRoot)updateProductPhoto(photoRoot,{base,version:ui.version,mode:el.dataset.requestedMode||el.dataset.shopScene,scent});
    if(!scenePreviews.update(el)&& (el.dataset.shopScene==='refill'||el.dataset.requestedMode==='refill'))el.querySelector('img')?.setAttribute('src',`${base}/assets/shop-refill-${scent}.webp?v=${ui.version}`);
    const profile=playbackFor(el)?.getSnapshot().profile;
    viewers.get(el)?.setWorld(scent,profile==='home-cycle'?BRAND_THEME.sage:getComputedStyle(el).getPropertyValue('--world-bg').trim()||undefined);
@@ -311,7 +336,7 @@ journey=initializeJourney({ui,reduced,
   const theme=themeWorld&&getComputedStyle(themeWorld).getPropertyValue('--world-bg').trim();
   if(theme)document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme);
  },
- onModal:(paused,top)=>{for(const controller of playbacks.values())controller.setBlocked(paused);for(const [el,view]of viewers)view.setPaused(paused&&el.closest('dialog')!==top);if(!paused)scheduleScroll();},
+ onModal:(paused,top)=>{for(const controller of playbacks.values())controller.setBlocked(paused);for(const [el,view]of viewers)view.setPaused(paused&&el.closest('dialog')!==top||el.closest('[data-product-photo-viewer]')?.dataset.mediaView==='photo');if(!paused)scheduleScroll();},
 });
 journey.ready();
 scheduleScroll();
