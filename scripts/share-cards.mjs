@@ -1,6 +1,7 @@
 // Finished, versioned crawler images share the selected photographic assets.
 // Motion stages retain their independent source-derived loading posters.
-export const SHARE_CARD_VERSION = '20261015-base';
+import {productPhotoAsset} from '../assets/product-photos.js';
+export const SHARE_CARD_VERSION = '20261015-stills';
 export const SHARE_CARD_SIZE = Object.freeze({ width: 1200, height: 630 });
 const scents = ['aloe', 'argan', 'bamboo'];
 const names = { aloe: 'Aloe', argan: 'Argan', bamboo: 'Bamboo' };
@@ -26,7 +27,7 @@ export const shareCardSpecs = Object.freeze(['de', 'en'].flatMap(lang =>
     id, lang, file: `share-${id}-${lang}-${SHARE_CARD_VERSION}.jpg`,
     word: id === 'home' ? 'BAMBOO' : id.toUpperCase(),
     world: scents.includes(id) ? id : 'aloe',
-    product: id === 'refill' ? 'photo-refill-aloe.webp' : `photo-product-${scents.includes(id)?id:'aloe'}.webp`,
+    product: productPhotoAsset(id==='refill'?'refill':'product',scents.includes(id)?id:'aloe'),
   }))));
 
 export function shareCardFor(lang, route = '') {

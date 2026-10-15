@@ -23,7 +23,7 @@ test('all six photo variants have small responsive derivatives and keep animatio
  }
  assert.equal(productPhotoAsset('journey','aloe'),null);
  assert.equal(productPhotoAsset('ritual','argan'),null);
- assert.equal(productPhotoAsset('product','bad-path'),'photo-product-aloe.webp');
+ assert.equal(productPhotoAsset('product','bad-path'),'studio-product-aloe-20261015.webp');
 });
 test('an explicit refill route gets the matching photograph before the first paint',()=>{
  const form={dataset:{id:'argan'}},pdp=root('product','argan',{form}),cap=root('cap','argan'),shell=root('shell','aloe');
@@ -52,7 +52,7 @@ test('static galleries have no 3D inspector while motion stages retain their mat
   for(const scent of ['aloe','argan','bamboo']){
    const page=pages[lang].products[scent];
    assert.match(page,/data-product-photo-viewer data-photo-default-mode="product"/);
-   assert.ok(page.includes('data-product-photo src="/demo/assets/photo-product-'+scent+'.webp'));
+   assert.ok(page.includes('data-product-photo src="/demo/assets/studio-product-'+scent+'-20261015.webp'));
    assert.doesNotMatch(page,/data-product-media|data-media-view|data-shop-scene="product"|product-gallery__hint/);
    assert.equal((page.match(/name="format"/g)||[]).length,2,'one starter-set/refill selector is retained');
   }

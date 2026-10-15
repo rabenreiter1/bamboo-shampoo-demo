@@ -1,9 +1,11 @@
-/** Photographic material studies stay separate from matched animation frames.
- * The photo-* asset names remain compatible with product/cart URLs. */
+/** Static commerce images. Starter sets use verified renders of the current
+ * finished model; their distinct URLs cannot resolve to legacy AI retouches.
+ * Product/cart format keys remain compatible. No live viewer is mounted. */
 export function productPhotoAsset(mode='product',scent='aloe',small=false){
   const fragrance=['aloe','argan','bamboo'].includes(scent)?scent:'aloe';
+  if(mode==='product')return `studio-product-${fragrance}-20261015${small?'-640':''}.webp`;
   const name=mode==='shell'?'photo-shell':mode==='cap'?'photo-cap-argan':
-    ['product','refill'].includes(mode)?`photo-${mode}-${fragrance}`:null;
+    mode==='refill'?`photo-refill-${fragrance}`:null;
   return name?`${name}${small?'-640':''}.webp`:null;
 }
 
