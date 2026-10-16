@@ -1,3 +1,4 @@
+import {prepareBambooSurface} from './surface-buffers.js?v=runtime-worker1';
 import {TUBE_PROFILE} from './body-profile.js';
 import {shellRadiusAt} from './body.js';
 
@@ -57,31 +58,18 @@ export async function finishBamboo({THREE,body,albedoUrl=new URL('./bamboo-culm-
  const pixels=bc.getImageData(0,0,w,h).data;
  const artwork=canvas(w,h),ac=artwork.getContext('2d',{willReadFrequently:true}),printHeight=h*body.metrics.surfaceMap.printHeightMillimeters/170;
  ac.drawImage(art,0,h-printHeight,w,printHeight);const ink=ac.getImageData(0,0,w,h).data;
- const colour=canvas(w,h),rough=canvas(w,h),normal=canvas(w,h),cc=colour.getContext('2d'),rc=rough.getContext('2d'),nc=normal.getContext('2d');
- const cd=cc.createImageData(w,h),rd=rc.createImageData(w,h),nd=nc.createImageData(w,h),mask=new Float32Array(w*h),height=new Float32Array(w*h);
- for(let i=0;i<w*h;i++){
-  const j=i*4,luma=(pixels[j]*.2126+pixels[j+1]*.7152+pixels[j+2]*.0722)/255;
-  const coverage=(1-(ink[j]*.2126+ink[j+1]*.7152+ink[j+2]*.0722)/255)*ink[j+3]/255;mask[i]=coverage;
-  // Burnt fibre remains porous wood, rather than opaque black printing.
-  const burn=[.36,.265,.17];
-  for(let k=0;k<3;k++){cd.data[j+k]=pixels[j+k]*(1-coverage)+pixels[j+k]*burn[k]*coverage;rd.data[j+k]=clamp(.71+(1-luma)*.16+coverage*.1)*255;}
-  cd.data[j+3]=rd.data[j+3]=nd.data[j+3]=255;
-  const y=170*(1-Math.floor(i/w)/(h-1)),edge=clamp(y/.8)*clamp((148.8-y)/.8);
-  height[i]=(luma-.68)*.028-coverage*SURFACE_FINISH.engravingDepth*edge;
+ const prepared=await prepareBambooSurface({pixels,ink,width:w,height:h,circumference:SURFACE_FINISH.circumference,depth:SURFACE_FINISH.engravingDepth},{THREE,geometryFactory:createEngravedSurface,readInputs:()=>({pixels:bc.getImageData(0,0,w,h).data,ink:ac.getImageData(0,0,w,h).data})});
+ const colour=canvas(w,h),rough=canvas(w,h),normal=canvas(w,h);
+ for(const [target,bytes]of[[colour,prepared.colour],[rough,prepared.roughness],[normal,prepared.normal]]){
+  const context=target.getContext('2d'),data=context.createImageData(w,h);data.data.set(bytes);context.putImageData(data,0,0);
  }
- const dx=SURFACE_FINISH.circumference/w,dy=170/h;
- for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-  const j=4*(y*w+x),nx=(height[y*w+(x+w-1)%w]-height[y*w+(x+1)%w])/(2*dx),ny=(height[Math.min(h-1,y+1)*w+x]-height[Math.max(0,y-1)*w+x])/(2*dy),length=Math.hypot(nx,ny,1);
-  nd.data[j]=(nx/length*.5+.5)*255;nd.data[j+1]=(ny/length*.5+.5)*255;nd.data[j+2]=(.5/length+.5)*255;
- }
- cc.putImageData(cd,0,0);rc.putImageData(rd,0,0);nc.putImageData(nd,0,0);
  const oldWood=body.materials.wood;
  for(const name of ['map','normalMap','roughnessMap'])oldWood[name]?.dispose();
  const wood=new THREE.MeshPhysicalMaterial({color:'#ffffff',map:texture(THREE,colour,true),normalMap:texture(THREE,normal),roughnessMap:texture(THREE,rough),roughness:.76,metalness:0,ior:1.46,specularIntensity:.9,clearcoat:.12,clearcoatRoughness:.48,anisotropy:.15,anisotropyRotation:Math.PI/2});
  wood.name='Natural_culm_satin_finish_with_recessed_original_laser_artwork';
  body.components.shell.traverse(o=>{if(o.material===oldWood)o.material=wood;});body.materials.wood=wood;oldWood.dispose();
  const shell=body.components.shell.getObjectByName('Bamboo_outer_sourced_contour_and_original_engraving'),old=shell.geometry;
- shell.geometry=createEngravedSurface({THREE,mask,width:w,height:h});old.dispose();
+ shell.geometry=prepared.geometry;old.dispose();
  // The bore has the same axial culm grain, without any copied label artwork.
  body.materials.innerWood.color.set('#cbb58c');body.materials.innerWood.map=texture(THREE,base,true);body.materials.innerWood.roughness=.84;body.materials.innerWood.needsUpdate=true;
  body.materials.endGrain.color.setRGB(1.12,1.08,1.02);body.materials.endGrain.roughness=.8;

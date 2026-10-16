@@ -8,7 +8,7 @@ button.onclick=async()=>{
   if(downloadUrl)URL.revokeObjectURL(downloadUrl);
   downloadUrl=URL.createObjectURL(new Blob([JSON.stringify(bundle)],{type:'application/json'}));
   const link=document.querySelector('#download');link.href=downloadUrl;
-  link.download='bamboo-cycles-source-20261015-v1.json';link.hidden=false;
+  link.download='bamboo-modern-source-20261016-v1.json';link.hidden=false;
  }catch(error){status.textContent='Export failed: '+error.message;console.error(error);}
  finally{button.disabled=false;}
 };

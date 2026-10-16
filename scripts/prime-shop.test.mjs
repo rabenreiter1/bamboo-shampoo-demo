@@ -1,7 +1,13 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {primeShop,needsPlaybackRestorePreview} from '../assets/prime-shop.js';
+import * as journeyModule from '../assets/journey.js';
+import * as backdropModule from '../assets/campaign-backdrop.js';
+import * as previewModule from '../assets/scene-preview.js';
+import * as photoModule from '../assets/product-photos.js';
+import * as commerceModule from '../assets/commerce.js';
+import * as catalogModule from '../assets/catalog.js';
 
-function fixture(storage){
+function fixture(storage,prime=primeShop){
   const fields=new Map(),style=new Map(),link={hidden:true},image={};
   const form={dataset:{id:'argan'},elements:{format:{value:'shampoo'}},querySelectorAll:()=>[],querySelector:key=>{
     if(!fields.has(key))fields.set(key,{});return fields.get(key);
@@ -11,7 +17,7 @@ function fixture(storage){
   const doc={documentElement:{dataset:{}},querySelector:key=>key==='main'?{hasAttribute:()=>false}:form,
     querySelectorAll:key=>key==='[data-resume-journey]'?[link]:key==='[data-shop-scene].scene-preview'?[element]:[]};
   const ui={base:'/demo',lang:'de',version:'test',formatAdd:{refill:'Refill in die Tasche'},formatNote:{refill:'Gefüllter Einsatz'}};
-  primeShop({doc,storage,href:'https://example.test/de/products/argan/?format=refill',ui});
+  prime({doc,storage,href:'https://example.test/de/products/argan/?format=refill',ui});
   return {fields,style,link,image,form,element,doc};
 }
 
@@ -61,4 +67,19 @@ test('serialized prepaint code is valid classic JavaScript and precedes the lowe
   assert.ok(script?.includes('primeShop'));
   assert.doesNotThrow(()=>new Function(script));
   assert.ok(source.indexOf('try{primeShop')<source.indexOf('id="bag-dialog"'));
+});
+
+test('the current builder serializes all prepaint commerce dependencies without relying on module globals',()=>{
+  const builder=fs.readFileSync('scripts/shop-build.mjs','utf8');
+  const expression=builder.match(/const primeCode=([^]*?)\r?\nconst pages=/)?.[1].replace(/;\s*$/,'');
+  assert.ok(expression,'the builder exposes its serialized prepaint expression');
+  const framingCode=fs.readFileSync('assets/scene-framing.js','utf8').replace(/^import[^\n]*\n/gm,'').replace(/\bexport /g,'');
+  const bindings={...journeyModule,...backdropModule,...previewModule,...photoModule,...commerceModule,...catalogModule,framingCode,primeShop,needsPlaybackRestorePreview};
+  const serialized=new Function(...Object.keys(bindings),`return ${expression}`)(...Object.values(bindings));
+  const detached=new Function(`${serialized};return {primeShop,syncRelatedFormat};`)();
+  const f=fixture({getItem:()=>null},detached.primeShop);
+  assert.equal(f.form.elements.format.value,'refill');assert.match(f.image.src,/refill-argan/);
+  const price={},card={dataset:{fragrance:'argan'},querySelectorAll:()=>[],querySelector:selector=>selector==='.product-card__price'?price:null};
+  detached.syncRelatedFormat({querySelectorAll:()=>[card]},{format:'refill',lang:'de',base:'/demo',names:{argan:'Argan'},label:'Refill'});
+  assert.equal(price.textContent,'4,50 €','serialized formatPrice and authoritative prices exist when a related card is present');
 });

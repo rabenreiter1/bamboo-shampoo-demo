@@ -1,5 +1,5 @@
-import { scenePreviewBox, playbackPreviewBox, classicGuideRegion } from './scene-framing.js?v=shop-20261015-cycles9';
-import { paintCampaignWorld, CAMPAIGN_WORLDS, campaignWorld } from './campaign-backdrop.js?v=shop-20261015-cycles9';
+import { scenePreviewBox, playbackPreviewBox, classicGuideRegion } from './scene-framing.js?v=modern-20261016-1';
+import { paintCampaignWorld, CAMPAIGN_WORLDS, campaignWorld } from './campaign-backdrop.js?v=modern-20261016-1';
 
 export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=element.ownerDocument}){
   if(!doc?.createElement)return false;
@@ -25,6 +25,7 @@ export function paintScenePreviewWorld(element,{width,height,scent,campaign,doc=
 
 export function scenePreviewAsset({mode='product',scent='aloe',campaign=false,profile}){
   const fragrance=['aloe','argan','bamboo'].includes(scent)?scent:'aloe';
+  if(profile==='ritual'||mode==='ritual'&&profile!=='refill-teaser')return `shop-ritual-product-${fragrance}.webp`;
   if(profile==='home-cycle'||mode==='journey')return `shop-guide-product-${fragrance}.webp`;
   if(profile==='refill-teaser')return `shop-teaser-product-${fragrance}.webp`;
   if(mode==='cap')return `shop-cap-${fragrance}.webp`;
@@ -33,7 +34,7 @@ export function scenePreviewAsset({mode='product',scent='aloe',campaign=false,pr
   return `shop-${family}-${mode}-${fragrance}.webp`;
 }
 
-export function createScenePreviews({elements,base,version,window:win=window}){
+export function createScenePreviews({elements,base,version,previewBase=`${base}/assets`,window:win=window}){
   const records=new Map();
   function resize(record){
     const box=record.element.getBoundingClientRect();if(!box.width||!box.height)return;
@@ -49,11 +50,11 @@ export function createScenePreviews({elements,base,version,window:win=window}){
     let record=records.get(element);
     if(!record){
       if(!element.classList.contains('scene-preview'))return false;
-      record={element,campaign:element.dataset.artDirection==='campaign',reserved:!!element.closest('.campaign-hero'),profile:element.closest('[data-playback-profile]')?.dataset.playbackProfile,pose:0};records.set(element,record);
+      record={element,campaign:element.dataset.artDirection==='campaign',reserved:!!element.closest('.campaign-hero'),profile:element.dataset.previewProfile||element.closest('[data-playback-profile]')?.dataset.playbackProfile,pose:0};records.set(element,record);
     }
     const name=scenePreviewAsset({mode,scent,campaign:record.campaign,profile:record.profile});if(!name)return false;
     record.mode=mode;record.scent=scent;
-    const image=element.querySelector('img');if(image){const src=`${base}/assets/${name}?v=${version}`;if(image.getAttribute('src')!==src)image.src=src;}
+    const image=element.querySelector('img');if(image){const src=`${previewBase}/${name}?v=${version}`;if(image.getAttribute('src')!==src)image.src=src;}
     element.dataset.previewMode=mode;element.dataset.previewScent=scent;resize(record);return true;
   }
   const refresh=()=>{for(const record of records.values())resize(record);};

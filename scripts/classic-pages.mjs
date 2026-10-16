@@ -1,8 +1,8 @@
 import {productPhotoAsset} from '../assets/product-photos.js';
 /** Presentation recovered from a5071f1. Commerce and corrected model factories stay current. */
-export function createClassicPages({pages, BASE, icon, fragrances, formatPrice, esc, version=''}) {
+export function createClassicPages({pages, BASE, routeBase=BASE, icon, fragrances, formatPrice, esc, version=''}) {
   const L=(lang,de,en)=>lang==='de'?de:en;
-  const path=(lang,route='')=>`${BASE}/classic/${lang}/${route}`;
+  const path=(lang,route='')=>`${routeBase}/${lang}/${route}`;
   const asset=name=>`${BASE}/assets/${name}?v=${version}`;
   const orderedScents=['aloe','argan','bamboo'].filter(id=>fragrances.includes(id));
   const price=(format,lang)=>formatPrice(format==='refill'?450:1250,lang);
@@ -28,7 +28,7 @@ export function createClassicPages({pages, BASE, icon, fragrances, formatPrice, 
       <div class="campaign-deck campaign-deck--home">
         <p class="hero-statement">${L(lang, '250 ml.<br>Immer wieder.', '250 ml.<br>Again & again.')}</p>
         <div class="campaign-switch" role="group" aria-label="${L(lang, 'Duft wählen', 'Choose your scent')}">${orderedScents.map(id => `<button class="world-choice scent-${id}" type="button" data-world-scent="${id}" aria-pressed="${id === 'bamboo'}"><span class="world-choice__swatch" aria-hidden="true"></span><span>${t.names[id]}</span></button>`).join('')}</div>
-        <a class="hero-buy" href="${path(lang, 'products/bamboo/')}" data-world-link data-native-route><span><strong>${L(lang, 'Starter-Set wählen', 'Choose starter set')}</strong><small>${price('shampoo', lang)}</small></span><span class="hero-buy__arrow">${icon('arrow')}</span></a>
+        <a class="hero-buy" href="${path(lang, 'products/bamboo/')}" data-world-link data-native-route><span><strong>${L(lang, 'Starter-Set entdecken', 'Discover your starter set')}</strong><small>250 ml · ${price('shampoo', lang)}</small></span><span class="hero-buy__arrow">${icon('arrow')}</span></a>
       </div>
       <a class="campaign-scroll" href="#collection"><span>${L(lang, 'Deinen Duft entdecken', 'Find your scent')}</span>${icon('down')}</a>
     </section>`;
@@ -56,7 +56,10 @@ export function createClassicPages({pages, BASE, icon, fragrances, formatPrice, 
     ];
     const intervals={ closed:[0,.06], uncap:[.06,.15], unseal:[.15,.27], recap:[.27,.35], dose:[.35,.72], remove:[.72,.83], refill:[.83,.96], ready:[.96,1] };
     const caption=phase=>`<article class="journey-caption journey-caption--${phase.id}" data-journey-caption="${phase.id}" data-phase-start="${intervals[phase.id][0]}" data-phase-end="${intervals[phase.id][1]}"><p class="journey-caption__kicker">${phase.tag}</p><h2 class="journey-caption__title"><span class="journey-caption__line"><span>${phase.title}</span></span></h2><p class="journey-caption__body">${phase.body}</p></article>`;
-    return `<section id="ritual" class="product-journey product-journey--guide scent-bamboo" data-product-journey data-journey-chapter="ritual" data-world="bamboo" data-world-kind="product" aria-label="${L(lang,'So funktioniert Bamboo Shampoo','How Bamboo Shampoo works')}"><div class="product-journey__sticky"><div class="product-journey__stage scene-preview" data-shop-scene="journey" data-art-direction="journey" data-scent="bamboo" role="group" aria-label="${L(lang,'Öffnen, Folie abziehen, dosieren und Refill wechseln','Open, peel, dispense and change the refill')}">${image('shop-guide-product-bamboo.webp',L(lang,'Das komplette Bamboo Shampoo','The complete Bamboo Shampoo'),false,'shop-scene__fallback')}</div><div class="guide-heading"><span>${L(lang,'SO FUNKTIONIERT’S','HOW IT WORKS')}</span><a href="#collection">${L(lang,'Duft wählen','Choose a scent')}${icon('arrow')}</a></div><div class="product-journey__captions">${phases.map(caption).join('')}</div><div class="guide-progress" aria-hidden="true"><span></span></div></div></section>`;
+    const chapters=[{id:'open',at:.07,until:.15,label:L(lang,'Öffnen','Open')},{id:'peel',at:.16,until:.27,label:L(lang,'Entsiegeln','Peel')},{id:'dose',at:.36,until:.72,label:L(lang,'Dosieren','Dispense')},{id:'refill',at:.735,until:.96,label:'Refill'}];
+    const markers=chapters.map(chapter=>`<span id="ritual-${chapter.id}" class="product-journey__marker" data-journey-at="${chapter.at}" data-journey-until="${chapter.until}" aria-hidden="true"></span>`).join('');
+    const navigation=`<nav class="guide-chapters" aria-label="${L(lang,'Animationsschritt wählen','Choose an animation step')}">${chapters.map((chapter,index)=>`<a href="#ritual-${chapter.id}" data-guide-chapter="${chapter.id}"><span aria-hidden="true">0${index+1}</span>${chapter.label}</a>`).join('')}</nav>`;
+    return `<section id="ritual" class="product-journey product-journey--guide scent-bamboo" data-product-journey data-journey-chapter="ritual" data-world="bamboo" data-world-kind="product" aria-label="${L(lang,'So funktioniert Bamboo Shampoo','How Bamboo Shampoo works')}">${markers}<div class="product-journey__sticky"><div class="product-journey__stage scene-preview" data-shop-scene="journey" data-art-direction="journey" data-scent="bamboo" role="group" aria-label="${L(lang,'Öffnen, Folie abziehen, dosieren und Refill wechseln','Open, peel, dispense and change the refill')}">${image('shop-guide-product-bamboo.webp',L(lang,'Das komplette Bamboo Shampoo','The complete Bamboo Shampoo'),false,'shop-scene__fallback')}</div><div class="guide-heading"><span>${L(lang,'SO FUNKTIONIERT’S','HOW IT WORKS')}</span><a href="#collection">${L(lang,'Duft wählen','Choose a scent')}${icon('arrow')}</a></div><div class="product-journey__captions">${phases.map(caption).join('')}</div>${navigation}<div class="guide-progress" aria-hidden="true"><span></span></div></div></section>`;
   }
 
   return Object.fromEntries(['de','en'].map(lang=>{

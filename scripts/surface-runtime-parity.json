@@ -1,0 +1,125 @@
+{
+  "schema": "bamboo-surface-runtime-parity-v1",
+  "verified": true,
+  "visualVersion": "studio-20261015-2",
+  "baselineSource": {
+    "assembly/vendor/three.module.js": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
+    "assembly/vendor/GLTFExporter.js": "8d08baa3901f9e8f94fcaec30c441e6283eede347a5f77039b83e4f05995dab9",
+    "assembly/body.js": "0f6c145bfa092fe9dd97fc94bc14b793019b268d3f0bb62beacc021aa8c351c9",
+    "assembly/body-profile.js": "6b62c3aac5f126778281a60b3ca5e3f6b8b7f391472f2df139efdd9e280ba8d9",
+    "assembly/ritual-cap.js": "ed563c50634277924c46ac218b44efa11afbaaeca743aeadd27cc34781899972",
+    "assembly/cap-data.js": "338b9b30174e82ad7ca70a223cc94ee3866db307d34ee4fa81769983a091c5fd",
+    "assembly/ritual-effects.js": "f0fe0904777000ffa1f2e6f1b1d2ff84ea162540a950da362e7895fa094f4438",
+    "assembly/surface-finish.js": "40f1a787715327b7a8dd6a0d6058433bd3303fa6757506239b5ad7340b3e8597",
+    "assembly/original-engraving.svg": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa",
+    "assembly/cap-reference.jpg": "dbd0fd9d44a9bc04225e9430fe4d2cd9accadf9a59b2912d20fd49e05a495a41",
+    "assembly/bamboo-culm-albedo.webp": "b5af979448f86249eb8c9ca14a54ae31d805bf20625cd7147c13682af6eff2d0",
+    "product-theme.js": "49208e0467c5212e1ea1c54bbd1323869369b88982a1b341142debb46c2dd596"
+  },
+  "currentSource": {
+    "assembly/vendor/three.module.js": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
+    "assembly/vendor/GLTFExporter.js": "8d08baa3901f9e8f94fcaec30c441e6283eede347a5f77039b83e4f05995dab9",
+    "assembly/body.js": "0f6c145bfa092fe9dd97fc94bc14b793019b268d3f0bb62beacc021aa8c351c9",
+    "assembly/body-profile.js": "6b62c3aac5f126778281a60b3ca5e3f6b8b7f391472f2df139efdd9e280ba8d9",
+    "assembly/ritual-cap.js": "ed563c50634277924c46ac218b44efa11afbaaeca743aeadd27cc34781899972",
+    "assembly/cap-data.js": "338b9b30174e82ad7ca70a223cc94ee3866db307d34ee4fa81769983a091c5fd",
+    "assembly/ritual-effects.js": "f0fe0904777000ffa1f2e6f1b1d2ff84ea162540a950da362e7895fa094f4438",
+    "assembly/surface-finish.js": "efa70ffd78eed4acf0b3298e81fc335576493e1094902aaeeb8380b310f61ca9",
+    "assembly/original-engraving.svg": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa",
+    "assembly/cap-reference.jpg": "dbd0fd9d44a9bc04225e9430fe4d2cd9accadf9a59b2912d20fd49e05a495a41",
+    "assembly/bamboo-culm-albedo.webp": "b5af979448f86249eb8c9ca14a54ae31d805bf20625cd7147c13682af6eff2d0",
+    "product-theme.js": "49208e0467c5212e1ea1c54bbd1323869369b88982a1b341142debb46c2dd596"
+  },
+  "baselineGeometrySha256": "7d62a2a2bd67ed5c0f084bbc96ff468824bba952be2980b8ac64bee0dfbcd091",
+  "currentGeometrySha256": "7d62a2a2bd67ed5c0f084bbc96ff468824bba952be2980b8ac64bee0dfbcd091",
+  "materialIdentityNormalization": "Only random UUID aliases for unnamed THREE materials are replaced in first-use order. Material sharing topology, complete exported material definitions and primitive assignments must remain identical.",
+  "exactMaterialDefinitions": true,
+  "exactMaterialAssignments": true,
+  "materialDefinitionsSha256": "e037ad294624b19aadc80725041501e3d2fa85c0613d532c14d704f39b838c54",
+  "exactMeshAttributes": true,
+  "exactIndices": true,
+  "exactTransforms": true,
+  "exactDecodedTextureRgba": true,
+  "textures": [
+    {
+      "uses": [
+        {
+          "mesh": "Bamboo_outer_sourced_contour_and_original_engraving",
+          "material": "Natural_culm_satin_finish_with_recessed_original_laser_artwork",
+          "slot": "map"
+        }
+      ],
+      "width": 2048,
+      "height": 2048,
+      "rgbaSha256": "6507ee1defeb3878e77d47f75e840ff2654781648c94150db4f4ca7bcd2ad86a",
+      "pngByteIdentical": true
+    },
+    {
+      "uses": [
+        {
+          "mesh": "Bamboo_outer_sourced_contour_and_original_engraving",
+          "material": "Natural_culm_satin_finish_with_recessed_original_laser_artwork",
+          "slot": "normalMap"
+        }
+      ],
+      "width": 2048,
+      "height": 2048,
+      "rgbaSha256": "ee0504c7b5613a996e551d21c92112a7661841b71230d35a7401a037146b8c62",
+      "pngByteIdentical": true
+    },
+    {
+      "uses": [
+        {
+          "mesh": "Bamboo_outer_sourced_contour_and_original_engraving",
+          "material": "Natural_culm_satin_finish_with_recessed_original_laser_artwork",
+          "slot": "roughnessMap"
+        }
+      ],
+      "width": 2048,
+      "height": 2048,
+      "rgbaSha256": "719b14097427bdc63873c39a3a4fea9657146416af4d7130bb4261989d80d6b2",
+      "pngByteIdentical": true
+    },
+    {
+      "uses": [
+        {
+          "mesh": "Bamboo_inner_bore_D48",
+          "material": "Unengraved_bamboo_inner_bore",
+          "slot": "map"
+        }
+      ],
+      "width": 2048,
+      "height": 2048,
+      "rgbaSha256": "f00160f132fd67f0076c3c62f4827cfc848c2315748d088e85df924f20a33e34",
+      "pngByteIdentical": true
+    },
+    {
+      "uses": [
+        {
+          "mesh": "Bamboo_top_rim_D58_D48",
+          "material": "Cut_bamboo_end_grain",
+          "slot": "map"
+        },
+        {
+          "mesh": "Bamboo_external_bottom",
+          "material": "Cut_bamboo_end_grain",
+          "slot": "map"
+        },
+        {
+          "mesh": "Bamboo_internal_floor_visual_Y5",
+          "material": "Cut_bamboo_end_grain",
+          "slot": "map"
+        }
+      ],
+      "width": 512,
+      "height": 512,
+      "rgbaSha256": "530b70685fb3515c174ff9655791991ed40bf4044b103f542bdfb7071d955afa",
+      "pngByteIdentical": true
+    }
+  ],
+  "runtime": {
+    "assembly/surface-finish.js": "efa70ffd78eed4acf0b3298e81fc335576493e1094902aaeeb8380b310f61ca9",
+    "assembly/surface-buffers.js": "8738b57c50869b27c26447ae0d51d807c08e3a9632843f3274735e53011ee5fe",
+    "assembly/surface-worker.js": "c56fc5d6bbe11a097d15cf5c297b745745dff7ba9bfd3f50be864a10239dfaa9"
+  }
+}

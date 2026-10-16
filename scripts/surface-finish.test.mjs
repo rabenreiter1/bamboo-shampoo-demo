@@ -81,7 +81,8 @@ test('published material asset and immutable engraving match their recorded prov
    assert.equal(hash(Buffer.from(code)),expected);
   }
  }
- assert.equal(Object.keys(manifest.loadingFrames.assets).length,9);
+ for(const family of['detail-product','guide-product','teaser-product','ritual-product'])for(const scent of['aloe','argan','bamboo'])
+  assert.ok(manifest.loadingFrames.assets[`shop-${family}-${scent}.webp`],`Missing source-verified ${family}/${scent} first frame`);
  for(const [file,entry]of Object.entries(manifest.loadingFrames.assets)){
   const bytes=fs.readFileSync(`assets/${file}`);assert.equal(hash(bytes),entry.sha256);
   assert.ok(bytes.length<240000);assert.ok(bytes.equals(fs.readFileSync(`docs/assets/${file}`)));

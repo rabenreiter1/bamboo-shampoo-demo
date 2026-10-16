@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import { createStudioEnvironment } from './studio-environment.js?v=studio-20261015-2';
-import { finishBamboo, finishCap, finishMicroSurface } from './surface-finish.js?v=studio-20261015-2';
+import { finishBamboo, finishCap, finishMicroSurface } from './surface-finish.js?v=runtime-worker1';
 import { PRODUCT_THEMES } from '../assets/product-theme.js?v=shop-20261015-cycles9';
 import { createBody } from './body.js?v=ritual-20261013-1';
 import { createRitualCap } from './ritual-cap.js?v=tip-20261015-2';

@@ -144,9 +144,10 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc, vers
     ];
     return `<section class="ritual-scroll ritual-scroll--${variant} scent-${scent}" ${variant === 'home' ? 'id="ritual" data-journey-chapter="ritual"' : ''} ${variant === 'product' ? '' : `data-world="${scent}" data-world-kind="product"`} data-ritual-scroll aria-label="${L(lang, 'Das Produkt vom ersten Öffnen bis zum nächsten Refill', 'The product from first opening to the next refill')}">
       <div class="ritual-sticky">
-        <div class="ritual-stage" data-shop-scene="ritual" data-scent="${scent}" role="group" aria-label="${L(lang, '3D-Animation: öffnen, Siegelfolie abziehen, dosieren und PET-Einsatz wechseln', '3D animation: open, peel the film, dose and replace the PET insert')}">${image(`shop-product-front-${scent}.webp`, L(lang, 'Bamboo Shampoo in der geschlossenen Produktansicht', 'Bamboo Shampoo in its closed product view'))}</div>
+        <div class="ritual-stage scene-preview" data-shop-scene="ritual" data-art-direction="ritual" data-preview-profile="ritual" data-scent="${scent}" role="group" aria-label="${L(lang, '3D-Animation: öffnen, Siegelfolie abziehen, dosieren und PET-Einsatz wechseln', '3D animation: open, peel the film, dose and replace the PET insert')}">${image(`shop-ritual-product-${scent}.webp`, L(lang, 'Bamboo Shampoo in der geschlossenen Produktansicht', 'Bamboo Shampoo in its closed product view'),false,'shop-scene__fallback')}</div>
         <div class="ritual-copy" data-ritual-copy>
           ${eyebrow(L(lang, 'DAS SYSTEM IN BEWEGUNG', 'THE SYSTEM IN MOTION'))}
+          ${variant==='product'?`<p data-ritual-purchase-context>${L(lang,'Dein Starter-Set: öffnen, dosieren und nachfüllen.','Your starter set: open, dispense and refill.')}</p>`:''}
           <div class="ritual-panels">${steps.map(([title, body], index) => `<div class="ritual-step ${index === 0 ? 'is-active' : ''}" data-ritual-step="${index}"><h2 class="display">${title}</h2><p>${body}</p></div>`).join('')}</div>
           <div class="ritual-progress" aria-hidden="true"><span></span></div>
           <p class="ritual-instruction">${icon('down')}<span>${L(lang, 'Scrollen bewegt das Produkt', 'Scroll to move the product')}</span></p>
@@ -284,7 +285,7 @@ export function createShopPages({ BASE, icon, fragrances, formatPrice, esc, vers
       <div class="product-price-line"><strong class="product-price" data-product-price data-price aria-label="${t.productPriceLabel}">${formatPrice(1250, lang)}</strong><span class="unit-price"><span data-unit-price>${formatPrice(5000, lang)}</span> / l · 250 ml</span></div>
       <div class="product-add-line"><div class="quantity-control"><button type="button" data-quantity="-1" disabled aria-label="${L(lang, 'Menge reduzieren', 'Decrease quantity')}">${icon('minus')}</button><input name="quantity" type="number" min="1" max="20" value="1" inputmode="numeric" aria-label="${t.quantity}"><button type="button" data-quantity="1" aria-label="${L(lang, 'Menge erhöhen', 'Increase quantity')}">${icon('plus')}</button></div><button class="button product-add" type="submit"><span data-add-label>${t.formatAdd.shampoo}</span>${icon('bag')}</button></div>
       <p class="product-format-note" data-format-note>${t.formatNote.shampoo}</p>
-      <div class="product-dock" data-product-dock><div><span data-product-dock-label>${t.names[id]} / 250 ml</span><strong data-product-price>${formatPrice(1250, lang)}</strong></div><button class="button" type="submit"><span>${t.add}</span>${icon('bag')}</button></div>
+      <div class="product-dock" data-product-dock><div><span data-product-dock-label>${t.names[id]} · ${t.shampoo} · 250 ml</span><strong data-product-price>${formatPrice(1250, lang)}</strong></div><button class="button" type="submit"><span data-product-dock-add>${t.formatAdd.shampoo}</span>${icon('bag')}</button></div>
     </form>`;
   }
 

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Source-derived motion poster studio · private QA</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#F8F6EF;color:#253B30;font:14px/1.5 system-ui,sans-serif}
+    #stage{position:relative;width:1280px;height:1600px;background:repeating-conic-gradient(#F8F6EF 0% 25%,#E6EEE0 0% 50%) 0/32px 32px}
+    #stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+    aside{position:fixed;z-index:10;right:16px;top:16px;bottom:16px;width:340px;padding:20px;background:#F8F6EFf5;border:1px solid #253B3033;overflow:auto;box-shadow:0 6px 32px #253B301a}
+    h1{margin:0 0 12px;font-size:21px}p{margin:0 0 14px}button,a{display:block;width:100%;margin:8px 0;padding:13px;border:1px solid #253B3080;background:transparent;color:inherit;font:inherit;text-align:left;text-decoration:none;cursor:pointer}
+    button:disabled{opacity:.45;cursor:wait}button:focus-visible,a:focus-visible{outline:2px solid #253B30;outline-offset:3px}
+    [hidden]{display:none!important}output{display:block;margin:14px 0;white-space:pre-wrap}#proofs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}#proofs figure{margin:0}#proofs img{display:block;width:100%;background:#E6EEE0}#proofs figcaption{font-size:9px;overflow-wrap:anywhere}
+    #manifest{font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
+  </style>
+  <script type="importmap">{"imports":{"three":"/bamboo-shampoo-demo/assets/assembly/vendor/three.module.js"}}</script>
+  <script type="module" src="/scripts/motion-poster-studio.js"></script>
+</head>
+<body>
+  <div id="stage" role="img" aria-label="Private 1280 by 1600 source-derived capture stage"></div>
+  <aside aria-label="Private capture controls">
+    <h1>Motion poster studio</h1>
+    <p>Live shop factories, exact original engraving and sourced cap geometry. Every export is a transparent 1280 × 1600 PNG; background lettering remains in the shared page painter.</p>
+    <button data-batch="essential">Capture 12 animation loading frames</button><button data-batch="matched">Capture 12 detail and campaign frames</button>
+    <button data-batch="front">Capture 3 front-facing product cards</button>
+    <button data-batch="guide">Capture 3 home guide first frames</button>
+    <button data-batch="teaser">Capture 3 refill teaser first frames</button>
+    <button data-batch="ritual">Capture 3 scroll ritual first frames</button>
+    <button data-batch="cap">Capture 3 cap component stills</button>
+    <button data-batch="all">Capture all 27 source frames</button>
+    <a id="download" hidden download="bamboo-motion-posters-v1.json">Download source poster bundle</a>
+    <output id="state" aria-live="polite">Ready. Rendering starts only when a capture button is pressed.</output>
+    <div id="proofs"></div>
+    <details><summary>Source and camera metadata</summary><pre id="manifest">No frames yet.</pre></details>
+  </aside>
+</body>
+</html>
+
+
+

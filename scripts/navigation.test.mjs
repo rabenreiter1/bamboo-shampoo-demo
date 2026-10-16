@@ -6,6 +6,10 @@ const base='/bamboo-shampoo-demo',current=`https://rabenreiter1.github.io${base}
 test('navigation warming accepts only another localized document on this shop origin',()=>{
  assert.equal(prefetchDestination(`${base}/de/products/aloe/?format=refill#main`,current,base),`${current}products/aloe/?format=refill`);
  assert.equal(prefetchDestination(`${base}/en/story/`,current,base),`https://rabenreiter1.github.io${base}/en/story/`);
+ assert.equal(prefetchDestination(`${base}/design/classic/en/products/argan/?format=refill`,current,base),`https://rabenreiter1.github.io${base}/design/classic/en/products/argan/?format=refill`);
+ const classicBase=`${base}/design/classic`,classicCurrent=`https://rabenreiter1.github.io${classicBase}/de/`;
+ assert.equal(prefetchDestination(`${classicBase}/en/story/`,classicCurrent,classicBase),`https://rabenreiter1.github.io${classicBase}/en/story/`);
+ assert.equal(prefetchDestination(`${base}/en/story/`,classicCurrent,classicBase),null,'alternate prefetch stays inside its route base');
  for(const href of ['#ritual',current,'https://example.com/de/shop/',`${base}/assets/app.js`,`${base}/assembly/`,'mailto:hello@example.com'])assert.equal(prefetchDestination(href,current,base),null,href);
 });
 
