@@ -2246,3 +2246,114 @@ html[data-selected-scent="bamboo"]{--selected-world-bg:#cdc0e8}
 .campaign-hero .classic-hero-photo>.product-photograph{top:43%;block-size:62%}
 .campaign-hero--refill .classic-hero-photo>.product-photograph{block-size:64%;top:43%}
 }
+
+/* Modern campaign: one emphatic purchase action and a continuous product film. */
+.campaign-deck--home .hero-buy {
+  min-inline-size: 260px;
+  min-block-size: 66px;
+  padding: 15px 20px;
+  justify-content: space-between;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  color: var(--paper);
+  background: var(--ink);
+  box-shadow: 0 8px 24px #1c1b2510;
+  transition: background .2s ease, box-shadow .2s ease;
+}
+.campaign-deck--home .hero-buy:hover { background: #383240; box-shadow: 0 10px 28px #1c1b2520; }
+.campaign-deck--home .hero-buy small { color: #ffffffb8; }
+.campaign-deck--home .hero-buy__arrow { inline-size: 27px; block-size: 27px; background: transparent; border-radius: 0; }
+.campaign-deck--home .hero-buy:hover .hero-buy__arrow { transform: translateX(4px); }
+.campaign-hero--home .campaign-word { font-size: clamp(150px, 32vw, 1080px); }
+.campaign-hero--home .classic-hero-photo > .product-photograph { max-inline-size: min(88%, 1500px); }
+.product-journey--guide { --journey-copy-height: 222px; }
+.product-journey--guide .product-journey__marker { scroll-margin-block-start: var(--header); }
+.product-journey--guide.is-enhanced .journey-caption {
+  bottom: 83px;
+  max-inline-size: min(850px, 68vw);
+}
+.product-journey--guide.is-enhanced .journey-caption__body { max-inline-size: 48ch; }
+.guide-chapters {
+  order: 20;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 16px var(--gutter) 22px;
+}
+.guide-chapters > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-block-size: 44px;
+  padding: 8px 10px;
+  border-block-start: 1px solid var(--line);
+  font-size: clamp(12px, .86vw, 16px);
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: .66;
+  transition: opacity .2s ease, border-color .2s ease;
+}
+.guide-chapters > a > span { font-size: .72em; letter-spacing: .05em; opacity: .65; }
+.guide-chapters > a:hover, .guide-chapters > a:focus-visible, .guide-chapters > a[aria-current] { opacity: 1; border-color: var(--ink); }
+.product-journey--guide.is-enhanced .guide-chapters {
+  position: absolute;
+  z-index: 5;
+  inset: auto var(--gutter) 16px;
+  inline-size: min(680px, calc(100% - 2 * var(--gutter)));
+  padding: 0;
+}
+.product-journey--guide[data-journey-phase='closed'] [data-guide-chapter='open'],
+.product-journey--guide[data-journey-phase='uncap'] [data-guide-chapter='open'],
+.product-journey--guide[data-journey-phase='unseal'] [data-guide-chapter='peel'],
+.product-journey--guide[data-journey-phase='recap'] [data-guide-chapter='peel'],
+.product-journey--guide[data-journey-phase='dose'] [data-guide-chapter='dose'],
+.product-journey--guide[data-journey-phase='remove'] [data-guide-chapter='refill'],
+.product-journey--guide[data-journey-phase='refill'] [data-guide-chapter='refill'],
+.product-journey--guide[data-journey-phase='ready'] [data-guide-chapter='refill'] { opacity: 1; border-color: var(--ink); }
+.product-journey--guide:not(.is-enhanced) .guide-chapters { display: none; }
+
+@media (min-width: 1800px) {
+  .campaign-hero--home .classic-hero-photo > .product-photograph { block-size: 74%; top: 44%; }
+  .campaign-deck--home .hero-buy { min-inline-size: 340px; padding: 19px 24px; }
+  .campaign-hero--home .campaign-word { top: 42%; }
+}
+@media (max-width: 760px) and (orientation: portrait) {
+  .campaign-hero--home { block-size: max(640px, 100svh); min-block-size: 640px; }
+  .campaign-hero--home .classic-hero-photo > .product-photograph { top: 39%; block-size: 58%; max-inline-size: 89%; }
+  .campaign-hero--home .campaign-word { top: 37%; font-size: 32vw; }
+  .campaign-deck--home { bottom: 55px; grid-template-columns: 1fr; gap: 9px; }
+  .campaign-deck--home .hero-statement { display: none; }
+  .campaign-deck--home .campaign-switch { grid-column: 1; grid-row: 1; justify-self: center; gap: clamp(10px, 4vw, 26px); }
+  .campaign-deck--home .world-choice { min-inline-size: 72px; }
+  .campaign-deck--home .hero-buy { grid-column: 1; grid-row: 2; justify-self: stretch; min-inline-size: 0; min-block-size: 62px; padding: 13px 18px; }
+  .campaign-deck--home .hero-buy strong { font-size: 14px; }
+  .campaign-deck--home .hero-buy small { font-size: 12px; }
+  .campaign-deck--home .hero-buy__arrow { inline-size: 24px; block-size: 24px; }
+  .product-journey--guide { --journey-copy-height: 222px; }
+  .product-journey--guide.is-enhanced .journey-caption { bottom: 78px; max-inline-size: none; }
+  .product-journey--guide.is-enhanced .journey-caption__title { font-size: clamp(26px, 7.1vw, 35px); }
+  .product-journey--guide.is-enhanced .journey-caption__body { font-size: 13px; line-height: 1.55; }
+  .product-journey--guide.is-enhanced .guide-chapters { inset: auto var(--gutter) 15px; inline-size: auto; gap: 7px; }
+  .guide-chapters > a { padding-inline: 0; gap: 4px; font-size: clamp(10px, 2.75vw, 12px); }
+  .guide-chapters > a > span { display: none; }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .campaign-deck--home { grid-template-columns: 1fr auto; }
+  .campaign-deck--home .hero-statement { display: none; }
+  .campaign-deck--home .campaign-switch { grid-column: 1; justify-self: start; }
+  .campaign-deck--home .hero-buy { grid-column: 2; min-inline-size: 210px; min-block-size: 52px; padding: 9px 13px; }
+  .campaign-deck--home .hero-buy strong { font-size: 12px; }
+  .campaign-deck--home .hero-buy small { font-size: 11px; }
+  .campaign-deck--home .hero-buy__arrow { inline-size: 22px; block-size: 22px; }
+  .product-journey--guide.is-enhanced .journey-caption { inset: 78px auto auto var(--gutter); inline-size: 31%; }
+  .product-journey--guide.is-enhanced .guide-chapters { inline-size: 33%; inset: auto auto 12px var(--gutter); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 8px; }
+  .guide-chapters > a { min-block-size: 44px; font-size: 10px; gap: 4px; }
+  .guide-chapters > a > span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .campaign-deck--home .hero-buy { transition: none; }
+  .campaign-deck--home .hero-buy:hover .hero-buy__arrow { transform: none; }
+  .product-journey--guide.is-enhanced .journey-caption { position: relative; inset: auto; inline-size: auto; max-inline-size: 80ch; }
+  .product-journey--guide .guide-chapters { display: none; }
+}

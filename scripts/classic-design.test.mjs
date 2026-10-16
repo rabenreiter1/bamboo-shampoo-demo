@@ -11,14 +11,15 @@ const base='/bamboo-shampoo-demo',origin='https://rabenreiter1.github.io';
 
 test('design comparison preserves the exact localized route and selection, but starts at the top',()=>{
   const source=`${origin}${base}/en/products/argan/?format=refill&resume=1#ritual`;
-  assert.equal(designDestination(source,base,'classic'),`${origin}${base}/classic/en/products/argan/?format=refill`);
+  assert.equal(designDestination(source,base,'classic'),`${origin}${base}/design/classic/en/products/argan/?format=refill`);
+  assert.equal(designDestination(`${origin}${base}/design/classic/en/products/argan/?format=refill`,base,'modern'),`${origin}${base}/en/products/argan/?format=refill`);
   assert.equal(designDestination(`${origin}${base}/classic/de/checkout/?step=review#confirmation`,base),`${origin}${base}/de/checkout/?step=review`);
   assert.equal(designDestination(`${origin}/outside/de/`,base),null);
 });
 
 test('the footer opens only after a close double activation, supports keyboard and survives page restoration',()=>{
   const events=new Map(),panelEvents=new Map(),windowEvents=new Map(),attributes={};let time=0,focused=false;
-  const links=['current','classic'].map(design=>({dataset:{designTarget:design},focus:()=>{focused=true;}}));
+  const links=['modern','classic'].map(design=>({dataset:{designTarget:design},focus:()=>{focused=true;}}));
   const trigger={setAttribute:(key,value)=>attributes[key]=value,addEventListener:(key,fn)=>events.set(key,fn),removeEventListener:key=>events.delete(key),focus:()=>{focused=true;}};
   const panel={hidden:true,querySelector:()=>links[0],querySelectorAll:()=>links,addEventListener:(key,fn)=>panelEvents.set(key,fn),removeEventListener:key=>panelEvents.delete(key)};
   const doc={querySelector:key=>key==='[data-design-trigger]'?trigger:panel};
@@ -32,15 +33,17 @@ test('the footer opens only after a close double activation, supports keyboard a
   let prevented=false;
   panelEvents.get('keydown')({key:'Enter',currentTarget:panel,target:links[1],preventDefault(){prevented=true;}});
   assert.equal(prevented,false,'Enter on the design link must retain native navigation');
-  assert.match(links[1].href,/classic\/de\/products\/argan\/\?format=refill$/);
+  assert.match(links[1].href,/design\/classic\/de\/products\/argan\/\?format=refill$/);
   control.destroy();assert.equal(events.size,0);assert.equal(panelEvents.size,0);assert.equal(windowEvents.size,0);
 });
 
-test('classic presentation restores the old large-word opening and the current scroll-controlled assembly',()=>{
+test('Modern presentation restores the large-word opening and scroll-controlled assembly while Classic retains autoplay',()=>{
   const args={BASE:base,fragrances:['aloe','argan','bamboo'],formatPrice:String,icon:()=>'<svg></svg>',esc:String};
   const current=createShopPages(args),classic=createClassicPages({...args,pages:current});
   for(const lang of ['de','en']){
     assert.match(classic[lang].home,/class="campaign-word">BAMBOO/);
+    assert.ok(classic[lang].home.includes(`${base}/${lang}/products/bamboo/`),'Modern hero links use the primary route');
+    assert.doesNotMatch(classic[lang].home,/href="[^"]*\/classic\//,'Modern presentation has no historical comparison-route links');
     assert.match(classic[lang].home,/data-product-journey/);
     assert.doesNotMatch(classic[lang].home,/data-playback-profile|intro-hero|data-detour/);
     assert.match(current[lang].home,/data-playback-profile="hero-intro"/);

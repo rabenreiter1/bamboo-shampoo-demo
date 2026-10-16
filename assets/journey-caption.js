@@ -1,4 +1,4 @@
-import { JOURNEY_PHASES } from './journey-pose.js?v=shop-20261015-intro1';
+import { JOURNEY_PHASES } from './journey-pose.js?v=modern-20261016-1';
 
 const unit = value => Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
 const smooth = value => { const p = unit(value); return p * p * p * (p * (p * 6 - 15) + 10); };
@@ -23,6 +23,8 @@ export function initializeProductJourney(section) {
   const captions = new Map([...section.querySelectorAll('[data-journey-caption]')].map(el => [el.dataset.journeyCaption, el]));
   const current = section.querySelector('[data-journey-current]');
   const markers = [...section.querySelectorAll('[data-journey-at]')];
+  const chapterLinks = [...section.querySelectorAll('[data-guide-chapter]')];
+  const chapterForPhase = { closed: 'open', uncap: 'open', unseal: 'peel', recap: 'peel', dose: 'dose', remove: 'refill', refill: 'refill', ready: 'refill' };
   let enhanced = false, lastPhase = '', lastState = null;
   let wasPinned = false;
   let referenceWidth = 0, referenceStageHeight = 0;
@@ -53,6 +55,10 @@ export function initializeProductJourney(section) {
     if (!enhanced || !value) return;
     lastState = value;
     section.dataset.journeyPhase = value.phase;
+    for (const link of chapterLinks) {
+      if (link.dataset.guideChapter === chapterForPhase[value.phase]) link.setAttribute('aria-current', 'step');
+      else link.removeAttribute('aria-current');
+    }
     section.style.setProperty('--journey-progress', String(unit(value.q)));
     for (const phase of JOURNEY_PHASES) {
       const caption = captions.get(phase.id); if (!caption) continue;
@@ -99,6 +105,7 @@ export function initializeProductJourney(section) {
   function fallback() {
     enhanced = false; section.classList.remove('is-enhanced', 'is-loading');
     lastState = null; lastPhase = ''; referenceStageHeight = 0; wasPinned = false;
+    for (const link of chapterLinks) link.removeAttribute('aria-current');
     for (const marker of markers) { marker.style.removeProperty('top'); marker.style.removeProperty('height'); }
     for (const caption of captions.values()) {
       caption.inert = false; caption.removeAttribute('aria-hidden'); caption.classList.remove('is-active', 'is-visible');

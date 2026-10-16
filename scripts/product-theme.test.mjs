@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { BRAND_THEME, PRODUCT_THEMES, themeCss } from '../assets/product-theme.js?v=shop-20261015-cycles9';
+import { BRAND_THEME, PRODUCT_THEMES, themeCss } from '../assets/product-theme.js?v=modern-20261016-1';
 import { CAMPAIGN_WORLDS, paintCampaignWorld } from '../assets/campaign-backdrop.js';
 import { createRitualCap } from '../assets/assembly/ritual-cap.js';
 

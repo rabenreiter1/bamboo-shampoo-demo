@@ -2,6 +2,9 @@ import test from 'node:test';import assert from 'node:assert/strict';import * as
 import {staticSceneFrame,projectScenePoint,scenePreviewBox} from '../assets/scene-framing.js';
 import {campaignLayout} from '../assets/campaign-backdrop.js';
 import {scenePreviewAsset,createScenePreviews,paintScenePreviewWorld} from '../assets/scene-preview.js';
+import {playbackSceneFrame,playbackPreviewBox} from '../assets/scene-framing.js';
+import {createRitualSpace} from '../assets/assembly/ritual-space.js';
+import {computeCycleState} from '../assets/assembly/ritual-timeline.js';
 
 test('the shared first-frame camera projects exactly like the live THREE camera',()=>{
   for(const [width,height] of [[320,440],[390,472],[390,844],[844,390],[768,700],[1440,900],[3440,1440]])
@@ -63,4 +66,17 @@ test('the explanatory stage paints a quiet sage field instead of campaign letter
   assert.equal(fills,1);assert.equal(letters,0);assert.equal(fill,'#E6EEE0');
   assert.equal(scenePreviewAsset({mode:'journey',scent:'argan'}),'shop-guide-product-argan.webp');
   assert.equal(scenePreviewAsset({mode:'ritual',scent:'bamboo',profile:'refill-teaser'}),'shop-teaser-product-bamboo.webp');
+});
+
+test('plain scroll rituals use their live initial camera, not a static product photograph camera',()=>{
+ for(const [width,height]of[[320,330],[390,472],[430,700],[844,300],[1440,900],[3440,1440]]){
+  const camera=new THREE.PerspectiveCamera(30,width/height,.5,5000),rig=new THREE.Group();rig.updateMatrixWorld(true);
+  const actual=createRitualSpace({THREE}).fitCamera({state:computeCycleState(0),camera,tiltRig:rig,zoom:1});
+  const expected=playbackSceneFrame({width,height,profile:'ritual'});
+  for(let i=0;i<3;i++)assert.ok(Math.abs(actual.cameraPosition[i]-expected.cameraPosition[i])<1e-8);
+  assert.ok(Math.abs(actual.distance-expected.distance)<1e-8);
+  const box=playbackPreviewBox({width,height,profile:'ritual'});assert.ok(Object.values(box).every(Number.isFinite));
+ }
+ for(const scent of['aloe','argan','bamboo'])assert.equal(scenePreviewAsset({mode:'ritual',scent}),`shop-ritual-product-${scent}.webp`);
+ assert.equal(scenePreviewAsset({mode:'ritual',scent:'argan',profile:'refill-teaser'}),'shop-teaser-product-argan.webp');
 });

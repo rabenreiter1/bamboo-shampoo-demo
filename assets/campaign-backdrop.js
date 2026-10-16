@@ -1,4 +1,4 @@
-import { PRODUCT_THEMES } from './product-theme.js?v=shop-20261015-cycles9';
+import { PRODUCT_THEMES } from './product-theme.js?v=modern-20261016-1';
 
 // The hero's typography, coloured world and product share one opaque canvas.
 // Semantic HTML remains available while this source-derived stage is loading.

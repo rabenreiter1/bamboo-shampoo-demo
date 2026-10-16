@@ -4,7 +4,7 @@ export function prefetchDestination(href, current, base) {
   try {
     const url = new URL(href, current), here = new URL(current);
     if (url.origin !== here.origin || !url.pathname.startsWith(`${base}/`)) return null;
-    if (!/^\/(?:classic\/)?(?:de|en)\/(?:[a-z]+\/)*$/.test(url.pathname.slice(base.length))) return null;
+    if (!/^\/(?:(?:design\/)?classic\/)?(?:de|en)\/(?:[a-z]+\/)*$/.test(url.pathname.slice(base.length))) return null;
     if (url.pathname === here.pathname && url.search === here.search) return null;
     url.hash = '';
     return url.href;

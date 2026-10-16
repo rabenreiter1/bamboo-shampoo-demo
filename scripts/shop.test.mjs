@@ -14,6 +14,7 @@ const productRoutes = fragrances.map(scent => `products/${scent}/`);
 const primaryRoutes = ['', 'shop/', 'refill/', 'story/', 'faq/', 'checkout/', ...productRoutes, 'impressum/', 'privacy/'];
 const canonical = (lang, route) => `${origin}${base}/${lang}/${route}`;
 const readPage = (lang, route = '') => fs.readFileSync(path.join(root, lang, route, 'index.html'), 'utf8');
+const readClassicPage = (lang, route = '') => fs.readFileSync(path.join(root, 'design', 'classic', lang, route, 'index.html'), 'utf8');
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 const tags = (html, name) => [...html.matchAll(new RegExp(`<${name}\\b[^>]*>`, 'gi'))].map(match => match[0]);
 const attrs = tag => Object.fromEntries([...tag.matchAll(/([\w:-]+)="([^"]*)"/g)].map(match => [match[1], match[2]]));
@@ -22,9 +23,41 @@ const links = html => tags(html, 'link').map(attrs);
 const scriptData = (html, id) => JSON.parse(html.match(new RegExp(`<script[^>]*\\bid="${id}"[^>]*>([\\s\\S]*?)<\\/script>`))[1]);
 const unescape = value => value.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
 
-test('the editorial hero illustrates refilling before scent selection and the complete automatic use cycle', () => {
+test('Modern is the primary bold presentation with native scroll explanation and current products',()=>{
+ for(const lang of locales){
+  const html=readPage(lang),main=html.match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
+  const ui=scriptData(html,'ui-copy');
+  assert.equal(ui.design,'classic','legacy styling key stays compatible');
+  assert.equal(ui.presentation,'modern');assert.equal(ui.routeBase,base);
+  assert.match(html,/data-presentation="modern"/);assert.match(main,/<h1 class="campaign-word">BAMBOO/);
+  assert.match(main,/data-product-journey/);assert.doesNotMatch(main,/data-playback-profile|data-detour(?:=|-)/);
+  assert.ok(main.indexOf('id="collection"')<main.indexOf('id="ritual"'));
+  const phases=tags(main,'article').map(attrs).filter(tag=>tag['data-journey-caption']);
+  assert.deepEqual(phases.map(tag=>tag['data-journey-caption']),['closed','uncap','unseal','recap','dose','remove','refill','ready']);
+  for(const scent of fragrances)assert.ok(tags(main,'a').some(tag=>attrs(tag).href===`${base}/${lang}/products/${scent}/`));
+  const refill=readPage(lang,'refill/');
+  assert.match(refill,/<h1 class="campaign-word">REFILL/);assert.match(refill,/data-ritual-scroll/);
+  assert.doesNotMatch(refill,/data-playback-profile|data-playback-controls/);
+  assert.ok(refill.includes(`cycles-refill-bamboo-20261015-perspective2.webp`));
+ }
+});
+
+test('historical comparison routes redirect to Modern while Classic alternate keeps its route context',()=>{
+ for(const lang of locales)for(const route of primaryRoutes){
+  const alias=fs.readFileSync(path.join(root,'classic',lang,route,'index.html'),'utf8');
+  const destination=`${base}/${lang}/${route}`;
+  assert.ok(tags(alias,'meta').map(attrs).some(tag=>tag['http-equiv']?.toLowerCase()==='refresh'&&tag.content.endsWith(destination)));
+  assert.match(alias,/location\.search/);assert.match(alias,/location\.hash/);
+  assert.deepEqual(links(alias).filter(link=>link.rel==='canonical').map(link=>link.href),[origin+destination]);
+  const classic=readClassicPage(lang,route),ui=scriptData(classic,'ui-copy');
+  assert.equal(ui.presentation,'classic');assert.equal(ui.design,'current');assert.equal(ui.routeBase,`${base}/design/classic`);
+  assert.ok(tags(classic,'a').map(attrs).some(link=>link.hreflang===(lang==='de'?'en':'de')&&link.href===`${base}/design/classic/${lang==='de'?'en':'de'}/${route}`));
+ }
+});
+
+test('Classic editorial hero retains its refill introduction and complete automatic use cycle', () => {
   for (const lang of locales) {
-    const main = readPage(lang).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
+    const main = readClassicPage(lang).match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
     assert.equal(tags(main, 'div').filter(tag => attrs(tag)['data-shop-scene']).length, 2);
     assert.match(main, /campaign-hero--home/);
     assert.match(main, /<h1 class="intro-title">/);
@@ -54,8 +87,8 @@ test('the editorial hero illustrates refilling before scent selection and the co
     assert.match(guide, /shop-guide-product-aloe\.webp/, 'the guide starts with its matching closed-product poster');
     assert.doesNotMatch(guide, /<details|data-world-scent|data-world-link|data-journey-leader|<em>/, 'the explanation has no accordions, buying controls or mixed headline styles');
     assert.doesNotMatch(main, /data-detour(?:=|-)/, 'main journey explanations and purchases do not open the old detail panels');
-    for (const scent of fragrances) assert.ok(tags(main, 'a').some(tag => attrs(tag).href === `${base}/${lang}/products/${scent}/` && /\sdata-native-route(?:\s|>)/.test(tag)), 'scent cards lead to actual product pages');
-    const ui = scriptData(readPage(lang), 'ui-copy');
+    for (const scent of fragrances) assert.ok(tags(main, 'a').some(tag => attrs(tag).href === `${base}/design/classic/${lang}/products/${scent}/` && /\sdata-native-route(?:\s|>)/.test(tag)), 'Classic scent cards retain their presentation');
+    const ui = scriptData(readClassicPage(lang), 'ui-copy');
     assert.equal(ui.shampoo, lang === 'de' ? 'Starter-Set' : 'Starter Set'); assert.equal(ui.refill, 'Refill');
     assert.match(ui.formatAdd.shampoo, lang === 'de' ? /Starter-Set/ : /starter set/i);
   }
@@ -78,9 +111,9 @@ test('one form-owned priced selector below each model chooses starter set or ref
   }
 });
 
-test('the refill teaser illustrates reuse while every purchase points to a filled insert', () => {
+test('Classic refill teaser illustrates reuse while every purchase points to a filled insert', () => {
   for (const lang of locales) {
-    const main=readPage(lang,'refill/').match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
+    const main=readClassicPage(lang,'refill/').match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
     const teaser=main.slice(main.indexOf('<section class="campaign-hero'),main.indexOf('<section class="section-shell refill-selection'));
     assert.equal(tags(teaser,'section').map(attrs).filter(tag=>tag['data-playback-profile']==='refill-teaser').length,1);
     assert.ok(tags(teaser,'div').some(tag=>attrs(tag)['data-shop-scene']==='ritual'),'the teaser illustrates a refill in the existing assembly');
@@ -100,7 +133,7 @@ test('the refill teaser illustrates reuse while every purchase points to a fille
       assert.equal(attrs(tag)['data-format'],'refill');
       assert.equal(attrs(tag)['data-quick-format'],'refill');
     }
-    for(const scent of fragrances)assert.ok(tags(main,'a').map(attrs).some(link=>link.href===`${base}/${lang}/products/${scent}/?format=refill`));
+    for(const scent of fragrances)assert.ok(tags(main,'a').map(attrs).some(link=>link.href===`${base}/design/classic/${lang}/products/${scent}/?format=refill`));
   }
 });
 
@@ -167,23 +200,24 @@ test('navigation is consistent and the useful first product image is prioritized
  for(const lang of locales)for(const route of primaryRoutes){
    const html=readPage(lang,route),header=html.match(/<header[^>]*>[\s\S]*?<\/header>/)[0];
    for(const tag of tags(header,'a').filter(tag=>/\/(?:shop|refill|story)\//.test(attrs(tag).href||'')))assert.match(tag,/data-native-route/,'top-level navigation does not silently become a home section jump');
-   assert.ok(links(html).some(link=>link.rel==='stylesheet'&&/polish\.css/.test(link.href)));
+   assert.ok(links(html).some(link=>link.rel==='stylesheet'&&/classic\.css/.test(link.href)));
+   assert.match(html,/data-presentation="modern"/);
    assert.ok(html.indexOf('@view-transition{navigation:auto}') < html.indexOf('<link rel="stylesheet"'),'transition opt-in is available before external CSS arrives');
  }
  for(const lang of locales)for(const route of ['','refill/',...productRoutes]){
    const html=readPage(lang,route);
-   const scent=route.startsWith('products/')?route.split('/')[1]:'aloe';
-   const family=route==='refill/'?'teaser':route.startsWith('products/')?'detail':'guide';
-   const expected=route.startsWith('products/')?`${base}/assets/cycles-product-${scent}-20261015-perspective2.webp`:`${base}/assets/shop-${family}-product-${scent}.webp`;
+   const scent=route.startsWith('products/')?route.split('/')[1]:'bamboo';
+   const expected=`${base}/assets/cycles-${route==='refill/'?'refill':'product'}-${scent}-20261015-perspective2.webp`;
    const leadImage=tags(html,'img').map(attrs).find(image=>image.fetchpriority==='high');
    assert.ok(leadImage?.src.startsWith(expected),`${lang}/${route} prioritizes its matching scent and camera poster`);
    assert.ok(links(html).some(link=>link.rel==='preload'&&link.as==='image'&&link.href===leadImage.src),'the exact first visible poster is preloaded before GPU warmup');
  }
 });
 
-test('published pages use one sage and ivory theme with independent pastel fragrance finishes',()=>{
+test('Classic alternate pages retain sage and ivory with independent pastel fragrance finishes',()=>{
  for(const lang of locales)for(const route of primaryRoutes){
-   const html=readPage(lang,route);
+   const html=readClassicPage(lang,route);
+   assert.match(html,/data-presentation="classic"/);
    assert.match(html,new RegExp(`--paper:\\s*${BRAND_THEME.ivory}`,'i'));
    assert.match(html,new RegExp(`--ink:\\s*${BRAND_THEME.ink}`,'i'));
    assert.match(html,new RegExp(`--sage:\\s*${BRAND_THEME.sage}`,'i'));

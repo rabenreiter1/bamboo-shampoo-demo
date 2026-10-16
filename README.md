@@ -155,3 +155,19 @@ Metadata and filenames are defined in `scripts/share-cards.mjs`; the browser-can
 The first Cycles studio release used a low orthographic camera, unlike the interactive viewer. Equal-size tube ends and the drawing's shallow waist therefore appeared more pronounced, and the shadow catcher produced a visibly clipped floor strip on coloured cards. Product and empty-shell stills now use the viewer's 30-degree perspective field of view and its respective view directions. A broader key light and stronger fill soften the shading; opaque product cut-outs omit the floor catcher. The original profile, component geometry, dimensions, UVs and engraving remain unchanged.
 
 The `20261015-perspective2` image and share-card URLs distinguish this correction from cached photographs. Product pages, both design variants, cards and cart thumbnails share those assets. The interactive animation and its matched loading posters retain their existing cameras and materials. Regression checks cover projected base-to-waist proportions and transparent image borders, in addition to the source-geometry and artwork checks. These are controlled product visualizations, not photographs of a manufactured production sample.
+
+## Modern / Classic release structure (2026-10-16)
+
+Modern is the bold purple presentation at `/de/` and `/en/`; Classic is the sage editorial presentation at `/design/classic/de/` and `/design/classic/en/`. Historical `/classic/{language}/...` links redirect to Modern while retaining the query and fragment. Internal renderer IDs remain `classic` for Modern and `current` for Classic for compatibility; use `assets/presentations.js` for public names, route bases and bookmark descriptors.
+
+The copyright line opens an inline Modern / Classic selector on a double tap within 450 ms, or Enter / Space; Escape closes it. Both presentations share product data, prices, geometry, engraving, images and the simulated checkout. Format-specific purchase docks and related cards follow the selected Starter-Set or Refill.
+
+Runtime modules, their operative assembly dependencies and animation loading posters are copied together into a content-addressed `assets/releases/<hash>/` folder. The source layout is preserved, and the import map resolves Three from that same release. JS and JSON line endings are normalized for reproducibility; SVG and binary assets remain byte-identical. The release verifier checks identity, file hashes and the operational import dependency closure.
+
+The surface worker moves the existing material arithmetic and engraving mesh generation off the main thread, with a yielding fallback when workers are unavailable. `scripts/surface-runtime-parity.json` records an actual factory-export comparison: all 23 meshes and all five decoded RGBA textures match the reviewed source, as do exported material definitions and assignments. Random UUID aliases for unnamed materials are normalized while preserving material sharing. No dimensions, contours or engraving artwork change.
+
+### Loading-frame release gate
+
+Capture loading frames through `scripts/serve-motion-posters.mjs` and the embedded-browser page `/scripts/motion-poster-studio.html`. Use its **Capture 12 animation loading frames** action. Encode the downloaded bundle with `node scripts/encode-motion-posters.mjs <download.json>`, then run `node scripts/record-motion-release.mjs`. The capture validates current factories, exact artwork and camera metadata; final build validation inventories every generated motion stage rather than assuming a fixed page count. The standalone ritual has its own poster family instead of borrowing a product-gallery photograph.
+
+Do not publish a build with missing or stale capture provenance. Browser visual acceptance and final generated-output tests remain required after capture; source tests alone are not a completed release. Physical iPhone/Safari results must only be reported when actually tested.

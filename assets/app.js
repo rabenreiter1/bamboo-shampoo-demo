@@ -1,17 +1,18 @@
-import { createScenePreviews } from './scene-preview.js?v=shop-20261015-cycles9';
+import { createScenePreviews } from './scene-preview.js?v=modern-20261016-1';
 import { sanitizeCart, prices, fragrances, formatPrice, productKey, cartTotal } from './catalog.js';
-import { initializeDesignSwitch } from './design-switch.js?v=shop-20261015-cycles9';
-import { initializeNavigation } from './navigation.js?v=shop-20261015-cycles9';
-import { createSceneLoader } from './scene-loader.js?v=shop-20261015-cycles9';
-import { initializeJourney, normalizeBookmark } from './journey.js?v=shop-20261015-cycles9';
-import { initializePlayback, playbackAt, playbackTimeForProgress, PLAYBACK_VERSION } from './playback.js?v=shop-20261015-cycles9';
-import { BRAND_THEME } from './product-theme.js?v=shop-20261015-cycles9';
-import { needsPlaybackRestorePreview } from './prime-shop.js?v=shop-20261015-camera10';
-import { productPhotoAsset, updateProductPhoto } from './product-photos.js?v=shop-20261015-camera10';
-import { initializeProductJourney } from './journey-caption.js?v=shop-20261015-cycles9';
+import { initializeDesignSwitch } from './design-switch.js?v=modern-20261016-1';
+import { initializeNavigation } from './navigation.js?v=modern-20261016-1';
+import { createSceneLoader } from './scene-loader.js?v=modern-20261016-1';
+import { initializeJourney, normalizeBookmark } from './journey.js?v=modern-20261016-1';
+import { initializePlayback, playbackAt, playbackTimeForProgress, PLAYBACK_VERSION } from './playback.js?v=modern-20261016-1';
+import { BRAND_THEME } from './product-theme.js?v=modern-20261016-1';
+import { needsPlaybackRestorePreview } from './prime-shop.js?v=modern-20261016-1';
+import { productPhotoAsset, updateProductPhoto } from './product-photos.js?v=modern-20261016-1';
+import { initializeProductJourney } from './journey-caption.js?v=modern-20261016-1';
+import { cartAddition, syncRelatedFormat, createCheckoutLoader } from './commerce.js?v=modern-20261016-1';
 
 const ui = JSON.parse(document.querySelector('#ui-copy').textContent);
-const lang=ui.lang, de=lang==='de', base=ui.base, routeBase=ui.routeBase||base;
+const lang=ui.lang, de=lang==='de', base=ui.base, routeBase=ui.routeBase||base,runtimeBase=ui.runtimeBase||`${base}/assets`;
 initializeDesignSwitch({base});
 const bag=document.querySelector('#bag-dialog'), menu=document.querySelector('#menu-dialog');
 const KEY='bamboo-demo-bag-v1';
@@ -43,13 +44,15 @@ function add(scent,format,quantity=1,open=false){
  if(!fragrances.includes(scent)||!Object.hasOwn(prices,format))return;
  const row=cart.find(r=>productKey(r.scent,r.format)===productKey(scent,format));
  const before=row?.quantity||0;
- if(row)row.quantity=Math.min(20,row.quantity+clampQuantity(quantity));else cart.push({scent,format,quantity:clampQuantity(quantity)});
+ const result=cartAddition(before,quantity);
+ if(row)row.quantity=result.quantity;else cart.push({scent,format,quantity:result.quantity});
  save();
  const toast=document.querySelector('.toast');
- toast.textContent=`${ui.names[scent]} · ${ui[format]} — ${ui.toast}`;toast.classList.add('visible');
+ const message=!result.added?(de?'Maximal 20 Stück pro Produkt.':'Maximum 20 per product.'):result.limited?(de?`${result.added} hinzugefügt. Maximal 20 Stück pro Produkt.`:`${result.added} added. Maximum 20 per product.`):ui.toast;
+ toast.textContent=`${ui.names[scent]} · ${ui[format]} — ${message}`;toast.classList.add('visible');
  clearTimeout(add.timer);add.timer=setTimeout(()=>toast.classList.remove('visible'),2800);
  if(open)show(bag);
- return {added:(cart.find(r=>productKey(r.scent,r.format)===productKey(scent,format))?.quantity||0)-before};
+ return result;
 }
 function restoreItemFocus(container,key,selector){
  const remaining=container?.querySelector(`[data-key="${key}"]`);
@@ -64,7 +67,8 @@ document.addEventListener('click',event=>{
  if(target.hasAttribute('data-close'))target.closest('dialog')?.close();
  if(target.closest('#menu-dialog')&&target.tagName==='A')menu.close();
  if(target.hasAttribute('data-add')||target.hasAttribute('data-quick-add')){
-  add(target.dataset.id||target.dataset.quickAdd,target.dataset.format||target.dataset.quickFormat||'shampoo');
+  const result=add(target.dataset.id||target.dataset.quickAdd,target.dataset.format||target.dataset.quickFormat||'shampoo');
+  if(!result?.added)return;
   target.originalIcon??=target.innerHTML;target.innerHTML=icon('check');target.classList.add('is-added');clearTimeout(target.restoreTimer);target.restoreTimer=setTimeout(()=>{target.innerHTML=target.originalIcon;target.classList.remove('is-added');},1600);
  }
  if(target.hasAttribute('data-remove')||target.hasAttribute('data-bag-change')){
@@ -85,20 +89,27 @@ for(const dialog of [bag,menu])dialog?.addEventListener('click',event=>{
 });
 renderCart();
 if(document.querySelector('[data-checkout-root]')){
- import(`${base}/assets/checkout.js?v=${ui.version}`).then(({initializeCheckout})=>{
-  checkout=initializeCheckout({lang,base,routeBase,getCart:()=>sanitizeCart(cart),onCartChange:next=>{cart=sanitizeCart(next);save();},onComplete:()=>{cart=[];save();}});
+ const root=document.querySelector('[data-checkout-root]'),flow=root.querySelector('.checkout-flow');
+ const notice=document.createElement('section');notice.className='section-shell checkout-load';notice.setAttribute('aria-live','polite');
+ const message=document.createElement('p'),retry=document.createElement('button');retry.type='button';retry.className='button';retry.textContent=de?'Erneut versuchen':'Try again';
+ notice.append(message,retry);root.insertBefore(notice,flow);
+ const loader=createCheckoutLoader({
+  load:attempt=>import(`${runtimeBase}/checkout.js?v=${ui.version}${attempt>1?`&retry=${attempt}`:''}`),
+  initialize:({initializeCheckout})=>checkout=initializeCheckout({lang,base,routeBase,getCart:()=>sanitizeCart(cart),onCartChange:next=>{cart=sanitizeCart(next);save();},onComplete:()=>{cart=[];save();}}),
+  onState:state=>{root.dataset.checkoutLoad=state;flow.hidden=state!=='ready';notice.hidden=state==='ready';retry.hidden=state!=='error';message.textContent=state==='error'?(de?'Die Demo-Kasse konnte nicht geladen werden. Deine Auswahl bleibt erhalten.':'The demo checkout could not load. Your selection is safe.'):(de?'Deine Demo-Kasse wird vorbereitet…':'Preparing your demo checkout…');}
  });
+ retry.addEventListener('click',()=>loader.start());loader.start();
 }
 
 const viewers=new Map(), mounting=new WeakMap(), sceneSnapshots=new WeakMap();let sceneModule;
 let sceneEpoch=0,pageActive=true;
 const scenes=[...document.querySelectorAll('[data-shop-scene]')];
-const scenePreviews=createScenePreviews({elements:scenes,base,version:ui.version});
+const scenePreviews=createScenePreviews({elements:scenes,base,version:ui.version,previewBase:ui.previewBase});
 const rituals=[...document.querySelectorAll('[data-ritual-scroll]')];
 const playbacks=new Map([...document.querySelectorAll('[data-playback-profile]')].map(section=>[section,initializePlayback(section,{lang})]));
 const playbackFor=element=>playbacks.get(element.closest('[data-playback-profile]'));
 for(const controller of playbacks.values())controller.prepare();
-try{const point=normalizeBookmark(JSON.parse(sessionStorage.getItem(ui.design==='classic'?'bamboo-journey-return-v1:classic':'bamboo-journey-return-v1')));
+try{const point=normalizeBookmark(JSON.parse(sessionStorage.getItem(ui.bookmarkKey||(ui.design==='classic'?'bamboo-journey-return-v1:classic':'bamboo-journey-return-v1'))));
  if(Number.isFinite(point?.legacyAnimationProgress)){const controller=[...playbacks.values()].find(value=>value.getSnapshot().profile==='home-cycle');
  controller?.restore({version:PLAYBACK_VERSION,profile:'home-cycle',elapsed:playbackTimeForProgress('home-cycle',point.legacyAnimationProgress),paused:true,yaw:0});}
 }catch{/* Denied storage does not prevent a fresh product journey. */}
@@ -107,8 +118,16 @@ if(!reduced.matches)for(const controller of productJourneys.values())controller.
 function staticRitual(section){
  section.classList.add('ritual-static');
  section.querySelectorAll('[data-ritual-step]').forEach(el=>{el.removeAttribute('aria-hidden');el.classList.add('is-active');});
- const view=viewers.get(section.querySelector('[data-shop-scene]'));view?.setProgress(0);
+  const stage=section.querySelector('[data-shop-scene]');if(stage)stage.dataset.previewRestoring='false';
+  const view=viewers.get(stage);view?.setProgress(0);
  section.querySelectorAll('[data-ritual-step]').forEach(el=>el.inert=false);
+}
+function ritualScrollProgress(section){
+ const headerHeight=document.querySelector('.header')?.offsetHeight||84;
+ const nav=document.querySelector('[data-journey-nav]');
+ const offset=headerHeight+(document.querySelector('main[data-journey]')&&!nav?.closest('[data-product-journey]')?nav?.offsetHeight||0:0);
+ const rect=section.getBoundingClientRect(),travel=rect.height-(section.querySelector('.ritual-sticky')?.getBoundingClientRect().height||innerHeight-offset);
+ return Math.max(0,Math.min(1,(offset-rect.top)/Math.max(1,travel)));
 }
 function updateRitualCopy(section,progress){
  if(section.classList.contains('ritual-static'))return;
@@ -126,7 +145,7 @@ async function mountScene(element){
  const token={epoch:sceneEpoch};mounting.set(element,token);
  const current=()=>pageActive&&token.epoch===sceneEpoch&&mounting.get(element)===token;
  try{
-  sceneModule??=import(`${base}/assets/shop-scene.js?v=${ui.version}`);
+  sceneModule??=import(`${runtimeBase}/shop-scene.js?v=${ui.version}`);
   const {mountShopScene}=await sceneModule;
   if(!current())return;
   const section=element.closest('[data-ritual-scroll]');
@@ -136,10 +155,12 @@ async function mountScene(element){
   if(playback)element.dataset.previewRestoring=String(needsPlaybackRestorePreview(playbackSnapshot,playbackProfile));
   const mode=element.dataset.requestedMode||element.dataset.shopScene;
   const snapshot=sceneSnapshots.get(element);
+  const initialProgress=section?(reduced.matches||section.classList.contains('ritual-static')?0:ritualScrollProgress(section)):playback?.getProgress()??snapshot?.progress??productJourney?.getProgress()??0;
+  if(section){const rotated=Math.abs(Math.atan2(Math.sin(snapshot?.yaw||0),Math.cos(snapshot?.yaw||0)))>1e-5;const zoomed=Math.abs((snapshot?.zoom||1)-1)>1e-5;element.dataset.previewRestoring=String(initialProgress>1e-5&&initialProgress<1-1e-5||rotated||zoomed);}
   const campaignHero=element.closest('.campaign-hero');
   const productArt=element.closest('.product-gallery__primary');
   const view=mountShopScene(element,{mode,artDirection:element.dataset.artDirection,scent:element.dataset.scent,design:ui.design,
-   progress:playback?.getProgress()??snapshot?.progress??productJourney?.getProgress()??0,
+   progress:initialProgress,
    playbackProfile,automaticYaw:playbackSnapshot?playbackAt(playbackProfile,playbackSnapshot.elapsed).automaticYaw:undefined,
    cameraRegion:['home-cycle','hero-intro'].includes(playbackProfile)?{minX:.06,maxX:.94,minY:.05,maxY:.95,layout:'external'}:undefined,
    yaw:snapshot?.yaw??playbackSnapshot?.yaw??(element.hasAttribute('data-inspection')?Number(element.dataset.inspectionYaw)||0:0),
@@ -216,14 +237,18 @@ for(const form of document.querySelectorAll('[data-product-form]')){
   form.querySelectorAll('[data-product-price],[data-price]').forEach(el=>el.textContent=formatPrice(prices[format],lang));
   form.querySelector('[data-unit-price]').textContent=formatPrice(prices[format]*4,lang);
   form.querySelector('[data-add-label]').textContent=ui.formatAdd[format];
+  form.querySelector('[data-product-dock-label]').textContent=`${ui.names[scent]} · ${ui[format]} · 250 ml`;
+  form.querySelector('[data-product-dock-add]').textContent=ui.formatAdd[format];
   form.querySelector('[data-format-note]').textContent=ui.formatNote[format];
   quantity.value=String(clampQuantity(quantity.value));
   form.querySelector('[data-quantity="-1"]').disabled=Number(quantity.value)<=1;
   form.querySelector('[data-quantity="1"]').disabled=Number(quantity.value)>=20;
   form.querySelectorAll('[data-scent-link]').forEach(link=>{const url=new URL(link.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');link.href=url.href;});
-  const language=!form.closest('dialog')&&document.querySelector('.lang-switch');if(language){const url=new URL(language.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');language.href=url.href;}
+  if(!form.closest('dialog'))for(const language of document.querySelectorAll('.lang-switch,[data-language-route]')){const url=new URL(language.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');language.href=url.href;}
   if(!form.closest('dialog')){const url=new URL(location.href);if(format==='refill')url.searchParams.set('format','refill');else url.searchParams.delete('format');history.replaceState(history.state,'',url);}
   if(switchView)setGallery(gallery,format==='refill'?'refill':'product');
+  syncRelatedFormat(document,{format,lang,base,version:ui.version,names:ui.names,label:ui[format]});
+  const context=document.querySelector('[data-ritual-purchase-context]');if(context)context.textContent=format==='refill'?(de?'Der Wechsel im vorhandenen Starter-Set. Du kaufst den gefüllten Einsatz.':'Changing the refill in your existing starter set. You are buying the filled insert.'):(de?'Dein Starter-Set: öffnen, dosieren und nachfüllen.':'Your starter set: open, dispense and refill.');
  };
  if(new URLSearchParams(location.search).get('format')==='refill')for(const input of form.elements.format)input.checked=input.value==='refill';
  for(const input of form.elements.format)input.addEventListener('change',()=>{update();journey?.select({format:input.value});});
@@ -243,7 +268,7 @@ function applyCatalogFilter(filter){
  let count=0;document.querySelectorAll('.collection-grid--shop .product-card').forEach(el=>{el.hidden=filter!=='all'&&el.dataset.format!==filter;if(!el.hidden){count++;el.classList.add('is-visible');}});
  document.querySelector('[data-result-count]').textContent=`${count} ${ui.filterResults}`;
  const url=new URL(location.href);if(filter==='all')url.searchParams.delete('format');else url.searchParams.set('format',filter);history.replaceState(history.state,'',url);
- const language=document.querySelector('.lang-switch');if(language){const target=new URL(language.href);if(filter==='all')target.searchParams.delete('format');else target.searchParams.set('format',filter);language.href=target.href;}
+  for(const language of document.querySelectorAll('.lang-switch,[data-language-route]')){const target=new URL(language.href);if(filter==='all')target.searchParams.delete('format');else target.searchParams.set('format',filter);language.href=target.href;}
 }
 catalogFilters.forEach(button=>button.addEventListener('click',()=>applyCatalogFilter(button.dataset.filter)));
 if(catalogFilters.length){const requested=new URLSearchParams(location.search).get('format');if(requested==='shampoo'||requested==='refill')applyCatalogFilter(requested);}
@@ -270,11 +295,9 @@ function renderScroll(){
  }
  for(const section of rituals){
   if(section.classList.contains('ritual-static'))continue;
-  const nav=document.querySelector('[data-journey-nav]');
-  const offset=headerHeight+(document.querySelector('main[data-journey]')&&!nav?.closest('[data-product-journey]')?nav?.offsetHeight||0:0);
-  const rect=section.getBoundingClientRect(),travel=rect.height-(section.querySelector('.ritual-sticky')?.getBoundingClientRect().height||innerHeight-offset);
-  const progress=Math.max(0,Math.min(1,(offset-rect.top)/Math.max(1,travel)));
-  const view=viewers.get(section.querySelector('[data-shop-scene]'));if(view){view.setProgress(progress);updateRitualCopy(section,view.getProgress());}else updateRitualCopy(section,progress);
+   const progress=ritualScrollProgress(section),stage=section.querySelector('[data-shop-scene]');
+   if(stage.dataset.sceneRendered!=='true'&&!['error','static'].includes(stage.dataset.sceneStatus))stage.dataset.previewRestoring=String(progress>1e-5&&progress<1-1e-5);
+   const view=viewers.get(stage);if(view){view.setProgress(progress);updateRitualCopy(section,view.getProgress());}else updateRitualCopy(section,progress);
  }
  for(const [section,controller]of productJourneys){
   if(!controller.enhanced)continue;

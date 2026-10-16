@@ -23,7 +23,20 @@ test('Cycles stills bind unchanged operative geometry, original artwork and repr
  assert.equal(manifest.engravingSha256,'67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa');
  assert.equal(manifest.renderScriptSha256,codeHash(fs.readFileSync('scripts/cycles-render.py')));
  assert.equal(manifest.exportScriptSha256,codeHash(fs.readFileSync('scripts/cycles-export.js')));
- for(const [file,entry]of Object.entries(manifest.source))assert.equal(file.endsWith('.js')?codeHash(fs.readFileSync('assets/'+file)):hash(fs.readFileSync('assets/'+file)),entry.normalizedSha256);
+ for(const [file,entry]of Object.entries(manifest.source)){
+  const bytes=fs.readFileSync('assets/'+file),actual=file.endsWith('.js')?codeHash(bytes):hash(bytes);
+  if(file!=='assembly/surface-finish.js'||actual===entry.normalizedSha256){assert.equal(actual,entry.normalizedSha256);continue;}
+  // A scheduling-only refactor may preserve the historical Cycles images only
+  // after a fresh full-model export proves every mesh and texture unchanged.
+  const proof=JSON.parse(fs.readFileSync('scripts/surface-runtime-parity.json','utf8'));
+  assert.equal(proof.schema,'bamboo-surface-runtime-parity-v1');assert.equal(proof.verified,true);
+  for(const [source,original]of Object.entries(manifest.source))assert.equal(proof.baselineSource[source],original.sha256,'The parity baseline must be the exact Cycles source release.');
+  assert.equal(proof.baselineSource[file],entry.sha256);assert.equal(proof.currentSource[file],hash(bytes));
+  assert.equal(proof.baselineGeometrySha256,proof.currentGeometrySha256);
+  for(const flag of['exactMeshAttributes','exactIndices','exactTransforms','exactDecodedTextureRgba','exactMaterialDefinitions','exactMaterialAssignments'])assert.equal(proof[flag],true);
+  assert.equal(proof.textures.length,5);assert.ok(proof.textures.every(texture=>/^[a-f0-9]{64}$/.test(texture.rgbaSha256)));
+  for(const runtime of['assembly/surface-finish.js','assembly/surface-buffers.js','assembly/surface-worker.js'])assert.equal(codeHash(fs.readFileSync('assets/'+runtime)),proof.runtime[runtime]);
+ }
  assert.ok(manifest.geometryBefore['teardrop-button-traced-original']);
  assert.ok(manifest.geometryBefore['Bamboo_outer_sourced_contour_and_original_engraving']);
 });
@@ -70,7 +83,7 @@ test('bamboo cut-outs have transparent borders without cropped floor shadows',as
 });
 
 test('both presentations select current stills without stale photos or static-to-3D switches',()=>{
- for(const prefix of ['','classic/'])for(const lang of ['de','en'])for(const route of ['','shop/','story/','refill/','products/aloe/','products/argan/','products/bamboo/']){
+ for(const prefix of ['','design/classic/'])for(const lang of ['de','en'])for(const route of ['','shop/','story/','refill/','products/aloe/','products/argan/','products/bamboo/']){
   const html=fs.readFileSync('docs/'+prefix+lang+'/'+route+'index.html','utf8');
   const images=[...html.matchAll(/<img\b[^>]*>/g)].map(m=>m[0]).join('\n');
   assert.doesNotMatch(images,/\/(?:photo-product|photo-shell|photo-cap|photo-refill|studio-product|studio-shell|studio-cap)/);
