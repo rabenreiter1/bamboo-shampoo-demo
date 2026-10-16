@@ -2390,6 +2390,7 @@ html:not(.js-motion) [data-loading-state='neutral'] .scene-loading__fallback { d
 /* Refill is a product, not a backdrop: reserve room for the photograph and the purchase. */
 .campaign-hero--refill .classic-hero-photo {
   inset: calc(var(--header) + 34px) 0 170px;
+  block-size: auto;
 }
 .campaign-hero--refill .classic-hero-photo > .product-photograph {
   top: 50%;
@@ -2482,7 +2483,7 @@ html:not(.js-motion) [data-loading-state='neutral'] .scene-loading__fallback { d
   .campaign-deck--refill .campaign-world-copy { max-inline-size: none; }
   .campaign-deck--refill .campaign-world-copy h2 { font-size: 28px; line-height: 1.1; }
   .campaign-deck--refill .campaign-world-copy > p:last-child { margin-block-start: 6px; font-size: 12px; max-inline-size: none; }
-  .campaign-deck--refill .campaign-purchase { min-inline-size: 0; inline-size: 100%; }
+  .campaign-deck--refill .campaign-purchase { min-inline-size: 0; inline-size: 100%; grid-column: 1; grid-row: auto; }
   .campaign-deck--refill .campaign-purchase > p { margin-block-end: 10px; font-size: 12px; }
   .campaign-deck--refill .campaign-purchase strong { font-size: 20px; }
   .campaign-deck--refill .campaign-purchase .button { min-block-size: 56px; padding-inline: 18px; font-size: 13px; }
@@ -2503,7 +2504,7 @@ html:not(.js-motion) [data-loading-state='neutral'] .scene-loading__fallback { d
   .campaign-hero--refill .classic-hero-photo > .product-photograph { block-size: 100%; }
   .campaign-deck--refill { inset: calc(var(--header) + 55px) var(--gutter) 26px 56%; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: center; }
   .campaign-deck--refill .campaign-world-copy h2 { font-size: 25px; }
-  .campaign-deck--refill .campaign-purchase { inline-size: 100%; grid-column: 1; min-inline-size: 0; }
+  .campaign-deck--refill .campaign-purchase { inline-size: 100%; grid-column: 1; grid-row: auto; min-inline-size: 0; }
   .campaign-deck--refill .campaign-purchase .button { min-block-size: 48px; font-size: 12px; }
   .campaign-deck--refill .campaign-purchase > p { flex-wrap: wrap; gap: 4px 10px; font-size: 11px; }
   .campaign-hero--refill .campaign-word { top: 48%; font-size: 34vw; }
