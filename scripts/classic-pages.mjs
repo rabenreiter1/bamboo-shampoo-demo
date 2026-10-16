@@ -63,6 +63,26 @@ export function createClassicPages({pages, BASE, routeBase=BASE, icon, fragrance
     return `<section id="ritual" class="product-journey product-journey--guide scent-bamboo" data-product-journey data-journey-chapter="ritual" data-world="bamboo" data-world-kind="product" aria-label="${L(lang,'So funktioniert Bamboo Shampoo','How Bamboo Shampoo works')}">${markers}<div class="product-journey__sticky"><div class="product-journey__stage scene-preview" data-shop-scene="journey" data-art-direction="journey" data-loading-state="neutral" data-preview-profile="home-cycle" data-scent="bamboo" role="group" aria-label="${L(lang,'Öffnen, Folie abziehen, dosieren und Refill wechseln','Open, peel, dispense and change the refill')}">${motionLoading(lang)}</div><div class="guide-heading"><span>${L(lang,'SO FUNKTIONIERT’S','HOW IT WORKS')}</span><a href="#collection">${L(lang,'Duft wählen','Choose a scent')}${icon('arrow')}</a></div><div class="product-journey__captions">${phases.map(caption).join('')}</div>${navigation}<div class="guide-progress" aria-hidden="true"><span></span></div></div></section>`;
   }
 
+  function refillMaterial(lang, html) {
+    const source=html.match(/<section class="gel-chapter">([\s\S]*?)<\/section>/);
+    const photograph=source?.[1].match(/<img\b[^>]*>/)?.[0];
+    if(!source||!photograph)throw new Error(`Missing ${lang} refill material photograph`);
+    const notes=lang==='de' ? [
+      ['PET-Einsatz','Transparent. Austauschbar.'],
+      ['Auflagerand','Sitzt auf dem Bambustubus.'],
+      ['Siegelfolie','Vor der Verwendung abziehen.']
+    ] : [
+      ['PET insert','Clear. Replaceable.'],
+      ['Supporting flange','Rests on the bamboo tube.'],
+      ['Film seal','Peel off before use.']
+    ];
+    const section=`<section class="gel-chapter gel-chapter--material" aria-labelledby="refill-material-heading">
+      <div class="gel-chapter__copy" data-reveal>${eyebrow('FRESH INSIDE.')}<h2 class="display" id="refill-material-heading">${L(lang,'Passt rein.<br>Geht weiter.','Fits inside.<br>Goes again.')}</h2><p>${L(lang,'Du wechselst nur den gefüllten Einsatz. Bambustubus und Silikonkappe bleiben bei dir.','Replace only the filled insert. Keep your bamboo tube and silicone cap.')}</p><dl class="refill-material-facts">${notes.map(([title,detail],index)=>`<div><dt><span aria-hidden="true">0${index+1}</span>${title}</dt><dd>${detail}</dd></div>`).join('')}</dl></div>
+      <figure class="gel-chapter__visual">${photograph}<figcaption>${L(lang,'REFILL / MATERIALDETAIL','REFILL / MATERIAL DETAIL')}<span>250 ML</span></figcaption></figure>
+    </section>`;
+    return html.replace(source[0],section);
+  }
+
   return Object.fromEntries(['de','en'].map(lang=>{
     const current=pages[lang];
     const home=current.home.replace(/<section class="campaign-hero[^]*?(?=<section class="section-shell home-collection")/,homeHero(lang)+'\n').replace(/<section id="ritual"[^]*?(?=<section class="section-shell faq-tease")/,productJourney(lang)+'\n');
@@ -71,6 +91,6 @@ export function createClassicPages({pages, BASE, routeBase=BASE, icon, fragrance
     const oldStage=refill.match(/<div class="shop-scene[^>]*data-shop-scene="ritual"[^>]*>/)?.[0];
     refill=replaceDiv(refill,oldStage,viewer(lang,'refill','bamboo','campaign-product campaign-product--refill',true))
       .replace(/ data-playback-profile="refill-teaser"/g,'').replace('campaign-hero--refill scent-aloe','campaign-hero--refill scent-bamboo').replace('data-world="aloe"','data-world="bamboo"');
-    return [lang,{...current,home,refill:refill.replace(/^[\t ]+$/gm,'')}];
+    return [lang,{...current,home,refill:refillMaterial(lang,refill).replace(/^[\t ]+$/gm,'')}];
   }));
 }

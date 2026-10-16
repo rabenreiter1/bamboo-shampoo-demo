@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "hash": "29e39222b98c8626",
+  "baseSuffix": "/assets/releases/29e39222b98c8626",
+  "files": {
+    "app.js": {
+      "sha256": "920731906da1217b5eedb7faa3e5750fb217b4e1d5c95b7cbc8fe7edb28256a6",
+      "bytes": 33438
+    },
+    "assembly/animated-export.js": {
+      "sha256": "a58f8b6dc22a4d2c51e4a36a278efe5b80473b422ece5c918b9da059f25799f6",
+      "bytes": 2840
+    },
+    "assembly/bamboo-culm-albedo.webp": {
+      "sha256": "b5af979448f86249eb8c9ca14a54ae31d805bf20625cd7147c13682af6eff2d0",
+      "bytes": 433904
+    },
+    "assembly/body-profile.js": {
+      "sha256": "761ecc7dbe8b3372c5fa04733f4b65b86111046cf6bed72188e40f076351bbc5",
+      "bytes": 3203
+    },
+    "assembly/body.js": {
+      "sha256": "0f6c145bfa092fe9dd97fc94bc14b793019b268d3f0bb62beacc021aa8c351c9",
+      "bytes": 16034
+    },
+    "assembly/cap-data.js": {
+      "sha256": "bd8923e6d29dee3b32b79bf2fc03b1ade7508e5f3e52d9d4a168ceb16ba4258e",
+      "bytes": 193191
+    },
+    "assembly/cap-reference.jpg": {
+      "sha256": "dbd0fd9d44a9bc04225e9430fe4d2cd9accadf9a59b2912d20fd49e05a495a41",
+      "bytes": 125383
+    },
+    "assembly/cap.js": {
+      "sha256": "9abf07494c5edd740e548699a99f7e7a5a38d70719074e1d3feed87c46547fe0",
+      "bytes": 9171
+    },
+    "assembly/original-engraving.svg": {
+      "sha256": "67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa",
+      "bytes": 242374
+    },
+    "assembly/product-poster.jpg": {
+      "sha256": "9c0f9ebed1316f469bead1fc7e9989b19da4cfc0fcf8d666706e391971cde2e9",
+      "bytes": 14443
+    },
+    "assembly/product-poster.webp": {
+      "sha256": "52336a75aba7f0f26d0a9b519bf35d1a1b32b35bd6a1eb6f3f8f306ac0e3667d",
+      "bytes": 164284
+    },
+    "assembly/ritual-cap.js": {
+      "sha256": "ed563c50634277924c46ac218b44efa11afbaaeca743aeadd27cc34781899972",
+      "bytes": 20356
+    },
+    "assembly/ritual-effects.js": {
+      "sha256": "f0fe0904777000ffa1f2e6f1b1d2ff84ea162540a950da362e7895fa094f4438",
+      "bytes": 43356
+    },
+    "assembly/ritual-input.js": {
+      "sha256": "5186c86e497546bb4ff833f34e897008131b985da43843dabf853594f6f2e55b",
+      "bytes": 14559
+    },
+    "assembly/ritual-space.js": {
+      "sha256": "6cb98a8df19483d619ea0d48a449e733a9be62031139671d8701db6328553081",
+      "bytes": 9001
+    },
+    "assembly/ritual-timeline.js": {
+      "sha256": "d67d499e89f7e4dd8d5eea0db546410606ee08e4a30bdcdc36dca54980dc3ca9",
+      "bytes": 5385
+    },
+    "assembly/scene.js": {
+      "sha256": "219c9f0784c475388b78baac7cce737ef365e230225eaae3ffd2dd8365098b51",
+      "bytes": 11453
+    },
+    "assembly/studio-environment.js": {
+      "sha256": "2c8a5e414e93c8a611721f60f36ca2fdc0e3acc2c9aa1ee76fe302084ee50ec8",
+      "bytes": 1403
+    },
+    "assembly/surface-buffers.js": {
+      "sha256": "8738b57c50869b27c26447ae0d51d807c08e3a9632843f3274735e53011ee5fe",
+      "bytes": 4585
+    },
+    "assembly/surface-finish.js": {
+      "sha256": "efa70ffd78eed4acf0b3298e81fc335576493e1094902aaeeb8380b310f61ca9",
+      "bytes": 9728
+    },
+    "assembly/surface-worker.js": {
+      "sha256": "c56fc5d6bbe11a097d15cf5c297b745745dff7ba9bfd3f50be864a10239dfaa9",
+      "bytes": 874
+    },
+    "assembly/timeline.js": {
+      "sha256": "ad1d2f2f8062e062cc36bb3950c70eb8cf50fe163782d60c13978a8e5b5110b9",
+      "bytes": 7526
+    },
+    "assembly/vendor/BufferGeometryUtils.js": {
+      "sha256": "9fb63427ce6641fa14fd0baff9cc4d1b5f9c3d85fd084bf2e90e803c44ec1797",
+      "bytes": 37712
+    },
+    "assembly/vendor/GLTFExporter.js": {
+      "sha256": "51f4b880fff0003d5f999e67dfef911ee853dbc0638062698e2df5c0897c1dac",
+      "bytes": 93571
+    },
+    "assembly/vendor/RoomEnvironment.js": {
+      "sha256": "55f466192cc84298755a424c5e040345006b2ee1455589b3b54126c2ea4123f4",
+      "bytes": 4960
+    },
+    "assembly/vendor/three.core.js": {
+      "sha256": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+      "bytes": 1458113
+    },
+    "assembly/vendor/three.module.js": {
+      "sha256": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
+      "bytes": 662772
+    },
+    "campaign-backdrop.js": {
+      "sha256": "e65af65f0290763762eae7aeb961ab0ddcd5b38b032b356b30d58ff6ad2c864f",
+      "bytes": 4724
+    },
+    "catalog.js": {
+      "sha256": "957899a2424797fdffdbc98417b57d1eff3716bd9739eba7c3bdf00701267a50",
+      "bytes": 1015
+    },
+    "checkout-state.js": {
+      "sha256": "f64b7ad40edcaa3ea28dacea62ee9fb3d9c3d355415412ad499b1793f9c7e560",
+      "bytes": 5508
+    },
+    "checkout.js": {
+      "sha256": "738c3cfcf238920a562d8b851a06c85c0243d4e52178f476095866e9550e9d13",
+      "bytes": 17611
+    },
+    "commerce.js": {
+      "sha256": "4198702ec94f16e3e07dd7917e1af72f3a691755c518e63940feddc49cf81b67",
+      "bytes": 3034
+    },
+    "design-switch.js": {
+      "sha256": "f93deee7208932a255ccbe4da1459acc7b7d768808f561f98ab5bf2f68320bd8",
+      "bytes": 1930
+    },
+    "intro-pose.js": {
+      "sha256": "7e48347c0ac0aedc994ff149803f9e767682b86b2f5ead314aa7fd0afa9782dd",
+      "bytes": 1172
+    },
+    "journey-caption.js": {
+      "sha256": "ec9d0ad7640012a1ab6f24d04ae401af10149acbc5be90eb5a2ba48afd2abbb8",
+      "bytes": 7707
+    },
+    "journey-pose.js": {
+      "sha256": "4ed3046e985a739f0563269a23abe28d5f7293685a250881c670b203a2394844",
+      "bytes": 14049
+    },
+    "journey.js": {
+      "sha256": "c8ffdcfa9c2477a1bb9e97306417feef147daa5e98b54419d6f65a832b591a15",
+      "bytes": 12592
+    },
+    "navigation.js": {
+      "sha256": "5393190a19497b0618186e210546d43bed6e5c69d8659c020b98c90cbe8b9628",
+      "bytes": 4267
+    },
+    "playback.js": {
+      "sha256": "e0e851870a2cb0b290925a3bb27013ccf941a6bd3dd601d38e76d3b9758f23cd",
+      "bytes": 21660
+    },
+    "presentations.js": {
+      "sha256": "2bf85fcb656bdd8314be76e5e2aff3c2a7a3589d0965f0e2369f44ee10de25e7",
+      "bytes": 911
+    },
+    "prime-shop.js": {
+      "sha256": "988de2c81da81157a684c64bd9888edcaf134c67d0c1259d858807ba29fd24c0",
+      "bytes": 7850
+    },
+    "product-photos.js": {
+      "sha256": "0e68df99df87519f3b782658bd5f7117c8654baa72dd760c7309f28537302a58",
+      "bytes": 2207
+    },
+    "product-theme.js": {
+      "sha256": "49208e0467c5212e1ea1c54bbd1323869369b88982a1b341142debb46c2dd596",
+      "bytes": 2200
+    },
+    "scene-framing.js": {
+      "sha256": "4b82ce4aceba3a32f84c03a60f40596452fb504117f215e8c84876ac5971d123",
+      "bytes": 6138
+    },
+    "scene-loader.js": {
+      "sha256": "875233652712e5ca9f59cb1c44802775ec977d33a2c6f6a867094ab302a7f88a",
+      "bytes": 8743
+    },
+    "scene-preview.js": {
+      "sha256": "f129dea594a78ed974805300e7a06315415bc5a149888b8247a9de967c15941f",
+      "bytes": 5538
+    },
+    "scene-readiness.js": {
+      "sha256": "9e7c3cd7bb9e19e6aec888d0ecfb7e76aaac2b8fba646b6823465b3c53166c50",
+      "bytes": 3623
+    },
+    "shop-scene.js": {
+      "sha256": "15afb2fe254196f227ace927db700efb2b8fe53f35027ffc95431855f92354ff",
+      "bytes": 43343
+    }
+  }
+}

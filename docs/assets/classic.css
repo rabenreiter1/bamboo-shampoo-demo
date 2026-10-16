@@ -2267,7 +2267,7 @@ html[data-selected-scent="bamboo"]{--selected-world-bg:#cdc0e8}
 .campaign-hero--home .campaign-word { font-size: clamp(150px, 32vw, 1080px); }
 .campaign-hero--home .classic-hero-photo > .product-photograph { max-inline-size: min(88%, 1500px); }
 .product-journey--guide { --journey-copy-height: 222px; }
-.product-journey--guide .product-journey__marker { scroll-margin-block-start: var(--header); }
+.product-journey--guide .product-journey__marker { scroll-margin-block-start: 0; }
 .product-journey--guide.is-enhanced .journey-caption {
   bottom: 83px;
   max-inline-size: min(850px, 68vw);
@@ -2386,3 +2386,138 @@ html:not(.js-motion) [data-loading-state='neutral'] .scene-loading__fallback { d
   [data-loading-state='neutral'] .scene-loading__pending, [data-loading-state='neutral'] .scene-loading__mark { display: none; }
   [data-loading-state='neutral'] .scene-loading__fallback { display: block; }
 }
+
+/* Refill is a product, not a backdrop: reserve room for the photograph and the purchase. */
+.campaign-hero--refill .classic-hero-photo {
+  inset: calc(var(--header) + 34px) 0 170px;
+}
+.campaign-hero--refill .classic-hero-photo > .product-photograph {
+  top: 50%;
+  block-size: 100%;
+  max-inline-size: min(88%, 1500px);
+  transform: translate(-50%, -50%);
+}
+.campaign-hero--refill .campaign-word { top: 43%; font-size: clamp(180px, 38vw, 1080px); }
+.campaign-deck--refill { align-items: end; }
+.campaign-deck--refill .campaign-world-copy h2 { font-size: clamp(27px, 2.8vw, 48px); letter-spacing: -.055em; }
+.campaign-deck--refill .campaign-world-copy > p:last-child { max-inline-size: 32ch; }
+.campaign-deck--refill .campaign-purchase .button { min-block-size: 58px; }
+
+/* The material photograph and its explanation occupy separate, readable surfaces. */
+.gel-chapter--material {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  align-items: stretch;
+  block-size: auto;
+  min-block-size: 0;
+  max-block-size: none;
+  padding: clamp(40px, 5vw, 104px) var(--gutter);
+  gap: clamp(30px, 5vw, 140px);
+  overflow: visible;
+  color: var(--ink);
+  background: var(--paper);
+}
+.gel-chapter--material .gel-chapter__copy {
+  position: static;
+  inset: auto;
+  align-self: center;
+  max-inline-size: none;
+  transform: none;
+}
+.gel-chapter--material .gel-chapter__copy .eyebrow { margin-block-end: 22px; }
+.gel-chapter--material .gel-chapter__copy .display { font-size: clamp(62px, 6.8vw, 168px); }
+.gel-chapter--material .gel-chapter__copy > p:not(.eyebrow) {
+  max-inline-size: 37ch;
+  margin-block-start: 26px;
+  font-size: clamp(14px, 1vw, 20px);
+  line-height: 1.65;
+}
+.refill-material-facts { display: grid; gap: 0; margin: 30px 0 0; }
+.refill-material-facts > div { padding-block: 14px; border-block-start: 1px solid var(--line); }
+.refill-material-facts dt { display: flex; align-items: baseline; gap: 15px; font-size: clamp(13px, .9vw, 18px); font-weight: 700; }
+.refill-material-facts dt > span { color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: .07em; }
+.refill-material-facts dd { margin: 3px 0 0 31px; color: #4e4b59; font-size: clamp(12px, .82vw, 16px); }
+.gel-chapter--material .gel-chapter__visual {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(ellipse at 72% 22%, #edf2ed, #dce9e0 80%);
+  border-radius: 3px;
+}
+.gel-chapter--material .gel-chapter__visual > img {
+  position: static;
+  inset: auto;
+  inline-size: 100%;
+  block-size: auto;
+  max-block-size: 650px;
+  aspect-ratio: 3 / 2;
+  padding: clamp(16px, 3vw, 64px) 0;
+  object-fit: contain;
+  object-position: center;
+}
+.gel-chapter__visual > figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px clamp(20px, 2vw, 44px);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  border-block-start: 1px solid #1c1b2514;
+}
+.toast { white-space: normal; overflow-wrap: anywhere; text-align: center; }
+
+@media (max-width: 760px) and (orientation: portrait) {
+  .campaign-hero--refill { block-size: max(730px, 100svh); min-block-size: 730px; }
+  .campaign-hero--refill .classic-hero-photo { inset: calc(var(--header) + 34px) 0 245px; }
+  .campaign-hero--refill .classic-hero-photo > .product-photograph { top: 50%; block-size: 100%; max-inline-size: 90%; }
+  .campaign-hero--refill .campaign-word { top: 35%; font-size: 40vw; }
+  .campaign-deck--refill { bottom: 44px; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .campaign-deck--refill .campaign-world-copy { max-inline-size: none; }
+  .campaign-deck--refill .campaign-world-copy h2 { font-size: 28px; line-height: 1.1; }
+  .campaign-deck--refill .campaign-world-copy > p:last-child { margin-block-start: 6px; font-size: 12px; max-inline-size: none; }
+  .campaign-deck--refill .campaign-purchase { min-inline-size: 0; inline-size: 100%; }
+  .campaign-deck--refill .campaign-purchase > p { margin-block-end: 10px; font-size: 12px; }
+  .campaign-deck--refill .campaign-purchase strong { font-size: 20px; }
+  .campaign-deck--refill .campaign-purchase .button { min-block-size: 56px; padding-inline: 18px; font-size: 13px; }
+  .gel-chapter--material { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 44px; }
+  .gel-chapter--material .gel-chapter__copy .display { font-size: clamp(58px, 16.1vw, 102px); }
+  .gel-chapter--material .gel-chapter__copy .eyebrow { margin-block-end: 20px; }
+  .gel-chapter--material .gel-chapter__copy > p:not(.eyebrow) { font-size: 14px; max-inline-size: 39ch; margin-block-start: 23px; }
+  .refill-material-facts { margin-block-start: 24px; }
+  .refill-material-facts > div { padding-block: 12px; }
+  .refill-material-facts dt { font-size: 13px; }
+  .refill-material-facts dd { font-size: 12px; }
+  .gel-chapter--material .gel-chapter__visual > img { max-block-size: 350px; padding-block: 20px; }
+  .gel-chapter__visual > figcaption { padding: 17px 18px; font-size: 8px; }
+  body[data-page='product'] .toast { bottom: calc(104px + env(safe-area-inset-bottom)); }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .campaign-hero--refill .classic-hero-photo { inset: calc(var(--header) + 28px) 44% 16px 0; }
+  .campaign-hero--refill .classic-hero-photo > .product-photograph { block-size: 100%; }
+  .campaign-deck--refill { inset: calc(var(--header) + 55px) var(--gutter) 26px 56%; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: center; }
+  .campaign-deck--refill .campaign-world-copy h2 { font-size: 25px; }
+  .campaign-deck--refill .campaign-purchase { inline-size: 100%; grid-column: 1; min-inline-size: 0; }
+  .campaign-deck--refill .campaign-purchase .button { min-block-size: 48px; font-size: 12px; }
+  .campaign-deck--refill .campaign-purchase > p { flex-wrap: wrap; gap: 4px 10px; font-size: 11px; }
+  .campaign-hero--refill .campaign-word { top: 48%; font-size: 34vw; }
+  .gel-chapter--material { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 25px; padding-block: 40px; }
+  .gel-chapter--material .gel-chapter__copy .display { font-size: clamp(48px, 7.5vw, 74px); }
+  .gel-chapter--material .gel-chapter__copy > p:not(.eyebrow) { font-size: 13px; margin-block-start: 18px; }
+  .gel-chapter--material .gel-chapter__visual > img { padding-block: 20px; }
+  .refill-material-facts { margin-block-start: 22px; }
+}
+
+/* A failed device/GPU start exposes a recoverable inline action. */
+.scene-retry{position:absolute;z-index:8;inset-inline-start:50%;inset-block-end:24px;transform:translateX(-50%);min-height:44px;padding:10px 20px;border:1px solid currentColor;border-radius:999px;background:var(--paper,#f8f6ef);color:var(--ink,#253b30);font:inherit;font-size:14px;cursor:pointer}
+.scene-retry[hidden]{display:none}
+.scene-retry:focus-visible{outline:2px solid currentColor;outline-offset:4px}
+
+/* Fade the outer floor-shadow boundary while preserving the central product. */
+.campaign-hero--refill .classic-hero-photo > .product-photograph{mask-image:linear-gradient(90deg,transparent,#000 27%,#000 73%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 27%,#000 73%,transparent)}

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {createShopPages} from './shop-pages.mjs';
 import {createClassicPages} from './classic-pages.mjs';
 import {initializeProductJourney} from '../assets/journey-caption.js';
@@ -65,4 +66,16 @@ test('Modern chapter navigation announces the displayed action in forward and re
     if(previousWindow===undefined)delete globalThis.window;else globalThis.window=previousWindow;
     if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;
   }
+});
+
+
+test('Modern chapter anchors apply the fixed header offset once, keeping Peel in the unseal phase',()=>{
+  const css=fs.readFileSync(new URL('../assets/classic.css',import.meta.url),'utf8');
+  assert.match(css,/html:has\(\[data-product-journey\]\)\s*\{[^}]*scroll-padding-top:\s*var\(--header\)/);
+  const markerRules=[...css.matchAll(/\.product-journey--guide \.product-journey__marker\s*\{([^}]+)\}/g)];
+  const margin=markerRules.at(-1)?.[1].match(/scroll-margin-block-start:\s*([^;]+)/)?.[1].trim();
+  assert.equal(margin,'0','The document already supplies the header padding; markers must not add it again');
+  const header=64,travel=6000,target=.16;
+  assert.equal((target*travel-Number(margin))/travel,target);
+  assert.ok((target*travel-header)/travel<.15,'A second 64px offset would regress Peel into the preceding uncap pose');
 });
