@@ -80,3 +80,15 @@ test('plain scroll rituals use their live initial camera, not a static product p
  for(const scent of['aloe','argan','bamboo'])assert.equal(scenePreviewAsset({mode:'ritual',scent}),`shop-ritual-product-${scent}.webp`);
  assert.equal(scenePreviewAsset({mode:'ritual',scent:'argan',profile:'refill-teaser'}),'shop-teaser-product-argan.webp');
 });
+
+test('neutral motion preparation never asks for a product image or applies a guessed image camera',()=>{
+ let resize;
+ const element={dataset:{shopScene:'ritual',previewProfile:'ritual',loadingState:'neutral',artDirection:'ritual',scent:'argan'},
+  classList:{contains:()=>true},closest:()=>null,getBoundingClientRect:()=>({width:390,height:472}),
+  querySelector:()=>{throw new Error('Neutral motion preparation must not query a poster image');},
+  style:{setProperty:()=>{throw new Error('Neutral preparation must not size a static-product frame');}}};
+ const win={addEventListener:(_name,fn)=>{resize=fn;},removeEventListener:()=>{resize=null;}};
+ const previews=createScenePreviews({elements:[element],base:'/demo',version:'test',window:win});
+ assert.equal(previews.update(element,'journey','bamboo'),true);assert.equal(element.dataset.previewScent,'bamboo');
+ assert.doesNotThrow(()=>previews.setPose(element,.7));assert.doesNotThrow(()=>resize());previews.destroy();assert.equal(resize,null);
+});

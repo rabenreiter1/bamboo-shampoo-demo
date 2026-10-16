@@ -118,7 +118,7 @@ if(!reduced.matches)for(const controller of productJourneys.values())controller.
 function staticRitual(section){
  section.classList.add('ritual-static');
  section.querySelectorAll('[data-ritual-step]').forEach(el=>{el.removeAttribute('aria-hidden');el.classList.add('is-active');});
-  const stage=section.querySelector('[data-shop-scene]');if(stage)stage.dataset.previewRestoring='false';
+  const stage=section.querySelector('[data-shop-scene]');if(stage){stage.dataset.previewRestoring='false';if(stage.dataset.sceneStatus!=='error')stage.dataset.sceneStatus='static';}
   const view=viewers.get(stage);view?.setProgress(0);
  section.querySelectorAll('[data-ritual-step]').forEach(el=>el.inert=false);
 }

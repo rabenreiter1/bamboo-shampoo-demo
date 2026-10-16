@@ -43,8 +43,8 @@ export function normalizeBookmark(value, layout = BOOKMARK_LAYOUT) {
 
 export function initializeJourney({ ui, reduced, onChoice, onModal, onReady, getPlaybackSnapshot }) {
   const base = ui.routeBase || ui.base;
-  const returnKey=ui.design==='classic'?`${RETURN_KEY}:classic`:RETURN_KEY;
-  const layout=ui.design==='classic'?'classic-scroll-guide-v1':BOOKMARK_LAYOUT;
+  const returnKey=ui.bookmarkKey||(ui.design==='classic'?`${RETURN_KEY}:classic`:RETURN_KEY);
+  const layout=ui.bookmarkLayout||(ui.design==='classic'?'classic-scroll-guide-v1':BOOKMARK_LAYOUT);
   const main = document.querySelector('main[data-journey]');
   const continuous = main?.querySelector('[data-product-journey]') || main?.querySelector('[data-playback-profile]');
   const chapters = main ? [...main.querySelectorAll('[data-journey-chapter]')] : [];

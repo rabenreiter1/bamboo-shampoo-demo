@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fragrances, prices, formatPrice, cartTotal } from '../assets/catalog.js';
 import { BRAND_THEME, PRODUCT_THEMES } from '../assets/product-theme.js';
+import {verifyRuntimeRelease} from './runtime-release.mjs';
 
 const root = path.resolve('docs');
 const origin = 'https://rabenreiter1.github.io';
@@ -35,7 +36,7 @@ test('Modern is the primary bold presentation with native scroll explanation and
   const phases=tags(main,'article').map(attrs).filter(tag=>tag['data-journey-caption']);
   assert.deepEqual(phases.map(tag=>tag['data-journey-caption']),['closed','uncap','unseal','recap','dose','remove','refill','ready']);
   for(const scent of fragrances)assert.ok(tags(main,'a').some(tag=>attrs(tag).href===`${base}/${lang}/products/${scent}/`));
-  const refill=readPage(lang,'refill/');
+  const refill=readPage(lang,'refill/').match(/<main\b[^>]*\bid="main"[^>]*>([\s\S]*?)<\/main>/)[1];
   assert.match(refill,/<h1 class="campaign-word">REFILL/);assert.match(refill,/data-ritual-scroll/);
   assert.doesNotMatch(refill,/data-playback-profile|data-playback-controls/);
   assert.ok(refill.includes(`cycles-refill-bamboo-20261015-perspective2.webp`));
@@ -84,7 +85,8 @@ test('Classic editorial hero retains its refill introduction and complete automa
     assert.deepEqual(Object.fromEntries(['type','min','max','step'].map(key => [key,attrs(seek)[key]])), {type:'range',min:'0',max:'1000',step:'1'});
     assert.ok(attrs(seek)['aria-label']?.trim(), 'the progress control has a localized accessible name');
     assert.deepEqual(tags(guide, 'button').map(attrs).filter(tag => tag['data-playback-at']).map(tag => Number(tag['data-playback-at'])), [.10,.20,.54,.875]);
-    assert.match(guide, /shop-guide-product-aloe\.webp/, 'the guide starts with its matching closed-product poster');
+    assert.match(guide, /data-loading-state="neutral"/, 'the guide prepares on a neutral surface');
+    assert.doesNotMatch(guide, /<img\b|shop-guide-product/, 'no old or unverified closed-product frame is shown before 3D');
     assert.doesNotMatch(guide, /<details|data-world-scent|data-world-link|data-journey-leader|<em>/, 'the explanation has no accordions, buying controls or mixed headline styles');
     assert.doesNotMatch(main, /data-detour(?:=|-)/, 'main journey explanations and purchases do not open the old detail panels');
     for (const scent of fragrances) assert.ok(tags(main, 'a').some(tag => attrs(tag).href === `${base}/design/classic/${lang}/products/${scent}/` && /\sdata-native-route(?:\s|>)/.test(tag)), 'Classic scent cards retain their presentation');
@@ -117,7 +119,8 @@ test('Classic refill teaser illustrates reuse while every purchase points to a f
     const teaser=main.slice(main.indexOf('<section class="campaign-hero'),main.indexOf('<section class="section-shell refill-selection'));
     assert.equal(tags(teaser,'section').map(attrs).filter(tag=>tag['data-playback-profile']==='refill-teaser').length,1);
     assert.ok(tags(teaser,'div').some(tag=>attrs(tag)['data-shop-scene']==='ritual'),'the teaser illustrates a refill in the existing assembly');
-    assert.match(teaser,/shop-teaser-product-aloe\.webp/);
+    assert.match(teaser,/data-loading-state="neutral"/);
+    assert.doesNotMatch(teaser,/<img\b|shop-teaser-product/,'the refill teaser has no mismatched loading picture');
     assert.match(teaser,/<h1 class="campaign-word">REFILL/);
     assert.equal(tags(teaser,'button').filter(tag=>hasAttribute(tag,'data-playback-toggle')).length,1);
     assert.deepEqual(tags(teaser,'button').map(attrs).filter(tag=>tag['data-playback-at']).map(tag=>Number(tag['data-playback-at'])),[.765,.83,.90,.96]);
@@ -382,14 +385,20 @@ test('published 3D assets retain approved artwork and exclude rejected legacy re
   // Approved Three.js helper modules use the bare "three" specifier. The
   // shop must map it before its entry module runs, as the fullscreen viewer
   // already does, or browsers silently fall back after module loading fails.
+  const verifiedReleases=new Set();
   for (const lang of locales) for (const route of primaryRoutes) {
     const html = readPage(lang, route);
     const importMap = html.match(/<script[^>]*type="importmap"[^>]*>([\s\S]*?)<\/script>/);
     assert.ok(importMap, `${lang}/${route} provides the approved helper import map`);
-    assert.equal(JSON.parse(importMap[1]).imports?.three, `${base}/assembly/vendor/three.module.js`);
-    const entry = html.match(/<script[^>]*\bsrc="[^\"]*\/assets\/app\.js(?:\?[^\"]*)?"[^>]*>/);
+    const ui=scriptData(html,'ui-copy');assert.match(ui.runtimeBase,/^\/bamboo-shampoo-demo\/assets\/releases\/[a-f0-9]{16}$/);
+    assert.equal(JSON.parse(importMap[1]).imports?.three, `${ui.runtimeBase}/assembly/vendor/three.module.js`);
+    const entry = html.match(/<script[^>]*\bsrc="[^\"]*\/assets\/releases\/[a-f0-9]{16}\/app\.js(?:\?[^\"]*)?"[^>]*>/);
     assert.ok(entry, `${lang}/${route} has a shop entry module`);
     assert.ok(importMap.index + importMap[0].length <= entry.index, 'the import map precedes the shop entry module');
+    const release=ui.runtimeBase.slice(base.length+1);
+    if(!verifiedReleases.has(release)){verifyRuntimeRelease(path.join(root,release));verifiedReleases.add(release);}
+    assert.equal(digest(fs.readFileSync(path.join(root,release,'assembly','original-engraving.svg'))),'67a2b2534da5cbeaf044e115d4db34ff7c604d190435ba393ea85ea2485f47aa');
+    assert.equal(fs.readFileSync(path.join(root,release,'shop-scene.js'),'utf8'),fs.readFileSync('assets/shop-scene.js','utf8').replaceAll('\r\n','\n'),'immutable runtime uses operative factories and source layout');
   }
   const original = path.join('assets', 'assembly', 'original-engraving.svg');
   const published = path.join(root, 'assembly', 'original-engraving.svg');

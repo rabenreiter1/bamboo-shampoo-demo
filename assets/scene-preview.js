@@ -38,6 +38,10 @@ export function createScenePreviews({elements,base,version,previewBase=`${base}/
   const records=new Map();
   function resize(record){
     const box=record.element.getBoundingClientRect();if(!box.width||!box.height)return;
+    if(record.element.dataset.loadingState==='neutral'){
+      paintScenePreviewWorld(record.element,{width:box.width,height:box.height,scent:record.scent,campaign:record.campaign});
+      return;
+    }
     const classicGuide=record.mode==='journey'&&record.element.ownerDocument?.documentElement.dataset.design==='classic';
     const copyHeight=classicGuide?parseFloat(win.getComputedStyle(record.element.closest('.product-journey__sticky')).getPropertyValue('--journey-copy-height')):undefined;
     const region=classicGuide?classicGuideRegion({width:box.width,height:box.height,copyHeight:copyHeight||undefined,viewportHeight:win.innerHeight}):undefined;
@@ -52,9 +56,10 @@ export function createScenePreviews({elements,base,version,previewBase=`${base}/
       if(!element.classList.contains('scene-preview'))return false;
       record={element,campaign:element.dataset.artDirection==='campaign',reserved:!!element.closest('.campaign-hero'),profile:element.dataset.previewProfile||element.closest('[data-playback-profile]')?.dataset.playbackProfile,pose:0};records.set(element,record);
     }
-    const name=scenePreviewAsset({mode,scent,campaign:record.campaign,profile:record.profile});if(!name)return false;
+    const neutral=element.dataset.loadingState==='neutral';
+    const name=neutral?null:scenePreviewAsset({mode,scent,campaign:record.campaign,profile:record.profile});if(!neutral&&!name)return false;
     record.mode=mode;record.scent=scent;
-    const image=element.querySelector('img');if(image){const src=`${previewBase}/${name}?v=${version}`;if(image.getAttribute('src')!==src)image.src=src;}
+    const image=neutral?null:element.querySelector('img');if(image){const src=`${previewBase}/${name}?v=${version}`;if(image.getAttribute('src')!==src)image.src=src;}
     element.dataset.previewMode=mode;element.dataset.previewScent=scent;resize(record);return true;
   }
   const refresh=()=>{for(const record of records.values())resize(record);};

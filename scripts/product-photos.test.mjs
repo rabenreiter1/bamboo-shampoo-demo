@@ -43,12 +43,12 @@ test('changing one photographic viewer does not change its neighbouring scent',(
  assert.equal(bamboo.image.src,undefined);assert.equal(bamboo.dataset.photoDefaultScent,'bamboo');
  assert.equal(updateProductPhoto(null,{base:'/demo'}),false);
 });
-test('static galleries have no 3D inspector while motion stages retain their matched loading frames',()=>{
+test('static galleries have no 3D inspector while motion stages prepare without a stale product image',()=>{
  const pages=createShopPages({BASE:'/demo',icon:()=>'',fragrances:['aloe','argan','bamboo'],formatPrice:value=>String(value),esc:value=>value});
  for(const lang of ['de','en']){
   const home=pages[lang].home;
   const hero=home.slice(home.indexOf('class="shop-scene intro-stage'),home.indexOf('class="intro-annotations'));
-  assert.match(hero,/shop-guide-product-aloe\.webp/);assert.doesNotMatch(hero,/photo-product/);
+  assert.match(hero,/data-loading-state="neutral"/);assert.match(hero,/role="status" aria-live="polite"/);assert.doesNotMatch(hero,/<img\b|photo-product|shop-guide-product/);
   for(const scent of ['aloe','argan','bamboo']){
    const page=pages[lang].products[scent];
    assert.match(page,/data-product-photo-viewer data-photo-default-mode="product"/);

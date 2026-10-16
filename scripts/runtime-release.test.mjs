@@ -23,7 +23,7 @@ test('runtime release copies the allowed source layout and excludes rejected, ar
   const options=fixture(t),release=createRuntimeRelease(options);
   assert.match(release.hash,/^[a-f0-9]{16}$/);
   assert.equal(release.baseSuffix,`/assets/releases/${release.hash}`);
-  assert.deepEqual(Object.keys(release.files),['app.js','assembly/body.js','assembly/cap-data.json','assembly/original-engraving.svg','assembly/textures/bamboo.jpg','shop-guide-product-aloe.webp','shop-ritual-product-argan-pose12.webp','shop-scene.js']);
+  assert.deepEqual(Object.keys(release.files),['app.js','assembly/body.js','assembly/cap-data.json','assembly/original-engraving.svg','assembly/textures/bamboo.jpg','shop-scene.js']);
   for(const [name,metadata]of Object.entries(release.files)){
     const bytes=fs.readFileSync(path.join(release.directory,name));
     assert.equal(bytes.length,metadata.bytes);assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),metadata.sha256);

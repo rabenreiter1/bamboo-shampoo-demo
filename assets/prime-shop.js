@@ -79,9 +79,11 @@ export function primeShop({doc,storage,href,ui}){
         element.dataset.previewRestoring=String(progress>1e-5&&progress<1-1e-5);}
     }
     element.dataset.scent=scent;element.dataset.requestedMode=mode;
-    const image=element.querySelector('img'),name=scenePreviewAsset({mode,scent,campaign,profile});
+    const neutral=element.dataset.loadingState==='neutral';
+    const image=neutral?null:element.querySelector('img'),name=neutral?null:scenePreviewAsset({mode,scent,campaign,profile});
     if(image&&name){image.src=`${ui.previewBase||`${ui.base}/assets`}/${name}?v=${ui.version}`;const label=ui.productGallery?.[mode];if(label){image.alt=label;element.setAttribute('aria-label',label);}}
     const rect=element.getBoundingClientRect();if(!rect.width||!rect.height)continue;
+    if(neutral){paintScenePreviewWorld(element,{width:rect.width,height:rect.height,scent,campaign,doc});continue;}
     const classicGuide=mode==='journey'&&ui.design==='classic';
     const copyHeight=classicGuide?parseFloat(doc.defaultView?.getComputedStyle(element.closest('.product-journey__sticky')).getPropertyValue('--journey-copy-height')):undefined;
     const region=classicGuide?classicGuideRegion({width:rect.width,height:rect.height,copyHeight:copyHeight||undefined,viewportHeight:doc.defaultView?.innerHeight}):undefined;

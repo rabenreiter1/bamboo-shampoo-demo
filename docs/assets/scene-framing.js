@@ -59,20 +59,21 @@ export function refillTeaserRegion(width,height){
 
 export function playbackSceneFrame({width,height,profile='home-cycle',reserved=false,zoom=1,region:suppliedRegion}){
   const direction=normal([.19,.44,1]),right=normal(cross([0,1,0],direction)),up=normal(cross(direction,right));
-  const roll=profile!=='refill-teaser'?.10:0,cos=Math.cos(roll),sin=Math.sin(roll),points=[];
+  const rolled=profile!=='refill-teaser'&&profile!=='ritual';
+  const roll=rolled?.10:0,cos=Math.cos(roll),sin=Math.sin(roll),points=[];
   for(const [radius,bottom,top]of[[29.5,0,173.4],[40,149.9,173.4]])for(const y of[bottom,top])for(let j=0;j<24;j++){
     const a=j*Math.PI/12,x=radius*Math.cos(a),v=y-85;
     points.push([x*cos-v*sin,x*sin+v*cos,radius*Math.sin(a)]);
   }
   const axes=[right,up,direction],limits=axes.map(axis=>{const values=points.map(point=>dot(point,axis));return [Math.min(...values),Math.max(...values)];});
   let center=[0,0,0];axes.forEach((axis,i)=>{center=add(center,axis,(limits[i][0]+limits[i][1])/2);});
-  const region=suppliedRegion||(reserved&&profile!=='hero-intro'?refillTeaserRegion(width,height):{minX:.06,maxX:.94,minY:.05,maxY:.95,layout:'external'});
+  const region=suppliedRegion||(profile==='ritual'?{minX:0,maxX:1,minY:0,maxY:1}:reserved&&profile!=='hero-intro'?refillTeaserRegion(width,height):{minX:.06,maxX:.94,minY:.05,maxY:.95,layout:'external'});
   const minX=2*region.minX-1,maxX=2*region.maxX-1,minY=1-2*region.maxY,maxY=1-2*region.minY;
   const aimX=(minX+maxX)/2,aimY=(minY+maxY)/2,tanV=Math.tan(Math.PI/12),tanH=tanV*width/height;
   let distance=0;
   for(const point of points){const p=add(point,center,-1),x=dot(p,right),y=dot(p,up),z=dot(p,direction);
     distance=Math.max(distance,z+y/(tanV*(y>=0?maxY-aimY:minY-aimY)),z+x/(tanH*(x>=0?maxX-aimX:minX-aimX)));}
-  distance=Math.max(250,distance*(profile!=='refill-teaser'?1.08:1.12));
+  distance=Math.max(250,distance*(rolled?1.08:1.12));
   let aim=add(center,right,-aimX*tanH*distance/zoom);aim=add(aim,up,-aimY*tanV*distance/zoom);
   return {center,distance,zoom,region,aim,cameraPosition:add(aim,direction,distance/zoom),direction,right,up,tanV,tanH,points};
 }

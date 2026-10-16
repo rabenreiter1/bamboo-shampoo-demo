@@ -2357,3 +2357,32 @@ html[data-selected-scent="bamboo"]{--selected-world-bg:#cdc0e8}
   .product-journey--guide.is-enhanced .journey-caption { position: relative; inset: auto; inline-size: auto; max-inline-size: 80ch; }
   .product-journey--guide .guide-chapters { display: none; }
 }
+
+/* Motion begins with its real first frame, never an unrelated product poster. */
+[data-shop-scene][data-loading-state='neutral'] > .scene-loading {
+  position: absolute; inset: 0; z-index: 2; display: flex;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 32px max(24px, 5%); color: var(--ink, #253b30);
+  font-family: inherit; font-size: 12px; line-height: 1.55;
+  letter-spacing: .015em; text-align: center; pointer-events: none;
+  transition: opacity .28s ease, visibility .28s ease;
+}
+.scene-loading__mark {
+  display: block; inline-size: 1px; block-size: 34px;
+  background: currentColor; opacity: .45; box-shadow: -7px 8px currentColor, 7px -8px currentColor;
+}
+.scene-loading__pending, .scene-loading__fallback { max-inline-size: 26ch; }
+.scene-loading__fallback { display: none; }
+[data-shop-scene][data-loading-state='neutral'][data-scene-rendered='true'] > .scene-loading {
+  opacity: 0; visibility: hidden;
+}
+[data-loading-state='neutral']:is([data-scene-status='static'],[data-scene-status='error']) .scene-loading__pending,
+html:not(.js-motion) [data-loading-state='neutral'] .scene-loading__pending { display: none; }
+[data-loading-state='neutral']:is([data-scene-status='static'],[data-scene-status='error']) .scene-loading__fallback,
+html:not(.js-motion) [data-loading-state='neutral'] .scene-loading__fallback { display: block; }
+[data-loading-state='neutral']:is([data-scene-status='static'],[data-scene-status='error']) .scene-loading__mark { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  [data-shop-scene][data-loading-state='neutral'] > .scene-loading { transition: none; }
+  [data-loading-state='neutral'] .scene-loading__pending, [data-loading-state='neutral'] .scene-loading__mark { display: none; }
+  [data-loading-state='neutral'] .scene-loading__fallback { display: block; }
+}
