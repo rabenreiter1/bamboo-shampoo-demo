@@ -3,7 +3,6 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
-const posterPattern=/^shop-(?:detail-product|guide-product|teaser-product|ritual-product)(?:-[a-z0-9-]+)?\.webp$/i;
 const assemblyExtensions=new Set(['.js','.json','.svg','.jpg','.png','.webp']);
 
 /** Content-addressed runtime tree. Existing releases are never rewritten or removed. */
@@ -31,7 +30,6 @@ export function createRuntimeRelease({sourceRoot='assets',outputRoot='docs',file
     }
   }
   if(fs.existsSync(assembly))walkAssembly(assembly);
-  for(const entry of fs.readdirSync(source,{withFileTypes:true}))if(entry.isFile()&&posterPattern.test(entry.name))collect(entry.name);
   const names=[...entries.keys()].sort(),hashState=crypto.createHash('sha256').update('bamboo-runtime-release-v1\0');
   for(const name of names){const bytes=entries.get(name);hashState.update(name+'\0'+bytes.length+'\0');hashState.update(bytes);}
   const hash=hashState.digest('hex').slice(0,16),baseSuffix=`/assets/releases/${hash}`;

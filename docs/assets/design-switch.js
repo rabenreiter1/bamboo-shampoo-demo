@@ -1,9 +1,10 @@
-/** Explicit comparison routes never change the public default or the shared bag. */
-export function designDestination(href, base, design = 'current') {
+import {presentationRouteBase,localizedPresentationSuffix} from './presentations.js?v=modern-20261016-1';
+/** Explicit comparison routes preserve the shared bag and localized product. */
+export function designDestination(href, base, design = 'modern') {
   const url = new URL(href), root = base.replace(/\/$/, '');
-  const suffix = url.pathname.slice(root.length).replace(/^\/classic(?=\/)/, '');
-  if (!url.pathname.startsWith(`${root}/`) || !/^\/(de|en)\//.test(suffix)) return null;
-  url.pathname = `${root}${design === 'classic' ? '/classic' : ''}${suffix}`;
+  const suffix = localizedPresentationSuffix(href,root);
+  if (!suffix) return null;
+  url.pathname = presentationRouteBase(root,design==='current'?'classic':design)+suffix;
   url.searchParams.delete('resume');
   url.hash = '';
   return url.href;

@@ -1,4 +1,4 @@
-import {productPhotoAsset} from './product-photos.js?v=shop-20261015-camera10';
+import {productPhotoAsset} from './product-photos.js?v=modern-20261016-1';
 import { formatPrice, prices, productKey, sanitizeCart } from './catalog.js';
 import { CHECKOUT_STEPS, restoreCheckoutState, normalizeDemoReceipt, reduceCheckout, checkoutTotals, checkoutCartFingerprint,
   updateCheckoutQuantity, removeCheckoutItem } from './checkout-state.js';

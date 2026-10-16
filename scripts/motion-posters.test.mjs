@@ -4,49 +4,49 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import {spawnSync} from 'node:child_process';
-import {fileURLToPath} from 'node:url';
 import {motionPosterInventory,validateMotionPosters,validateMotionPosterSources,MOTION_POSTER_SOURCES,REQUIRED_MOTION_POSTERS} from './motion-posters.mjs';
 
-const stage=(src='shop-ritual-product-argan.webp',cls='ritual-stage scene-preview')=>`<div class="${cls}" data-shop-scene="ritual" data-preview-profile="ritual" data-art-direction="ritual" data-scent="argan"><img src="/demo/assets/${src}?v=release"></div>`;
-test('inventory covers plain ritual, guide and teaser families without depending on filename blacklist',()=>{
- const [ritual]=motionPosterInventory(stage());assert.equal(ritual.expected,'shop-ritual-product-argan.webp');assert.equal(ritual.profile,'ritual');assert.equal(ritual.actual,ritual.expected);
- const [guide]=motionPosterInventory('<div class="scene-preview" data-shop-scene="journey" data-art-direction="journey" data-scent="bamboo"><img src="/assets/shop-guide-product-bamboo.webp"></div>');assert.equal(guide.expected,'shop-guide-product-bamboo.webp');
- const [teaser]=motionPosterInventory('<div class="scene-preview" data-shop-scene="ritual" data-art-direction="campaign" data-scent="aloe"><img src="/assets/shop-teaser-product-aloe.webp"></div>');assert.equal(teaser.profile,'refill-teaser');
+const status='<span class="scene-loading" role="status" aria-live="polite"><span class="scene-loading__pending">Animation wird vorbereitet</span><span class="scene-loading__fallback">Die Animation ist nicht verfügbar. Alle Schritte stehen unten.</span></span>';
+const steps=Array.from({length:8},(_,i)=>`<article data-journey-caption="${i}"><h2>Step ${i}</h2><p>Complete written instruction.</p></article>`).join('');
+const stage=(body=status,extra='')=>`<div class="ritual-stage scene-preview" data-shop-scene="ritual" data-preview-profile="ritual" data-loading-state="neutral" data-art-direction="ritual" data-scent="argan" ${extra}>${body}</div>${steps}`;
+
+test('inventory separates neutral loading state from archived camera-specific image families',()=>{
+ const [ritual]=motionPosterInventory(stage());assert.equal(ritual.profile,'ritual');assert.equal(ritual.explicitProfile,'ritual');assert.equal(ritual.actual,null);assert.equal(ritual.loadingState,'neutral');assert.equal(ritual.visualAsset,false);assert.equal(ritual.status.role,'status');
+ const [nested]=motionPosterInventory(stage('<div>Nested status wrapper</div><img src="/stale.webp">'+status));assert.equal(nested.visualAsset,true,'a nested wrapper cannot hide a stale image from the publication gate');
+ const [guide]=motionPosterInventory('<div class="scene-preview" data-shop-scene="journey" data-preview-profile="home-cycle" data-art-direction="journey" data-scent="bamboo">'+status+'</div>');assert.equal(guide.profile,'home-cycle');
 });
 
-test('publication gate rejects unframed stages, stale family, missing proof and changed bytes',()=>{
- const dir=fs.mkdtempSync(path.join(os.tmpdir(),'bamboo-motion-'));
+test('neutral publication rejects images, missing accessibility, ambiguous profiles and missing written steps',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'bamboo-neutral-motion-'));
  try{
-  const root=path.join(dir,'docs'),sourceRoot=path.join(dir,'assets'),manifestFile=path.join(dir,'manifest.json');
-  fs.mkdirSync(path.join(root,'assets'),{recursive:true});fs.mkdirSync(sourceRoot);const bytes=Buffer.from('verified-test-poster'),file='shop-ritual-product-argan.webp';
-  for(const folder of[sourceRoot,path.join(root,'assets')])fs.writeFileSync(path.join(folder,file),bytes);
-  const manifest={loadingFrames:{source:{},assets:{}}};
-  for(const name of MOTION_POSTER_SOURCES){const target=path.join(sourceRoot,name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,bytes);manifest.loadingFrames.source[name]=crypto.createHash('sha256').update(bytes).digest('hex');}
-  for(const poster of REQUIRED_MOTION_POSTERS){for(const folder of[sourceRoot,path.join(root,'assets')])fs.writeFileSync(path.join(folder,poster.file),bytes);manifest.loadingFrames.assets[poster.file]={mode:poster.mode,scent:poster.scent,progress:poster.progress,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')};}
-  const write=html=>{fs.writeFileSync(path.join(root,'index.html'),html);fs.writeFileSync(manifestFile,JSON.stringify(manifest));};
-  const check=()=>validateMotionPosters({root,sourceRoot,manifestFile});
-  write(stage());assert.equal(check().length,1);
-  write(stage(file,'ritual-stage'));assert.throws(check,/bypasses/);
-  write(stage('shop-product-front-argan.webp'));assert.throws(check,/not the matched/);
-  write(stage());const proof=manifest.loadingFrames.assets[file];delete manifest.loadingFrames.assets[file];write(stage());assert.throws(check,/provenance/);
-  manifest.loadingFrames.assets[file]=proof;write(stage());fs.writeFileSync(path.join(root,'assets',file),'changed');assert.throws(check,/bytes differ/);
+  const root=path.join(dir,'docs');fs.mkdirSync(root);
+  const write=html=>fs.writeFileSync(path.join(root,'index.html'),html),check=()=>validateMotionPosters({root,sourceRoot:path.join(dir,'no-assets'),manifestFile:path.join(dir,'no-manifest')});
+  write(stage());assert.equal(check().length,1,'no captured asset is required or published for a neutral first paint');
+  for(const html of [stage().replace(' scene-preview',''),stage().replace('data-loading-state="neutral"',''),stage().replace('data-preview-profile="ritual"',''),stage(status.replace('role="status"','')),stage(status.replace('aria-live="polite"','')),stage(status.replace(/<span class="scene-loading__fallback">[^<]+<\/span>/,'')),stage().replace(steps,'')]){write(html);assert.throws(check);}
+  for(const asset of ['<img src="/old.webp">','<picture><source srcset="/old.webp"></picture>','<div style="background-image:url(/old.webp)"></div>','<video poster="/old.webp"></video>']){write(stage(status+asset));assert.throws(check,/unverified visual asset/);}
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
-test('source-only preflight fails closed before the builder creates docs for missing captures or stale source',()=>{
- const dir=fs.mkdtempSync(path.join(os.tmpdir(),'bamboo-preflight-'));
+test('source preflight explicitly selects neutral loading without relabeling archived captures',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'bamboo-motion-policy-'));
  try{
-  const sourceRoot=path.join(dir,'assets'),manifestFile=path.join(dir,'scripts/surface-finish-manifest.json'),root=path.join(dir,'docs');
-  fs.mkdirSync(sourceRoot,{recursive:true});fs.mkdirSync(path.dirname(manifestFile));const bytes=Buffer.from('verified'),digest=crypto.createHash('sha256').update(bytes).digest('hex');
-  const manifest={loadingFrames:{source:{},assets:{}}};
+  const manifestFile=path.join(dir,'archive.json');const original='{"loadingFrames":{"method":"historical, unmodified capture"}}\n';fs.writeFileSync(manifestFile,original);
+  assert.deepEqual(validateMotionPosterSources({manifestFile}),{policy:'neutral',posterAssets:[]});assert.equal(fs.readFileSync(manifestFile,'utf8'),original);
+  assert.throws(()=>validateMotionPosterSources({manifestFile,policy:'captured'}),/provenance is missing/);
+  assert.throws(()=>validateMotionPosterSources({manifestFile,policy:'unknown'}),/Unknown motion loading policy/);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('future captured loading remains fail-closed for missing proof, stale source and changed bytes',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'bamboo-captured-preflight-'));
+ try{
+  const sourceRoot=path.join(dir,'assets'),manifestFile=path.join(dir,'manifest.json');fs.mkdirSync(sourceRoot);
+  const bytes=Buffer.from('verified'),digest=crypto.createHash('sha256').update(bytes).digest('hex'),manifest={loadingFrames:{source:{},assets:{}}};
   for(const file of MOTION_POSTER_SOURCES){const target=path.join(sourceRoot,file);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,bytes);manifest.loadingFrames.source[file]=digest;}
   for(const poster of REQUIRED_MOTION_POSTERS){fs.writeFileSync(path.join(sourceRoot,poster.file),bytes);manifest.loadingFrames.assets[poster.file]={...poster,bytes:bytes.length,sha256:digest};}
-  const save=()=>fs.writeFileSync(manifestFile,JSON.stringify(manifest)),check=()=>validateMotionPosterSources({sourceRoot,manifestFile});save();assert.equal(Object.keys(check().assets).length,12);assert.equal(fs.existsSync(root),false);
-  const missing=REQUIRED_MOTION_POSTERS[0].file,proof=manifest.loadingFrames.assets[missing];delete manifest.loadingFrames.assets[missing];save();assert.throws(check,/Actual frame capture/);assert.equal(fs.existsSync(root),false);
+  const save=()=>fs.writeFileSync(manifestFile,JSON.stringify(manifest)),check=()=>validateMotionPosterSources({sourceRoot,manifestFile,policy:'captured'});save();assert.equal(Object.keys(check().assets).length,12);
+  const missing=REQUIRED_MOTION_POSTERS[0].file,proof=manifest.loadingFrames.assets[missing];delete manifest.loadingFrames.assets[missing];save();assert.throws(check,/Actual frame capture/);
   manifest.loadingFrames.assets[missing]=proof;save();fs.writeFileSync(path.join(sourceRoot,missing),'changed');assert.throws(check,/bytes differ/);fs.writeFileSync(path.join(sourceRoot,missing),bytes);
   fs.writeFileSync(path.join(sourceRoot,MOTION_POSTER_SOURCES[0]),'stale');assert.throws(check,/source changed/);
-  const build=spawnSync(process.execPath,[fileURLToPath(new URL('./shop-build.mjs',import.meta.url))],{cwd:dir,encoding:'utf8'});
-  assert.equal(build.status,1);assert.match(build.stderr,/Motion poster source changed/);assert.equal(fs.existsSync(root),false,'preflight precedes all mkdir/copy/build writes');
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });

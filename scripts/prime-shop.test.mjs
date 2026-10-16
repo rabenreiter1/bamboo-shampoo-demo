@@ -83,3 +83,14 @@ test('the current builder serializes all prepaint commerce dependencies without 
   detached.syncRelatedFormat({querySelectorAll:()=>[card]},{format:'refill',lang:'de',base:'/demo',names:{argan:'Argan'},label:'Refill'});
   assert.equal(price.textContent,'4,50 €','serialized formatPrice and authoritative prices exist when a related card is present');
 });
+
+test('prepaint keeps a neutral animation stage free of stale image URLs, even on restored progress',()=>{
+ const element={dataset:{shopScene:'ritual',previewProfile:'ritual',loadingState:'neutral',artDirection:'ritual',scent:'argan'},
+  classList:{contains:()=>true},closest:()=>null,getBoundingClientRect:()=>({width:390,height:472}),
+  querySelector:()=>{throw new Error('Neutral loading must not request an old poster image');},
+  style:{setProperty:()=>{throw new Error('Neutral loading must not apply a poster framing estimate');}}};
+ const doc={documentElement:{dataset:{}},querySelector:()=>null,
+  querySelectorAll:selector=>selector==='[data-shop-scene].scene-preview'?[element]:[]};
+ primeShop({doc,storage:{getItem:()=>null},href:'https://example.test/de/refill/',ui:{base:'/demo',lang:'de',version:'test'}});
+ assert.equal(element.dataset.loadingState,'neutral');assert.equal(element.dataset.requestedMode,'ritual');assert.equal(element.dataset.scent,'aloe');
+});
