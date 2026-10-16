@@ -11,7 +11,35 @@ export function prefetchDestination(href, current, base) {
   } catch { return null; }
 }
 
+/** Mirror native dialog state without replacing its focus or Escape handling. */
+export function initializeDialogDisclosures({document: doc = globalThis.document, window: win = globalThis.window} = {}) {
+  const pairs = [];
+  for (const opener of doc?.querySelectorAll?.('[aria-haspopup="dialog"][aria-controls]') || []) {
+    const id = opener.getAttribute?.('aria-controls');
+    const dialog = id && doc.getElementById?.(id);
+    if (dialog?.tagName?.toLowerCase() === 'dialog') pairs.push({opener, dialog});
+  }
+  const sync = () => pairs.forEach(({opener, dialog}) => opener.setAttribute('aria-expanded', String(dialog.open)));
+  const dialogs = [...new Set(pairs.map(({dialog}) => dialog))];
+  const Observer = win?.MutationObserver || globalThis.MutationObserver;
+  const observer = Observer ? new Observer(sync) : null;
+  for (const dialog of dialogs) {
+    observer?.observe(dialog, {attributes: true, attributeFilter: ['open']});
+    dialog.addEventListener('close', sync);
+    dialog.addEventListener('toggle', sync);
+  }
+  sync();
+  return {sync, destroy() {
+    observer?.disconnect();
+    for (const dialog of dialogs) {
+      dialog.removeEventListener('close', sync);
+      dialog.removeEventListener('toggle', sync);
+    }
+  }};
+}
+
 export function initializeNavigation({ base, document: doc = document, window: win = window, limit = 4 } = {}) {
+  const disclosures = initializeDialogDisclosures({document: doc, window: win});
   const warmed = new Set();
   let timer;
   const connection = win.navigator.connection;

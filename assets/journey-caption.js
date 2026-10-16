@@ -31,7 +31,7 @@ export function initializeProductJourney(section) {
   const header = () => document.querySelector('.header')?.offsetHeight || 64;
 
   function measure() {
-    if (!stage || !sticky || !enhanced) return;
+    if (!stage || !sticky || !enhanced && !section.classList.contains('is-loading')) return;
     const stickyRect = sticky.getBoundingClientRect();
     const width = document.documentElement.clientWidth;
     const sectionRect = section.getBoundingClientRect();
@@ -120,6 +120,8 @@ export function initializeProductJourney(section) {
       caption.inert = !active; caption.setAttribute('aria-hidden', String(!active));
       caption.classList.toggle('is-active', active); caption.classList.toggle('is-visible', active);
     }
+    // Chapter links work while the first 3D frame is still being prepared.
+    measure();
   }
   return { prepare, enhance, fallback, render, measure,
     get enhanced() { return enhanced; },

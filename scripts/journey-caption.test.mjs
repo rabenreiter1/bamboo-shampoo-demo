@@ -120,3 +120,42 @@ test('orientation preserves a late pinned pose when new CSS puts old scroll pixe
     if (previousDocument === undefined) delete globalThis.document; else globalThis.document = previousDocument;
   }
 });
+
+
+test('chapter markers have correct native-scroll targets before the first model frame and after resize', () => {
+  const previousWindow=globalThis.window,previousDocument=globalThis.document;
+  const geometry={width:390,stage:700,track:6700,top:1500,header:64};
+  const classes=new Set(),events=new Map();
+  const markers=[.07,.16,.36,.735].map((at,index)=>({dataset:{journeyAt:String(at),journeyUntil:String([.15,.27,.72,.96][index])},style:{removeProperty(name){delete this[name];}}}));
+  const stage={getBoundingClientRect:()=>({height:geometry.stage})};
+  const view={scrollY:0,addEventListener(name,fn){events.set(name,fn);},removeEventListener(name){events.delete(name);},scrollTo({top}){this.scrollY=top;}};
+  const section={dataset:{},style:{setProperty(){}},classList:{add(...names){names.forEach(name=>classes.add(name));},remove(...names){names.forEach(name=>classes.delete(name));},contains:name=>classes.has(name)},
+    getBoundingClientRect:()=>({top:geometry.top-view.scrollY,height:geometry.track,bottom:geometry.top-view.scrollY+geometry.track}),
+    querySelector:selector=>selector==='[data-shop-scene="journey"]'||selector==='.product-journey__sticky'?stage:null,
+    querySelectorAll:selector=>selector==='[data-journey-at]'?markers:[]};
+  globalThis.window=view;globalThis.document={documentElement:{get clientWidth(){return geometry.width;}},querySelector:selector=>selector==='.header'?{get offsetHeight(){return geometry.header;}}:null};
+  try {
+    const controller=initializeProductJourney(section);controller.prepare();
+    assert.equal(controller.enhanced,false,'No model frame is needed for prepared chapter targets');
+    function verifyTargets(){
+      const travel=geometry.track-geometry.stage;
+      for(const marker of markers){
+        const q=Number(marker.dataset.journeyAt),offset=parseFloat(marker.style.top);
+        assert.equal(offset,q*travel);
+        assert.equal(parseFloat(marker.style.height),(Number(marker.dataset.journeyUntil)-q)*travel+geometry.stage);
+        // Native anchor alignment has the document header padding exactly once.
+        view.scrollY=geometry.top+offset-geometry.header;
+        assert.ok(Math.abs(controller.getProgress()-q)<1e-12,'Chapter lands at its authored pose before WebGL is ready');
+      }
+    }
+    verifyTargets();view.scrollY=0;
+    Object.assign(geometry,{width:844,stage:316,track:3900,header:74});events.get('resize')();verifyTargets();
+    controller.enhance({q:.16,phase:'unseal'});verifyTargets();
+    controller.fallback();
+    for(const marker of markers){assert.equal(marker.style.top,undefined);assert.equal(marker.style.height,undefined);}
+    controller.suspend();
+  } finally {
+    if(previousWindow===undefined)delete globalThis.window;else globalThis.window=previousWindow;
+    if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;
+  }
+});

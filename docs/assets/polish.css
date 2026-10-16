@@ -1174,3 +1174,8 @@ html:not(.js-motion) [data-loading-state='neutral'] .scene-loading__fallback { d
   [data-loading-state='neutral'] .scene-loading__pending, [data-loading-state='neutral'] .scene-loading__mark { display: none; }
   [data-loading-state='neutral'] .scene-loading__fallback { display: block; }
 }
+
+/* A failed device/GPU start exposes a recoverable inline action. */
+.scene-retry{position:absolute;z-index:8;inset-inline-start:50%;inset-block-end:24px;transform:translateX(-50%);min-height:44px;padding:10px 20px;border:1px solid currentColor;border-radius:999px;background:var(--paper,#f8f6ef);color:var(--ink,#253b30);font:inherit;font-size:14px;cursor:pointer}
+.scene-retry[hidden]{display:none}
+.scene-retry:focus-visible{outline:2px solid currentColor;outline-offset:4px}

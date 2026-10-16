@@ -1,4 +1,5 @@
 import * as THREE from '../assembly/vendor/three.module.js';
+import {compileSceneShaders} from './scene-readiness.js';
 import { staticSceneFrame, refillTeaserRegion } from './scene-framing.js?v=modern-20261016-1';
 import { createCampaignBackdrop, campaignWorld } from './campaign-backdrop.js?v=modern-20261016-1';
 import { PRODUCT_THEMES, BRAND_THEME } from './product-theme.js?v=modern-20261016-1';
@@ -113,7 +114,7 @@ export function mountShopScene(container, options = {}) {
   let appliedPoseProgress = NaN, appliedReveal = NaN;
   let captionCopyHeight = 156, captionFooterHeight = 0;
   let warmupGeneration = 0, contextGeneration = 0, cancelWarmup = null, warmupPromise = null;
-  let warming = false, shaderWarmupMilliseconds = 0;
+  let warming = false, shaderWarmupMilliseconds = 0,bootPhase='initializing',shaderStrategy='pending';
   let renderPending = true;
   const framePeriods=[];let previousMovingTimestamp=0;
   let zoom = clamp(finite(options.zoom, 1), .6, 2.5);
@@ -167,7 +168,7 @@ export function mountShopScene(container, options = {}) {
       yaw: (mode === 'ritual' || mode === 'journey' ? automaticYaw ?? state.yaw : progress * Math.PI * 4) + manualYaw,
       manualYaw, automaticYaw, reducedMotion, frames, framing, spatial, artDirection, world, poseProgress,
       journey: mode === 'journey' ? journeyState : null, background: { color: backgroundColor, opaque },
-      warming, shaderWarmupMilliseconds, paused, scent: gel?.scent || world,
+      warming, shaderWarmupMilliseconds,bootPhase,shaderStrategy, paused, scent: gel?.scent || world,
       renderedMode, active: active(), inView, observedInView, renderPending, size: { width, height },
       performance:framePeriods.length?{samples:framePeriods.length,medianFramePeriodMs:[...framePeriods].sort((a,b)=>a-b)[Math.floor(framePeriods.length/2)],p95FramePeriodMs:[...framePeriods].sort((a,b)=>a-b)[Math.floor(framePeriods.length*.95)]}:null,
       visibility: {
@@ -192,7 +193,7 @@ export function mountShopScene(container, options = {}) {
       progress: value.progress.toFixed(6), cyclePosition: progress.toFixed(6), phase: value.phase,
       yaw: value.yaw.toFixed(6), sceneFrames: String(frames),
       sceneRenderedMode: renderedMode || '',
-      sceneWarming: String(warming), shaderWarmupMs: shaderWarmupMilliseconds.toFixed(1),
+      sceneWarming: String(warming), shaderWarmupMs: shaderWarmupMilliseconds.toFixed(1),sceneBootPhase:bootPhase,sceneShaderStrategy:shaderStrategy,
       sceneDiagnostics: JSON.stringify({ renderedMode, active: value.active, inView, observedInView, size: value.size,
         framing, visibility: value.visibility, render: value.render,
         refillProjection: value.refillProjection, fillAppearance: value.fillAppearance, performance:value.performance }),
@@ -581,15 +582,15 @@ export function mountShopScene(container, options = {}) {
     cancelWarmup?.();
     const generation = ++warmupGeneration, context = contextGeneration, currentRenderer = renderer;
     const started = performance.now();
-    let abort;
-    const cancelled = new Promise(resolve => { abort = () => resolve(false); });
+    const shaderAbort=new AbortController();let abort;
+    const cancelled = new Promise(resolve => { abort = () => {resolve(false);shaderAbort.abort();}; });
     cancelWarmup = abort;
     const valid = () => !disposed && renderer === currentRenderer && generation === warmupGeneration
       && context === contextGeneration && !currentRenderer.getContext().isContextLost();
-    ready = false; rendered = false; warming = true; cancelFrame();
+    ready = false; rendered = false; warming = true;bootPhase='shaders'; cancelFrame();
     currentRenderer.domElement.style.opacity = '0'; report(true);
     const compile = () => Promise.race([
-      currentRenderer.compileAsync(scene, camera).then(() => true), cancelled,
+      compileSceneShaders(currentRenderer,scene,camera,{parallel:width>=768&&!window.matchMedia('(pointer: coarse)').matches,signal:shaderAbort.signal,isPaused:()=>paused}).then(strategy=>{shaderStrategy=strategy;return true;}), cancelled,
     ]);
     const task = (async () => {
       resize(); applyState(); scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);
@@ -618,7 +619,8 @@ export function mountShopScene(container, options = {}) {
       warming = false; error = null; ready = true; lastTick = 0;
       resize();
       cancelFrame();
-      if (active()) draw();
+      bootPhase='first-frame';if (active()) draw();
+      bootPhase=rendered?'ready':'prepared';
       report(true);
       container.dispatchEvent(new CustomEvent('shop-scene-ready', { detail: { mode, metrics } }));
       return true;
@@ -642,7 +644,7 @@ export function mountShopScene(container, options = {}) {
         preserveDrawingBuffer: options.capture === true, powerPreference: 'high-performance' });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
-      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.setClearColor(backgroundColor, opaque ? 1 : 0);
       if (options.capture === true && options.capturePremultiplied && !opaque) renderer.setClearColor('#000000', 0);
       const canvas = renderer.domElement;
@@ -691,6 +693,7 @@ export function mountShopScene(container, options = {}) {
       const rim = new THREE.DirectionalLight('#fffaf3', .40); rim.position.set(130, 320, -210); scene.add(rim);
       floor = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.ShadowMaterial({ color: '#586145', opacity: .065 }));
       floor.rotation.x = -Math.PI / 2; floor.position.y = -85.4; floor.receiveShadow = true; scene.add(floor);
+      bootPhase='materials';report(true);
       const built = await Promise.allSettled([acquireBody(), initialMode === 'shell' ? Promise.resolve(null) : createRitualCap({ THREE, colors: PRODUCT_THEMES[world].capColors })]);
       if (built[0].status === 'fulfilled') { bodyLease = built[0].value; body = bodyLease.body; }
       if (built[1].status === 'fulfilled') cap = built[1].value ? finishCap(built[1].value) : null;

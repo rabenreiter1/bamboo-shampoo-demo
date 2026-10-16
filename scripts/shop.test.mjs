@@ -413,7 +413,7 @@ test('published 3D assets retain approved artwork and exclude rejected legacy re
   assert.equal(publishedViewer, sourceViewer.replaceAll('./assembly/', '../assembly/'), 'published shop viewer only adapts the approved module directory');
   const imports = [...publishedViewer.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)].map(match => match[1]);
   for (const specifier of imports) {
-    assert.ok(specifier.startsWith('../assembly/') || ['./intro-pose.js','./journey-pose.js','./campaign-backdrop.js','./scene-framing.js','./product-theme.js'].includes(specifier.split('?')[0]), 'approved models use the pose adapter, shared preview framing and coherent fragrance theme');
+    assert.ok(specifier.startsWith('../assembly/') || ['./intro-pose.js','./journey-pose.js','./campaign-backdrop.js','./scene-framing.js','./product-theme.js','./scene-readiness.js'].includes(specifier.split('?')[0]), 'approved models use the pose adapter, bounded readiness, shared framing and coherent fragrance theme');
     assert.ok(fs.existsSync(path.resolve(root, 'assets', specifier.split('?')[0])), `${specifier} resolves after publishing`);
   }
   const poseSource = fs.readFileSync(path.join('assets', 'journey-pose.js'), 'utf8');
