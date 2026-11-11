@@ -1,0 +1,3 @@
+main: 3 frames
+chunk 1: 1 frames, 2.8s, device CPU, threads 4
+chunk 0: 2 frames, 11.2s, device CPU, threads 4
