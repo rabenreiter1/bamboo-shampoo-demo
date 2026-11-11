@@ -1,1 +1,4 @@
-{ "name": "culm-skin-1", "script": "skin.py", "chunks": 1, "encode": false, "params": { "res": 1024 }, "variants": [ { "tag": "" } ] }
+{ "name": "dive-pre1b", "script": "money.py", "frames": [12, 18, 24, 30, 36, 42, 48, 54, 60, 64, 67, 69, 71, 72], "chunks": 7, "fps": 6, "encode": false,
+  "samples": 40, "noise": 0.06, "sheet_cols": 7, "sheet_w": 360, "stills": [2, 8],
+  "params": { "shot": "dive", "sun_el": 32, "exposure": -0.1, "n_skirt": 3400 },
+  "variants": [ { "tag": "d_", "res": [640, 360], "shift": 0.0 }, { "tag": "p_", "res": [360, 640], "shift": 0.0 } ] }
