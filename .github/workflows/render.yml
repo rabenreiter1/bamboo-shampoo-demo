@@ -1,18 +1,81 @@
 name: render
+# Render jobs for the Jubam ritual journey (Blender on GitHub's runners). Each push to this branch runs render/job.json:
+# plan → N parallel chunks render frames → collect encodes the clip, makes a contact sheet and pushes both to the
+# branch "render-out" (so the results can be fetched with git).
 on:
   push:
     branches: [claude/render-test]
+permissions:
+  contents: write
+env:
+  BLENDER_VERSIONS: "4.2.9 4.2.3 4.2.0"
 jobs:
-  probe:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+      name: ${{ steps.m.outputs.name }}
     steps:
       - uses: actions/checkout@v4
-      - name: Blender
+      - id: m
         run: |
-          pip install bpy==4.2.0 || pip install bpy
-          python -c "import bpy; print('blender', bpy.app.version_string)"
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          j = json.load(open('render/job.json'))
+          print('matrix=' + json.dumps({'chunk': list(range(j.get('chunks', 1)))}))
+          print('name=' + j['name'])
+          PY
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: bl
+        with:
+          path: ~/blender
+          key: blender-4.2-linux-x64-v1
+      - name: Blender (official build from blender.org)
+        if: steps.bl.outputs.cache-hit != 'true'
+        run: |
+          for v in $BLENDER_VERSIONS; do curl -fsSL -o /tmp/b.tar.xz "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" && break; done
+          mkdir -p ~/blender && tar -xf /tmp/b.tar.xz -C ~/blender --strip-components=1
+      - name: Libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libxkbcommon0 libsm6 libice6 libegl1 > /dev/null
       - name: Render
-        run: python render/probe.py
+        run: |
+          ~/blender/blender --version | head -1
+          nproc; free -g | head -2
+          SCRIPT=$(python3 -c "import json;print(json.load(open('render/job.json'))['script'])")
+          ~/blender/blender -b --python-exit-code 1 -P "render/$SCRIPT" -- --job render/job.json --chunk ${{ matrix.chunk }} --out out
       - uses: actions/upload-artifact@v4
-        with: { name: probe, path: out/ }
+        with:
+          name: frames-${{ matrix.chunk }}
+          path: out/
+          retention-days: 3
+  collect:
+    needs: [plan, render]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: parts
+          pattern: frames-*
+          merge-multiple: true
+      - name: Encode
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          python3 render/collect.py render/job.json parts result
+      - name: Push results to render-out
+        run: |
+          NAME="${{ needs.plan.outputs.name }}"
+          git config user.name "render-bot"; git config user.email "render-bot@users.noreply.github.com"
+          git fetch origin render-out --depth 1 2>/dev/null && git worktree add -f /tmp/ro FETCH_HEAD || { git worktree add --detach /tmp/ro; cd /tmp/ro; git checkout --orphan render-out; git rm -rqf . ; cd -; }
+          cd /tmp/ro; git checkout -B render-out; rm -rf "$NAME"; mkdir -p "$NAME"; cp -r "$GITHUB_WORKSPACE/result/." "$NAME/"
+          git add -A; git commit -qm "render $NAME (run $GITHUB_RUN_ID)" || true; git push -f origin render-out

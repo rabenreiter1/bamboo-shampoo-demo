@@ -1,0 +1,1 @@
+{ "name": "probe", "script": "probe.py", "frames": [0, 2, 4], "chunks": 2, "encode": false, "stills": [0, 2], "sheet_cols": 3 }
