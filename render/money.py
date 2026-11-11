@@ -102,7 +102,7 @@ def leaf_material(name, img):
 def ground_material():
     m, nt, N, L = mat('ground'); out_ = N.new('ShaderNodeOutputMaterial'); b = N.new('ShaderNodeBsdfPrincipled')
     nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 9; nz.inputs['Detail'].default_value = 9
-    cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].color = (.02, .013, .008, 1); e[1].color = (.16, .09, .04, 1); L.new(nz.outputs['Fac'], cr.inputs['Fac'])
+    cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].color = (.03, .02, .01, 1); e[1].color = (.24, .15, .07, 1); L.new(nz.outputs['Fac'], cr.inputs['Fac'])
     L.new(cr.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .85
     bm = N.new('ShaderNodeBump'); bm.inputs['Strength'].default_value = .8; bm.inputs['Distance'].default_value = .04; L.new(nz.outputs['Fac'], bm.inputs['Height']); L.new(bm.outputs['Normal'], b.inputs['Normal'])
     L.new(b.outputs['BSDF'], out_.inputs['Surface']); return m
@@ -217,7 +217,7 @@ DIVE_T = 2.4; DIVE_X = P.get('dive_x', .62)
 def dive_pose(u):
     k = clamp01(u / DIVE_T); e = 1 - (1 - k) ** P.get('dive_pow', 2.2)
     pitch = math.radians(lerp(-80, -6, ease(k * 1.12)))
-    return Vector((DIVE_X, lerp(-2.6, -.55, e), lerp(P.get('dive_z0', 27.), 7.2, e))), Vector((0, math.cos(pitch), math.sin(pitch)))
+    return Vector((DIVE_X, lerp(-2.6, -.55, e), lerp(P.get('dive_z0', 36.), 7.2, e))), Vector((0, math.cos(pitch), math.sin(pitch)))
 if SHOT == 'dive':
     pe, de = dive_pose(DIVE_T); LW, LH = P.get('leaf_l', 1.0), P.get('leaf_w', .34); v, f, uvs = [], [], []; NX, NY = 40, 12
     rt = Vector((1, 0, 0)); up = rt.cross(de).normalized() * -1; rot = -.5
@@ -239,7 +239,9 @@ if SHOT == 'dive':
     d_ = N_.new('ShaderNodeBsdfDiffuse'); tl_ = N_.new('ShaderNodeBsdfTranslucent'); g_ = N_.new('ShaderNodeBsdfGlossy'); g_.inputs['Roughness'].default_value = .3
     L_.new(mx_.outputs['Color'], d_.inputs['Color']); L_.new(mx_.outputs['Color'], tl_.inputs['Color'])
     m1_ = N_.new('ShaderNodeMixShader'); m1_.inputs['Fac'].default_value = .7; L_.new(d_.outputs[0], m1_.inputs[1]); L_.new(tl_.outputs[0], m1_.inputs[2])
-    m2_ = N_.new('ShaderNodeMixShader'); m2_.inputs['Fac'].default_value = .07; L_.new(m1_.outputs[0], m2_.inputs[1]); L_.new(g_.outputs[0], m2_.inputs[2]); L_.new(m2_.outputs[0], o_.inputs['Surface'])
+    m2_ = N_.new('ShaderNodeMixShader'); m2_.inputs['Fac'].default_value = .07; L_.new(m1_.outputs[0], m2_.inputs[1]); L_.new(g_.outputs[0], m2_.inputs[2])
+    em_ = N_.new('ShaderNodeEmission'); em_.inputs['Strength'].default_value = P.get('leaf_glow', .22); L_.new(mx_.outputs['Color'], em_.inputs['Color'])   # the sun behind it
+    ad_ = N_.new('ShaderNodeAddShader'); L_.new(m2_.outputs[0], ad_.inputs[0]); L_.new(em_.outputs[0], ad_.inputs[1]); L_.new(ad_.outputs[0], o_.inputs['Surface'])
     big.data.materials.append(m)
 cam_d = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cam_d); C.objects.link(cam); S.camera = cam
 cam_d.lens = P.get('lens', 16); cam_d.sensor_width = 36; cam_d.clip_start = .02; cam_d.clip_end = 400
@@ -253,7 +255,7 @@ for fr in range(-2, END + 3):
     S.view_settings.exposure = P.get('exposure', 0.) + P.get('burn', 5.) * ease((u - 2.72) / .4) ** 1.5; S.view_settings.keyframe_insert('exposure', frame=fr)
     if SHOT != 'money':                                  # daylight throughout, no burn
         mxw.inputs['Fac'].default_value = 1; mxw.inputs['Fac'].keyframe_insert('default_value', frame=fr); moon_d.energy = 0; moon_d.keyframe_insert('energy', frame=fr)
-        S.view_settings.exposure = P.get('exposure', 0.); S.view_settings.keyframe_insert('exposure', frame=fr)
+        S.view_settings.exposure = P.get('exposure', 0.) + P.get('under', 1.7) * ease(u / DIVE_T * 1.5 - .15); S.view_settings.keyframe_insert('exposure', frame=fr)   # the eye opens up under the canopy
 if SHOT == 'dive': cam_d.dof.use_dof = True; cam_d.dof.focus_distance = P.get('focus', 7.); cam_d.dof.aperture_fstop = P.get('fstop', 1.4)
 for ob in (hero, cam):
     for fc in ob.animation_data.action.fcurves:
