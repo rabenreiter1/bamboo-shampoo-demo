@@ -210,16 +210,51 @@ def cam_pose(u):
     d = lerp(.95, CAM_D, ease(u / 1.3))
     z = .28 + 1.3 * ease(u / 1.3) + 1.1 * ease((u - 1.3) / .6) + P.get('climb', 15.2) * clamp01((u - 1.9) / 1.15) ** 2.6
     return Vector((0, -d, z)), Vector((0, math.cos(pitch), math.sin(pitch)))
+SHOT = P.get('shot', 'money')
+# the dive (journey f05): from above the crowns down through the opening beside the hero culm, levelling out among the
+# culms, and into one giant backlit leaf that fills the lens (the journey's own leaf wipe takes over there). 2.4 s.
+DIVE_T = 2.4; DIVE_X = P.get('dive_x', .62)
+def dive_pose(u):
+    k = clamp01(u / DIVE_T); e = 1 - (1 - k) ** P.get('dive_pow', 2.2)
+    pitch = math.radians(lerp(-80, -6, ease(k * 1.12)))
+    return Vector((DIVE_X, lerp(-2.6, -.55, e), lerp(P.get('dive_z0', 27.), 7.2, e))), Vector((0, math.cos(pitch), math.sin(pitch)))
+if SHOT == 'dive':
+    pe, de = dive_pose(DIVE_T); LW, LH = P.get('leaf_l', 1.0), P.get('leaf_w', .34); v, f, uvs = [], [], []; NX, NY = 40, 12
+    rt = Vector((1, 0, 0)); up = rt.cross(de).normalized() * -1; rot = -.5
+    ax = rt * math.cos(rot) + up * math.sin(rot); br = -rt * math.sin(rot) + up * math.cos(rot); c0 = pe + de * P.get('leaf_d', .04)
+    for j in range(NY + 1):
+        for i in range(NX + 1):
+            a_, b_ = i / NX - .5, j / NY - .5; wv = (1 - (2 * a_) ** 2) ** .6                       # the blade's outline: pointed at both ends
+            p = c0 + ax * (a_ * LW) + br * (b_ * LH * wv) + de * (.25 * LH * (2 * b_) ** 2 * wv + .05 * a_ * a_)   # a shallow keel
+            v.append(tuple(p)); uvs.append((i / NX, j / NY))
+    for j in range(NY):
+        for i in range(NX): q = j * (NX + 1) + i; f.append((q, q + 1, q + NX + 2, q + NX + 1))
+    big = new_obj('bigleaf', v, f, uvs=[[uvs[k] for k in fc] for fc in f])
+    m, nt_, N_, L_ = mat('bigleaf'); o_ = N_.new('ShaderNodeOutputMaterial'); tc = N_.new('ShaderNodeTexCoord'); sp = N_.new('ShaderNodeSeparateXYZ'); L_.new(tc.outputs['UV'], sp.inputs[0])
+    wvn = N_.new('ShaderNodeTexWave'); wvn.wave_type = 'BANDS'; wvn.bands_direction = 'Y'; wvn.inputs['Scale'].default_value = 26; wvn.inputs['Distortion'].default_value = .6; wvn.inputs['Detail'].default_value = 2; L_.new(tc.outputs['UV'], wvn.inputs['Vector'])
+    mid = node(N_, 'ShaderNodeMath', operation='SUBTRACT'); mid.inputs[1].default_value = .5; L_.new(sp.outputs['Y'], mid.inputs[0]); ab = node(N_, 'ShaderNodeMath', operation='ABSOLUTE'); L_.new(mid.outputs[0], ab.inputs[0])
+    rib = node(N_, 'ShaderNodeMapRange'); rib.inputs['From Min'].default_value = 0; rib.inputs['From Max'].default_value = .035; L_.new(ab.outputs[0], rib.inputs['Value'])
+    cr = N_.new('ShaderNodeValToRGB'); e_ = cr.color_ramp.elements; e_[0].position = .25; e_[0].color = (.05, .2, .012, 1); e_[1].position = .8; e_[1].color = (.16, .46, .035, 1); L_.new(wvn.outputs['Fac'], cr.inputs['Fac'])
+    mx_ = node(N_, 'ShaderNodeMixRGB'); mx_.inputs['Color1'].default_value = (.22, .5, .07, 1); L_.new(rib.outputs['Result'], mx_.inputs['Fac']); L_.new(cr.outputs['Color'], mx_.inputs['Color2'])
+    d_ = N_.new('ShaderNodeBsdfDiffuse'); tl_ = N_.new('ShaderNodeBsdfTranslucent'); g_ = N_.new('ShaderNodeBsdfGlossy'); g_.inputs['Roughness'].default_value = .3
+    L_.new(mx_.outputs['Color'], d_.inputs['Color']); L_.new(mx_.outputs['Color'], tl_.inputs['Color'])
+    m1_ = N_.new('ShaderNodeMixShader'); m1_.inputs['Fac'].default_value = .7; L_.new(d_.outputs[0], m1_.inputs[1]); L_.new(tl_.outputs[0], m1_.inputs[2])
+    m2_ = N_.new('ShaderNodeMixShader'); m2_.inputs['Fac'].default_value = .07; L_.new(m1_.outputs[0], m2_.inputs[1]); L_.new(g_.outputs[0], m2_.inputs[2]); L_.new(m2_.outputs[0], o_.inputs['Surface'])
+    big.data.materials.append(m)
 cam_d = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cam_d); C.objects.link(cam); S.camera = cam
 cam_d.lens = P.get('lens', 16); cam_d.sensor_width = 36; cam_d.clip_start = .02; cam_d.clip_end = 400
 END = job.get('end_frame', 95)
 for fr in range(-2, END + 3):
     u = fr / FPS
-    hero.location = (0, 0, tip_h(u) - HERO_L); hero.keyframe_insert('location', frame=fr)
-    p, dv = cam_pose(u); cam.location = p; cam.rotation_euler = dv.to_track_quat('-Z', 'Y').to_euler(); cam.keyframe_insert('location', frame=fr); cam.keyframe_insert('rotation_euler', frame=fr)
+    hero.location = (0, 0, (tip_h(u) if SHOT == 'money' else HERO_L - 1.5) - HERO_L); hero.keyframe_insert('location', frame=fr)
+    p, dv = cam_pose(u) if SHOT == 'money' else dive_pose(u); cam.location = p; cam.rotation_euler = dv.to_track_quat('-Z', 'Y').to_euler(); cam.keyframe_insert('location', frame=fr); cam.keyframe_insert('rotation_euler', frame=fr)
     mxw.inputs['Fac'].default_value = ease((u - .15) / 1.0); mxw.inputs['Fac'].keyframe_insert('default_value', frame=fr)
     moon_d.energy = P.get('moon', 1.4) * (1 - ease((u - .2) / .9)); moon_d.keyframe_insert('energy', frame=fr)
     S.view_settings.exposure = P.get('exposure', 0.) + P.get('burn', 5.) * ease((u - 2.72) / .4) ** 1.5; S.view_settings.keyframe_insert('exposure', frame=fr)
+    if SHOT != 'money':                                  # daylight throughout, no burn
+        mxw.inputs['Fac'].default_value = 1; mxw.inputs['Fac'].keyframe_insert('default_value', frame=fr); moon_d.energy = 0; moon_d.keyframe_insert('energy', frame=fr)
+        S.view_settings.exposure = P.get('exposure', 0.); S.view_settings.keyframe_insert('exposure', frame=fr)
+if SHOT == 'dive': cam_d.dof.use_dof = True; cam_d.dof.focus_distance = P.get('focus', 7.); cam_d.dof.aperture_fstop = P.get('fstop', 1.4)
 for ob in (hero, cam):
     for fc in ob.animation_data.action.fcurves:
         for kp in fc.keyframe_points: kp.interpolation = 'LINEAR'
@@ -242,6 +277,6 @@ for vnt in job.get('variants', [{'tag': '', 'res': [1280, 720], 'shift': 0.}]):
     S.render.resolution_x, S.render.resolution_y = vnt['res']; S.render.resolution_percentage = 100; cam_d.shift_x = vnt.get('shift', 0.); cam_d.lens = vnt.get('lens', P.get('lens', 16))
     t = []
     for fr in frames:                                  # a longer shutter while the camera whips up (the hand-over hides in the streaks)
-        S.render.motion_blur_shutter = job.get('shutter', .6) * (1 + 1.6 * (1 - ease((fr / FPS - .25) / .5))); t += common.render_frames(S, [fr], out, tag=vnt['tag'])
+        S.render.motion_blur_shutter = job.get('shutter', .6) * ((1 + 1.6 * (1 - ease((fr / FPS - .25) / .5))) if SHOT == 'money' else 1); t += common.render_frames(S, [fr], out, tag=vnt['tag'])
     logs.append(f"chunk {chunk} {vnt['tag']}: {len(t)} frames, avg {sum(t) / max(1, len(t)):.1f}s, max {max(t or [0]):.1f}s")
 open(os.path.join(out, f'chunk{chunk}.log'), 'w').write('\n'.join(logs))
