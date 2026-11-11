@@ -1,4 +1,4 @@
-{ "name": "dive-v1", "script": "money.py", "start": 12, "end": 72, "chunks": 20, "fps": 30, "crf": 21,
+{ "name": "dive-v2", "script": "money.py", "start": 12, "end": 72, "chunks": 20, "fps": 30, "crf": 21,
   "samples": 80, "noise": 0.035, "sheet_cols": 8, "sheet_w": 320, "stills": [6, 30, 44],
-  "params": { "shot": "dive", "sun_el": 48, "exposure": -0.7, "under": 1.05, "haze": 0.0022, "n_skirt": 3400 },
+  "params": { "shot": "dive", "sun_el": 48, "exposure": -0.7, "under": 0.55, "dive_z1": 12.6, "dive_end_pitch": -32, "haze": 0.0022, "n_skirt": 3400 },
   "variants": [ { "tag": "d_", "res": [1280, 720], "shift": 0.0 }, { "tag": "p_", "res": [720, 1280], "shift": 0.0 } ] }

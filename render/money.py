@@ -217,7 +217,7 @@ DIVE_T = 2.4; DIVE_X = P.get('dive_x', .62)
 def dive_pose(u):
     k = clamp01(u / DIVE_T); e = 1 - (1 - k) ** P.get('dive_pow', 2.2)
     pitch = math.radians(lerp(-80, P.get('dive_end_pitch', 9), ease(k * 1.12)))
-    return Vector((DIVE_X, lerp(-2.6, -.55, e), lerp(P.get('dive_z0', 36.), 7.2, e))), Vector((0, math.cos(pitch), math.sin(pitch)))
+    return Vector((DIVE_X, lerp(-2.6, -.55, e), lerp(P.get('dive_z0', 36.), P.get('dive_z1', 7.2), e))), Vector((0, math.cos(pitch), math.sin(pitch)))
 if SHOT == 'dive':
     pe, de = dive_pose(DIVE_T); LW, LH = P.get('leaf_l', 1.0), P.get('leaf_w', .34); v, f, uvs = [], [], []; NX, NY = 40, 12
     rt = Vector((1, 0, 0)); up = rt.cross(de).normalized() * -1; rot = -.5
