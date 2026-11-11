@@ -102,7 +102,7 @@ def leaf_material(name, img):
 def ground_material():
     m, nt, N, L = mat('ground'); out_ = N.new('ShaderNodeOutputMaterial'); b = N.new('ShaderNodeBsdfPrincipled')
     nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 9; nz.inputs['Detail'].default_value = 9
-    cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].color = (.018, .012, .007, 1); e[1].color = (.13, .085, .04, 1); L.new(nz.outputs['Fac'], cr.inputs['Fac'])
+    cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].color = ((.018, .012, .007, 1) if P.get('shot', 'money') == 'money' else (.012, .04, .01, 1)); e[1].color = ((.13, .085, .04, 1) if P.get('shot', 'money') == 'money' else (.06, .075, .025, 1))   # the dive sees the floor: moss and litter, not bare earth; L.new(nz.outputs['Fac'], cr.inputs['Fac'])
     L.new(cr.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .85
     bm = N.new('ShaderNodeBump'); bm.inputs['Strength'].default_value = .8; bm.inputs['Distance'].default_value = .04; L.new(nz.outputs['Fac'], bm.inputs['Height']); L.new(bm.outputs['Normal'], b.inputs['Normal'])
     L.new(b.outputs['BSDF'], out_.inputs['Surface']); return m
