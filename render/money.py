@@ -23,14 +23,14 @@ def new_obj(name, verts, faces, uvs=None, attr=None, smooth=True):
     if smooth: me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
     ob = bpy.data.objects.new(name, me); C.objects.link(ob); return ob
 
-def culm_mesh(verts, faces, attr, base, H, r0, r1, segs, inter0, lean=(0, 0), bend=0., seed=0., tip_from=None, tip_len=0.):
+def culm_mesh(verts, faces, attr, base, H, r0, r1, segs, inter0, lean=(0, 0), bend=0., seed=0., tip_from=None, tip_len=0., node_k=1.06):
     """one culm: rings along z with a ridge at every node; attr per vertex = (ring, wax, rand, 1). tip_from: above this
     height the radius runs out to a point over tip_len (the shoot's tip)"""
     r_ = random.Random(seed * 977 + 13); zs = []; z = 0.; k = 0
     while z < H:
         L = inter0 * (0.45 + 0.55 * clamp01(k / 6.)) * (0.9 + 0.2 * r_.random())     # short internodes at the foot
         z1 = min(H, z + L)
-        for (zz, ring, wax, rk) in ((z + .012, 0, 0, 1.), (z + L * .5, 0, 0, 1.), (z1 - .09, 0, 0, 1.), (z1 - .02, 0, 1, 1.), (z1, 1, .5, 1.055)):
+        for (zz, ring, wax, rk) in ((z + .014, 0, 0, 1.), (z + L * .5, 0, 0, 1.), (z1 - .11, 0, 0, 1.), (z1 - .03, 0, 1, 1.), (z1 - .012, .6, .8, .985), (z1, 1, .3, node_k)):
             if zz < H + 1e-6: zs.append((zz, ring, wax, rk))
         z = z1; k += 1
     zs = [(0., 0, 0, 1.)] + zs
@@ -65,7 +65,7 @@ def culm_material(name, c_dark, c_light, rough, coat, sat=1.):
     mv = node(N, 'ShaderNodeMapRange'); mv.inputs['To Min'].default_value = .55 * sat; mv.inputs['To Max'].default_value = 1.15 * sat; L.new(sep.outputs['Blue'], mv.inputs['Value']); L.new(mv.outputs['Result'], hs.inputs['Value'])
     # the pale wax bloom under each node, the dark scar at the node
     m2 = node(N, 'ShaderNodeMixRGB'); m2.inputs['Color2'].default_value = (.62, .72, .55, 1); L.new(hs.outputs['Color'], m2.inputs['Color1'])
-    wx = node(N, 'ShaderNodeMath', operation='MULTIPLY'); wx.inputs[1].default_value = .55; L.new(sep.outputs['Green'], wx.inputs[0]); L.new(wx.outputs[0], m2.inputs['Fac'])
+    wx = node(N, 'ShaderNodeMath', operation='MULTIPLY'); wx.inputs[1].default_value = .7; L.new(sep.outputs['Green'], wx.inputs[0]); L.new(wx.outputs[0], m2.inputs['Fac'])
     m3 = node(N, 'ShaderNodeMixRGB'); m3.inputs['Color2'].default_value = (.10, .075, .03, 1); L.new(m2.outputs['Color'], m3.inputs['Color1'])
     rg = node(N, 'ShaderNodeMath', operation='MULTIPLY'); rg.inputs[1].default_value = .85; L.new(sep.outputs['Red'], rg.inputs[0]); L.new(rg.outputs[0], m3.inputs['Fac'])
     L.new(m3.outputs['Color'], b.inputs['Base Color'])
@@ -121,7 +121,7 @@ v, f, at = [], [], []
 for (x, y, H, r, sd) in culms:
     la = rnd.random() * 6.283; ln = .012 + .03 * rnd.random()
     culm_mesh(v, f, at, (x, y, 0), H, r, r * .28, 14, .34 + .1 * rnd.random(), lean=(ln * math.cos(la), ln * math.sin(la)), bend=.035 + .05 * rnd.random(), seed=sd)
-near = new_obj('culms', v, f, attr=at); near.data.materials.append(culm_material('culm', (.035, .12, .02), (.11, .27, .05), .3, .25))
+near = new_obj('culms', v, f, attr=at); near.data.materials.append(culm_material('culm', (.035, .12, .02), (.11, .27, .05), .34, .08))
 v, f, at = [], [], []
 for i in range(P.get('n_far', 320)):
     a = rnd.random() * 2 * math.pi; r = 15 + 30 * rnd.random(); H = 14 + 6 * rnd.random(); rr = .04 + .03 * rnd.random(); la = rnd.random() * 6.283
@@ -130,7 +130,7 @@ far = new_obj('culms_far', v, f, attr=at); far.data.materials.append(near.data.m
 
 # the hero: a young culm (fresh green, glossy, waxy rings) with the sheathed tip of the shoot on top
 v, f, at = [], [], []
-culm_mesh(v, f, at, (0, 0, 0), HERO_L, HERO_R * 1.12, HERO_R, 48, .4, seed=.37, tip_from=HERO_L - TIP, tip_len=TIP)
+culm_mesh(v, f, at, (0, 0, 0), HERO_L, HERO_R * 1.12, HERO_R, 48, .4, seed=.37, tip_from=HERO_L - TIP, tip_len=TIP, node_k=1.085)
 hero = new_obj('hero', v, f, attr=at); hero.data.materials.append(culm_material('hero', (.045, .19, .02), (.15, .38, .05), .3, .2, sat=1.1))
 v, f = [], []
 def r_at(z): return HERO_R * (max(0., 1. - (z - (HERO_L - TIP)) / TIP) ** .75 if z > HERO_L - TIP else 1.)
@@ -190,23 +190,23 @@ W = bpy.data.worlds.new('sky'); S.world = W; W.use_nodes = True; N = W.node_tree
 wo = N.new('ShaderNodeOutputWorld'); sky = N.new('ShaderNodeTexSky'); sky.sky_type = 'NISHITA'; sky.sun_elevation = math.radians(P.get('sun_el', 79)); sky.sun_rotation = math.radians(P.get('sun_rot', 0))
 sky.sun_size = math.radians(P.get('sun_size', 2.2)); sky.sun_intensity = P.get('sun_int', .9); sky.air_density = 1.; sky.dust_density = P.get('dust', 1.); sky.ozone_density = 1.
 bg = N.new('ShaderNodeBackground'); L.new(sky.outputs[0], bg.inputs['Color']); bg.inputs['Strength'].default_value = P.get('sky_strength', .17)
-nb = N.new('ShaderNodeBackground'); nb.inputs['Color'].default_value = (.02, .05, .15, 1); nb.inputs['Strength'].default_value = P.get('night_strength', 2.2)
+nb = N.new('ShaderNodeBackground'); nb.inputs['Color'].default_value = (.035, .05, .11, 1); nb.inputs['Strength'].default_value = P.get('night_strength', .9)
 mxw = N.new('ShaderNodeMixShader'); L.new(nb.outputs[0], mxw.inputs[1]); L.new(bg.outputs[0], mxw.inputs[2]); L.new(mxw.outputs[0], wo.inputs['Surface'])
 
 # moonlight for the first moments (the shot starts in the night forest of the last picture), gone by morning
 moon_d = bpy.data.lights.new('moon', 'SUN'); moon_d.color = (.5, .68, 1.); moon_d.angle = math.radians(3); moon = bpy.data.objects.new('moon', moon_d); C.objects.link(moon)
 moon.rotation_euler = (math.radians(38), 0, math.radians(-150))
 # a little haze in the air: the sun's shafts through the canopy
-if P.get('haze', .004) > 0:
+if P.get('haze', .003) > 0:
     bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 12)); hz = bpy.context.object; hz.scale = (70, 70, 26)
-    hm, nt_, N_, L_ = mat('haze'); o_ = N_.new('ShaderNodeOutputMaterial'); vs = N_.new('ShaderNodeVolumeScatter'); vs.inputs['Density'].default_value = P.get('haze', .004); vs.inputs['Anisotropy'].default_value = .78; vs.inputs['Color'].default_value = (1, .96, .86, 1)
+    hm, nt_, N_, L_ = mat('haze'); o_ = N_.new('ShaderNodeOutputMaterial'); vs = N_.new('ShaderNodeVolumeScatter'); vs.inputs['Density'].default_value = P.get('haze', .003); vs.inputs['Anisotropy'].default_value = .78; vs.inputs['Color'].default_value = (1, .96, .86, 1)
     L_.new(vs.outputs[0], o_.inputs['Volume']); hz.data.materials.append(hm)
 # ------------------------------------------------------------------ the move
 def tip_h(u):
     if u <= 1.3: return .91 + 13.1 * (max(u, 0) / 1.3) ** 2.2
-    return 14.01 + 8.2 * (1 - math.exp(-(u - 1.3) * 22.17 / 8.2))
+    return 14.01 + 5.2 * (1 - math.exp(-(u - 1.3) * 22.17 / 5.2))
 def cam_pose(u):
-    pitch = math.radians(lerp(8, 80, ease(u / 1.25)) + 7 * ease((u - 1.25) / 1.3))
+    pitch = math.radians(8 + 72 * (1 - (1 - clamp01(u / 1.2)) ** 1.8) + 7 * ease((u - 1.2) / 1.3))      # tilts fast at first (as the shot it takes over from), then eases onto the culm
     d = lerp(.95, CAM_D, ease(u / 1.3))
     z = .28 + 1.3 * ease(u / 1.3) + 1.1 * ease((u - 1.3) / .6) + P.get('climb', 15.2) * clamp01((u - 1.9) / 1.15) ** 2.6
     return Vector((0, -d, z)), Vector((0, math.cos(pitch), math.sin(pitch)))
@@ -240,6 +240,8 @@ co = nt.nodes.new('CompositorNodeComposite'); nt.links.new(rl.outputs['Image'], 
 frames = common.frames_for(job, chunk); logs = []
 for vnt in job.get('variants', [{'tag': '', 'res': [1280, 720], 'shift': 0.}]):
     S.render.resolution_x, S.render.resolution_y = vnt['res']; S.render.resolution_percentage = 100; cam_d.shift_x = vnt.get('shift', 0.); cam_d.lens = vnt.get('lens', P.get('lens', 16))
-    t = common.render_frames(S, frames, out, tag=vnt['tag'])
+    t = []
+    for fr in frames:                                  # a longer shutter while the camera whips up (the hand-over hides in the streaks)
+        S.render.motion_blur_shutter = job.get('shutter', .6) * (1 + 1.6 * (1 - ease((fr / FPS - .25) / .5))); t += common.render_frames(S, [fr], out, tag=vnt['tag'])
     logs.append(f"chunk {chunk} {vnt['tag']}: {len(t)} frames, avg {sum(t) / max(1, len(t)):.1f}s, max {max(t or [0]):.1f}s")
 open(os.path.join(out, f'chunk{chunk}.log'), 'w').write('\n'.join(logs))

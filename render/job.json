@@ -1,3 +1,4 @@
-{ "name": "money-pre2", "script": "money.py", "frames": [8, 12, 16, 20, 26, 34, 44, 56, 68, 78, 86, 92], "chunks": 6, "encode": false,
-  "samples": 40, "noise": 0.06, "sheet_cols": 4, "sheet_w": 640, "stills": [6],
-  "variants": [ { "tag": "d_", "res": [640, 360], "shift": 0.0 } ] }
+{ "name": "money-pre3", "script": "money.py", "frames": [7, 10, 13, 16, 20, 28, 40, 52, 58, 66, 76, 86], "chunks": 12, "encode": false,
+  "samples": 40, "noise": 0.06, "sheet_cols": 4, "sheet_w": 640, "stills": [8],
+  "params": { "exposure": -0.15 },
+  "variants": [ { "tag": "d_", "res": [640, 360], "shift": 0.04 }, { "tag": "p_", "res": [360, 640], "shift": 0.0 } ] }
