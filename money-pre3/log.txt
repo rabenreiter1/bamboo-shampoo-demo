@@ -1,0 +1,26 @@
+d_: 12 frames
+p_: 12 frames
+chunk 5 d_: 1 frames, avg 81.6s, max 81.6s
+chunk 5 p_: 1 frames, avg 71.0s, max 71.0s
+chunk 6 d_: 1 frames, avg 40.7s, max 40.7s
+chunk 6 p_: 1 frames, avg 36.0s, max 36.0s
+chunk 2 d_: 1 frames, avg 53.7s, max 53.7s
+chunk 2 p_: 1 frames, avg 49.3s, max 49.3s
+chunk 1 d_: 1 frames, avg 67.7s, max 67.7s
+chunk 1 p_: 1 frames, avg 67.4s, max 67.4s
+chunk 10 d_: 1 frames, avg 69.4s, max 69.4s
+chunk 10 p_: 1 frames, avg 64.3s, max 64.3s
+chunk 11 d_: 1 frames, avg 25.4s, max 25.4s
+chunk 11 p_: 1 frames, avg 16.6s, max 16.6s
+chunk 7 d_: 1 frames, avg 79.6s, max 79.6s
+chunk 7 p_: 1 frames, avg 71.9s, max 71.9s
+chunk 3 d_: 1 frames, avg 59.6s, max 59.6s
+chunk 3 p_: 1 frames, avg 49.9s, max 49.9s
+chunk 4 d_: 1 frames, avg 60.3s, max 60.3s
+chunk 4 p_: 1 frames, avg 48.2s, max 48.2s
+chunk 8 d_: 1 frames, avg 57.3s, max 57.3s
+chunk 8 p_: 1 frames, avg 52.5s, max 52.5s
+chunk 9 d_: 1 frames, avg 58.9s, max 58.9s
+chunk 9 p_: 1 frames, avg 54.7s, max 54.7s
+chunk 0 d_: 1 frames, avg 62.5s, max 62.5s
+chunk 0 p_: 1 frames, avg 71.5s, max 71.5s
