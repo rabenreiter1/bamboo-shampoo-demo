@@ -102,7 +102,7 @@ def leaf_material(name, img):
 def ground_material():
     m, nt, N, L = mat('ground'); out_ = N.new('ShaderNodeOutputMaterial'); b = N.new('ShaderNodeBsdfPrincipled')
     nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 9; nz.inputs['Detail'].default_value = 9
-    cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].color = (.03, .02, .01, 1); e[1].color = (.24, .15, .07, 1); L.new(nz.outputs['Fac'], cr.inputs['Fac'])
+    cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].color = (.018, .012, .007, 1); e[1].color = (.13, .085, .04, 1); L.new(nz.outputs['Fac'], cr.inputs['Fac'])
     L.new(cr.outputs['Color'], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .85
     bm = N.new('ShaderNodeBump'); bm.inputs['Strength'].default_value = .8; bm.inputs['Distance'].default_value = .04; L.new(nz.outputs['Fac'], bm.inputs['Height']); L.new(bm.outputs['Normal'], b.inputs['Normal'])
     L.new(b.outputs['BSDF'], out_.inputs['Surface']); return m
@@ -183,7 +183,7 @@ print('[scene] culms', len(culms), 'leaf cards', nl, flush=True)
 bpy.ops.mesh.primitive_plane_add(size=160); gr = bpy.context.object; gr.data.materials.append(ground_material())
 # a dark wall of forest far out (no bright horizon between the trunks)
 bpy.ops.mesh.primitive_cylinder_add(radius=48, depth=30, location=(0, 0, 15), end_fill_type='NOTHING'); wall = bpy.context.object
-wm, nt, N, L = mat('wall'); o_ = N.new('ShaderNodeOutputMaterial'); d = N.new('ShaderNodeBsdfDiffuse'); d.inputs['Color'].default_value = (.012, .03, .01, 1); L.new(d.outputs[0], o_.inputs['Surface']); wall.data.materials.append(wm)
+wm, nt, N, L = mat('wall'); o_ = N.new('ShaderNodeOutputMaterial'); d = N.new('ShaderNodeBsdfDiffuse'); d.inputs['Color'].default_value = (.006, .016, .005, 1); L.new(d.outputs[0], o_.inputs['Surface']); wall.data.materials.append(wm)
 
 # ------------------------------------------------------------------ light: a low-haze sky with the sun high in the opening
 W = bpy.data.worlds.new('sky'); S.world = W; W.use_nodes = True; N = W.node_tree.nodes; L = W.node_tree.links; N.clear()
@@ -216,7 +216,7 @@ SHOT = P.get('shot', 'money')
 DIVE_T = 2.4; DIVE_X = P.get('dive_x', .62)
 def dive_pose(u):
     k = clamp01(u / DIVE_T); e = 1 - (1 - k) ** P.get('dive_pow', 2.2)
-    pitch = math.radians(lerp(-80, -6, ease(k * 1.12)))
+    pitch = math.radians(lerp(-80, P.get('dive_end_pitch', 9), ease(k * 1.12)))
     return Vector((DIVE_X, lerp(-2.6, -.55, e), lerp(P.get('dive_z0', 36.), 7.2, e))), Vector((0, math.cos(pitch), math.sin(pitch)))
 if SHOT == 'dive':
     pe, de = dive_pose(DIVE_T); LW, LH = P.get('leaf_l', 1.0), P.get('leaf_w', .34); v, f, uvs = [], [], []; NX, NY = 40, 12
@@ -234,7 +234,7 @@ if SHOT == 'dive':
     wvn = N_.new('ShaderNodeTexWave'); wvn.wave_type = 'BANDS'; wvn.bands_direction = 'Y'; wvn.inputs['Scale'].default_value = 26; wvn.inputs['Distortion'].default_value = .6; wvn.inputs['Detail'].default_value = 2; L_.new(tc.outputs['UV'], wvn.inputs['Vector'])
     mid = node(N_, 'ShaderNodeMath', operation='SUBTRACT'); mid.inputs[1].default_value = .5; L_.new(sp.outputs['Y'], mid.inputs[0]); ab = node(N_, 'ShaderNodeMath', operation='ABSOLUTE'); L_.new(mid.outputs[0], ab.inputs[0])
     rib = node(N_, 'ShaderNodeMapRange'); rib.inputs['From Min'].default_value = 0; rib.inputs['From Max'].default_value = .035; L_.new(ab.outputs[0], rib.inputs['Value'])
-    cr = N_.new('ShaderNodeValToRGB'); e_ = cr.color_ramp.elements; e_[0].position = .25; e_[0].color = (.05, .2, .012, 1); e_[1].position = .8; e_[1].color = (.16, .46, .035, 1); L_.new(wvn.outputs['Fac'], cr.inputs['Fac'])
+    cr = N_.new('ShaderNodeValToRGB'); e_ = cr.color_ramp.elements; e_[0].position = .3; e_[0].color = (.03, .15, .008, 1); e_[1].position = .7; e_[1].color = (.17, .48, .04, 1); L_.new(wvn.outputs['Fac'], cr.inputs['Fac'])
     mx_ = node(N_, 'ShaderNodeMixRGB'); mx_.inputs['Color1'].default_value = (.22, .5, .07, 1); L_.new(rib.outputs['Result'], mx_.inputs['Fac']); L_.new(cr.outputs['Color'], mx_.inputs['Color2'])
     d_ = N_.new('ShaderNodeBsdfDiffuse'); tl_ = N_.new('ShaderNodeBsdfTranslucent'); g_ = N_.new('ShaderNodeBsdfGlossy'); g_.inputs['Roughness'].default_value = .3
     L_.new(mx_.outputs['Color'], d_.inputs['Color']); L_.new(mx_.outputs['Color'], tl_.inputs['Color'])
