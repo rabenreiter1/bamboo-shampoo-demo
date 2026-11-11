@@ -1,4 +1,4 @@
-{ "name": "money-pre3", "script": "money.py", "frames": [7, 10, 13, 16, 20, 28, 40, 52, 58, 66, 76, 86], "chunks": 12, "encode": false,
-  "samples": 40, "noise": 0.06, "sheet_cols": 4, "sheet_w": 640, "stills": [8],
+{ "name": "money-lo", "script": "money.py", "start": 6, "end": 95, "chunks": 18, "fps": 30, "crf": 24,
+  "samples": 14, "noise": 0.12, "sheet_cols": 10, "sheet_w": 192,
   "params": { "exposure": -0.15 },
-  "variants": [ { "tag": "d_", "res": [640, 360], "shift": 0.04 }, { "tag": "p_", "res": [360, 640], "shift": 0.0 } ] }
+  "variants": [ { "tag": "d_", "res": [426, 240], "shift": 0.04 }, { "tag": "p_", "res": [240, 426], "shift": 0.0 } ] }

@@ -121,7 +121,7 @@ v, f, at = [], [], []
 for (x, y, H, r, sd) in culms:
     la = rnd.random() * 6.283; ln = .012 + .03 * rnd.random()
     culm_mesh(v, f, at, (x, y, 0), H, r, r * .28, 14, .34 + .1 * rnd.random(), lean=(ln * math.cos(la), ln * math.sin(la)), bend=.035 + .05 * rnd.random(), seed=sd)
-near = new_obj('culms', v, f, attr=at); near.data.materials.append(culm_material('culm', (.035, .12, .02), (.11, .27, .05), .34, .08))
+near = new_obj('culms', v, f, attr=at); near.data.materials.append(culm_material('culm', (.035, .12, .02), (.11, .27, .05), .44, 0.))
 v, f, at = [], [], []
 for i in range(P.get('n_far', 320)):
     a = rnd.random() * 2 * math.pi; r = 15 + 30 * rnd.random(); H = 14 + 6 * rnd.random(); rr = .04 + .03 * rnd.random(); la = rnd.random() * 6.283
