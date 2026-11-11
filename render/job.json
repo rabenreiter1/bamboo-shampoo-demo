@@ -1,1 +1,3 @@
-{ "name": "probe", "script": "probe.py", "frames": [0, 2, 4], "chunks": 2, "encode": false, "stills": [0, 2], "sheet_cols": 3 }
+{ "name": "money-pre1", "script": "money.py", "frames": [0, 10, 20, 30, 40, 50, 60, 70, 80, 88], "chunks": 5, "encode": false,
+  "samples": 40, "noise": 0.06, "sheet_cols": 5, "sheet_w": 640, "stills": [3, 5],
+  "variants": [ { "tag": "d_", "res": [640, 360], "shift": 0.0 } ] }
