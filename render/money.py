@@ -108,15 +108,15 @@ def ground_material():
     L.new(b.outputs['BSDF'], out_.inputs['Surface']); return m
 
 # ------------------------------------------------------------------ the forest
-HERO_L = 23.; HERO_R = .068; TIP = 1.35
-CAM_D = P.get('cam_d', .46)
+HERO_L = 23.; HERO_R = P.get('hero_r', .085); TIP = 1.35
+CAM_D = P.get('cam_d', .34)
 def too_close(x, y, d0): return math.hypot(x, y) < d0 or math.hypot(x, y + CAM_D) < .95
 culms = []
 for i in range(P.get('n_near', 150)):
     for _ in range(40):
         a = rnd.random() * 2 * math.pi; r = 1.25 + 13.5 * math.sqrt(rnd.random()); x, y = r * math.cos(a), r * math.sin(a)
         if not too_close(x, y, 1.25) and all(math.hypot(x - c[0], y - c[1]) > .45 for c in culms): break
-    culms.append((x, y, 14.5 + 5.5 * rnd.random(), .038 + .03 * rnd.random(), rnd.random()))
+    culms.append((x, y, 14.5 + 5.5 * rnd.random(), .048 + .034 * rnd.random(), rnd.random()))
 v, f, at = [], [], []
 for (x, y, H, r, sd) in culms:
     la = rnd.random() * 6.283; ln = .012 + .03 * rnd.random()
@@ -131,7 +131,7 @@ far = new_obj('culms_far', v, f, attr=at); far.data.materials.append(near.data.m
 # the hero: a young culm (fresh green, glossy, waxy rings) with the sheathed tip of the shoot on top
 v, f, at = [], [], []
 culm_mesh(v, f, at, (0, 0, 0), HERO_L, HERO_R * 1.12, HERO_R, 48, .4, seed=.37, tip_from=HERO_L - TIP, tip_len=TIP)
-hero = new_obj('hero', v, f, attr=at); hero.data.materials.append(culm_material('hero', (.06, .2, .025), (.2, .42, .07), .22, .6, sat=1.15))
+hero = new_obj('hero', v, f, attr=at); hero.data.materials.append(culm_material('hero', (.045, .19, .02), (.15, .38, .05), .3, .2, sat=1.1))
 v, f = [], []
 def r_at(z): return HERO_R * (max(0., 1. - (z - (HERO_L - TIP)) / TIP) ** .75 if z > HERO_L - TIP else 1.)
 NS = 17
@@ -150,7 +150,7 @@ sheaths = new_obj('sheaths', v, f); sheaths.data.materials.append(sheath_materia
 sol = sheaths.modifiers.new('solid', 'SOLIDIFY'); sol.thickness = .0025
 
 # leaves: cards on drooping twigs around the upper half of every culm; an opening above the hero (the sun's way in)
-def opening(x, y, z): return math.hypot(x, y - .25) < P.get('open0', .55) + P.get('open1', .1) * max(0., z - 8.)
+def opening(x, y, z): return math.hypot(x, y - .2) < P.get('open0', .42) + P.get('open1', .075) * max(0., z - 8.)
 lv, lf, luv = {'spray.png': [], 'blade.png': []}, {'spray.png': [], 'blade.png': []}, {'spray.png': [], 'blade.png': []}
 def card(tex, c, udir, ndir, w, h, flip):
     u = Vector(udir).normalized(); n = Vector(ndir).normalized(); vv = n.cross(u).normalized(); c = Vector(c); V = lv[tex]; i = len(V)
@@ -167,13 +167,13 @@ def twig(x, y, z, scale=1.):
     vv = Vector(n).cross(Vector(u)).normalized(); c0 = Vector(c) - vv * h * (.25 if tex == 'spray.png' else .5)   # the twig's stem sits in the upper left of the picture
     card(tex, c0, u, n, w, h, rnd.random() < .5)
 for (x, y, H, r, sd) in culms:
-    z = H * (.4 + .12 * rnd.random())
+    z = H * (P.get('leaf_from', .6) + .12 * rnd.random())
     while z < H:
-        for _ in range(rnd.choice((1, 2, 2, 3, 3, 4))):
+        for _ in range(rnd.choice((2, 3, 3, 4, 4, 5))):
             twig(x + rnd.gauss(0, .12), y + rnd.gauss(0, .12), z + rnd.uniform(-.1, .1), 1. + .5 * (z / H - .5))
-        z += .26 + .2 * rnd.random()
+        z += .2 + .16 * rnd.random()
 for i in range(P.get('n_skirt', 2600)):                      # the canopy further out (bigger, sparser cards)
-    a = rnd.random() * 6.283; r = 13 + 26 * rnd.random(); twig(r * math.cos(a), r * math.sin(a), 8 + 11 * rnd.random(), 2.2)
+    a = rnd.random() * 6.283; r = 13 + 26 * rnd.random(); twig(r * math.cos(a), r * math.sin(a), 10 + 9 * rnd.random(), 2.2)
 nl = 0
 for tex in lv:
     if not lv[tex]: continue
@@ -188,11 +188,19 @@ wm, nt, N, L = mat('wall'); o_ = N.new('ShaderNodeOutputMaterial'); d = N.new('S
 # ------------------------------------------------------------------ light: a low-haze sky with the sun high in the opening
 W = bpy.data.worlds.new('sky'); S.world = W; W.use_nodes = True; N = W.node_tree.nodes; L = W.node_tree.links; N.clear()
 wo = N.new('ShaderNodeOutputWorld'); sky = N.new('ShaderNodeTexSky'); sky.sky_type = 'NISHITA'; sky.sun_elevation = math.radians(P.get('sun_el', 79)); sky.sun_rotation = math.radians(P.get('sun_rot', 0))
-sky.sun_size = math.radians(P.get('sun_size', 2.2)); sky.sun_intensity = P.get('sun_int', .9); sky.air_density = 1.2; sky.dust_density = 2.5; sky.ozone_density = 1.
-bg = N.new('ShaderNodeBackground'); L.new(sky.outputs[0], bg.inputs['Color']); bg.inputs['Strength'].default_value = P.get('sky_strength', .22)
-nb = N.new('ShaderNodeBackground'); nb.inputs['Color'].default_value = (.012, .03, .09, 1); nb.inputs['Strength'].default_value = P.get('night_strength', 1.2)
+sky.sun_size = math.radians(P.get('sun_size', 2.2)); sky.sun_intensity = P.get('sun_int', .9); sky.air_density = 1.; sky.dust_density = P.get('dust', 1.); sky.ozone_density = 1.
+bg = N.new('ShaderNodeBackground'); L.new(sky.outputs[0], bg.inputs['Color']); bg.inputs['Strength'].default_value = P.get('sky_strength', .17)
+nb = N.new('ShaderNodeBackground'); nb.inputs['Color'].default_value = (.02, .05, .15, 1); nb.inputs['Strength'].default_value = P.get('night_strength', 2.2)
 mxw = N.new('ShaderNodeMixShader'); L.new(nb.outputs[0], mxw.inputs[1]); L.new(bg.outputs[0], mxw.inputs[2]); L.new(mxw.outputs[0], wo.inputs['Surface'])
 
+# moonlight for the first moments (the shot starts in the night forest of the last picture), gone by morning
+moon_d = bpy.data.lights.new('moon', 'SUN'); moon_d.color = (.5, .68, 1.); moon_d.angle = math.radians(3); moon = bpy.data.objects.new('moon', moon_d); C.objects.link(moon)
+moon.rotation_euler = (math.radians(38), 0, math.radians(-150))
+# a little haze in the air: the sun's shafts through the canopy
+if P.get('haze', .004) > 0:
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, 12)); hz = bpy.context.object; hz.scale = (70, 70, 26)
+    hm, nt_, N_, L_ = mat('haze'); o_ = N_.new('ShaderNodeOutputMaterial'); vs = N_.new('ShaderNodeVolumeScatter'); vs.inputs['Density'].default_value = P.get('haze', .004); vs.inputs['Anisotropy'].default_value = .78; vs.inputs['Color'].default_value = (1, .96, .86, 1)
+    L_.new(vs.outputs[0], o_.inputs['Volume']); hz.data.materials.append(hm)
 # ------------------------------------------------------------------ the move
 def tip_h(u):
     if u <= 1.3: return .91 + 13.1 * (max(u, 0) / 1.3) ** 2.2
@@ -210,6 +218,7 @@ for fr in range(-2, END + 3):
     hero.location = (0, 0, tip_h(u) - HERO_L); hero.keyframe_insert('location', frame=fr)
     p, dv = cam_pose(u); cam.location = p; cam.rotation_euler = dv.to_track_quat('-Z', 'Y').to_euler(); cam.keyframe_insert('location', frame=fr); cam.keyframe_insert('rotation_euler', frame=fr)
     mxw.inputs['Fac'].default_value = ease((u - .15) / 1.0); mxw.inputs['Fac'].keyframe_insert('default_value', frame=fr)
+    moon_d.energy = P.get('moon', 1.4) * (1 - ease((u - .2) / .9)); moon_d.keyframe_insert('energy', frame=fr)
     S.view_settings.exposure = P.get('exposure', 0.) + P.get('burn', 5.) * ease((u - 2.72) / .4) ** 1.5; S.view_settings.keyframe_insert('exposure', frame=fr)
 for ob in (hero, cam):
     for fc in ob.animation_data.action.fcurves:
@@ -218,14 +227,14 @@ for ob in (hero, cam):
 # ------------------------------------------------------------------ render
 S.render.engine = 'CYCLES'; cy = S.cycles; cy.device = 'CPU'
 cy.samples = job.get('samples', 96); cy.use_adaptive_sampling = True; cy.adaptive_threshold = job.get('noise', .03); cy.use_denoising = True
-cy.max_bounces = 8; cy.diffuse_bounces = 3; cy.glossy_bounces = 3; cy.transmission_bounces = 6; cy.transparent_max_bounces = 28; cy.sample_clamp_indirect = 8; cy.caustics_reflective = False; cy.caustics_refractive = False
+cy.volume_bounces = 0; cy.volume_step_rate = 4; cy.volume_max_steps = 64; cy.max_bounces = 8; cy.diffuse_bounces = 3; cy.glossy_bounces = 3; cy.transmission_bounces = 6; cy.transparent_max_bounces = 28; cy.sample_clamp_indirect = 8; cy.caustics_reflective = False; cy.caustics_refractive = False
 S.render.use_motion_blur = job.get('mblur', True); S.render.motion_blur_shutter = job.get('shutter', .6)
 S.render.use_persistent_data = True; S.render.threads_mode = 'AUTO'
 S.view_settings.view_transform = 'AgX'
 try: S.view_settings.look = 'AgX - Medium High Contrast'
 except Exception as e: print('look', e)
 # the sun blooms in the lens
-S.use_nodes = True; nt = S.node_tree; nt.nodes.clear(); rl = nt.nodes.new('CompositorNodeRLayers'); gl = nt.nodes.new('CompositorNodeGlare'); gl.glare_type = 'FOG_GLOW'; gl.quality = 'MEDIUM'; gl.threshold = P.get('glare_thr', 2.); gl.size = 8; gl.mix = P.get('glare_mix', -.3)
+S.use_nodes = True; nt = S.node_tree; nt.nodes.clear(); rl = nt.nodes.new('CompositorNodeRLayers'); gl = nt.nodes.new('CompositorNodeGlare'); gl.glare_type = 'FOG_GLOW'; gl.quality = 'MEDIUM'; gl.threshold = P.get('glare_thr', 2.); gl.size = 8; gl.mix = P.get('glare_mix', -.6)
 co = nt.nodes.new('CompositorNodeComposite'); nt.links.new(rl.outputs['Image'], gl.inputs['Image']); nt.links.new(gl.outputs['Image'], co.inputs['Image'])
 
 frames = common.frames_for(job, chunk); logs = []
