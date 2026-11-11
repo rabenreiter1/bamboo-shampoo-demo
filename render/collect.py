@@ -18,5 +18,6 @@ for v in job.get('variants', [{'tag': ''}]):
         fps = str(job.get('fps', 30)); crf = str(job.get('crf', 20))
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', fps, '-i', f'{tmp}/%05d{ext}', '-c:v', 'libx264', '-preset', 'slow', '-crf', crf, '-pix_fmt', 'yuv420p', '-g', '12', '-movflags', '+faststart', '-an', f'{res}/{tag}clip.mp4'])
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', fps, '-i', f'{tmp}/%05d{ext}', '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', str(int(crf) + 12), '-row-mt', '1', '-g', '12', '-an', f'{res}/{tag}clip.webm'])
+for f in glob.glob(os.path.join(parts, '**', 'keep_*'), recursive=True): shutil.copy(f, res); log.append('kept ' + os.path.basename(f))
 for f in glob.glob(os.path.join(parts, '**', '*.log'), recursive=True): log.append(open(f).read().strip())
 open(f'{res}/log.txt', 'w').write('\n'.join(log) + '\n'); print('\n'.join(log))
