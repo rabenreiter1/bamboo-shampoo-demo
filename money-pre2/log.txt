@@ -1,0 +1,7 @@
+d_: 12 frames
+chunk 5 d_: 2 frames, avg 33.0s, max 58.0s
+chunk 2 d_: 2 frames, avg 66.0s, max 70.6s
+chunk 1 d_: 2 frames, avg 35.0s, max 39.4s
+chunk 3 d_: 2 frames, avg 70.0s, max 71.9s
+chunk 4 d_: 2 frames, avg 32.4s, max 42.5s
+chunk 0 d_: 2 frames, avg 63.3s, max 73.4s
