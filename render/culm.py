@@ -115,11 +115,15 @@ def build(o):
         base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, fine, [(.3, (1, 1, 1)), (.65, (0, 0, 0))]), .1), base, (.02, .1, .008))
         base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, wax, [(.35, (0, 0, 0)), (.9, (1, 1, 1))]), .1), base, (.5, .66, .44))
         # the node: a pale waxy band just under the ridge, the dry brown sheath scar on it
-        nz = val(N, L, 'SUBTRACT', zmm, NODE_L[name] if name in NODE_L else 1e6)
-        scar = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ABSOLUTE', nz), .01), [(0., (1, 1, 1)), (.02, (1, 1, 1)), (.045, (0, 0, 0))])   # |nz| < ~3 mm (ramp over 0..1 of 100 mm)
+        scar = None; band = None
+        for nh in (NODE_L.get(name) or []):
+            nz = val(N, L, 'SUBTRACT', zmm, nh)
+            s1 = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ABSOLUTE', nz), .01), [(0., (1, 1, 1)), (.02, (1, 1, 1)), (.045, (0, 0, 0))])
+            b1 = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ADD', nz, 14.), .01), [(0., (0, 0, 0)), (.05, (1, 1, 1)), (.11, (1, 1, 1)), (.14, (0, 0, 0))])   # 5…11 mm under the ridge
+            scar = s1 if scar is None else val(N, L, 'MAXIMUM', scar, s1); band = b1 if band is None else val(N, L, 'MAXIMUM', band, b1)
+        if scar is None: scar = 0.; band = 0.   # |nz| < ~3 mm (ramp over 0..1 of 100 mm)
         scarn = noise(N, L, vec, 40, 6., 3, .6, 23.)
         base = mixc(N, L, val(N, L, 'MULTIPLY', scar, val(N, L, 'ADD', .55, val(N, L, 'MULTIPLY', scarn, .45))), base, (.70, .46, .12))
-        band = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ADD', nz, 14.), .01), [(0., (0, 0, 0)), (.05, (1, 1, 1)), (.11, (1, 1, 1)), (.14, (0, 0, 0))])   # 5…11 mm under the ridge
         base = mixc(N, L, val(N, L, 'MULTIPLY', band, .28), base, (.62, .72, .52))
         bs = nd(N, 'ShaderNodeBsdfPrincipled'); L.new(base, bs.inputs['Base Color'])
         rg = val(N, L, 'ADD', .3, val(N, L, 'MULTIPLY', ramp(N, L, wax, [(.35, (0, 0, 0)), (.9, (1, 1, 1))]), .22)); L.new(rg, bs.inputs['Roughness'])
@@ -188,16 +192,17 @@ def build(o):
         outn = nd(N, 'ShaderNodeOutputMaterial'); L.new(bs.outputs[0], outn.inputs['Surface']); return m
 
     RO, RI, RN = 29.6, 22.5, 32.2            # natural outer / inner radius, the node ridge
-    NODE_L = {'skin_pole': None}             # per material: the node's local height (mm); filled below
+    NODE_L = {}                              # per material: its nodes' heights (mm, in that object's own z)
     def natural(z0, z1, node=None):          # outer wall profile between two heights (mm, local), with the node's ridge
         pr = []; n = max(2, int((z1 - z0) / 2))
         for i in range(n + 1):
             z = lerp(z0, z1, i / n); r = RO
-            if node is not None: d = z - node; r += (RN - RO) * math.exp(-(d / 2.2) ** 2) - .5 * math.exp(-((d - 5.5) / 2.5) ** 2)   # the ridge, a shallow groove above it
+            for nh in (node if isinstance(node, (list, tuple)) else [] if node is None else [node]): d = z - nh; r += (RN - RO) * math.exp(-(d / 2.2) ** 2) - .5 * math.exp(-((d - 5.5) / 2.5) ** 2)   # the ridge, a shallow groove above it
             pr.append((r, z))
         return pr
     # ---------- the pole (world) above and below the piece
-    NODE_L['skin_pole'] = 1e6; m_skin_pole = skin_mat('skin_pole'); m_face = face_mat('face'); m_inner = inner_mat('inner')
+    NUP = [NODE + 186., NODE + 186. + 203., NODE + 186. + 203. + 192.]; NLOW = [NODE - 197., NODE - 197. - 188., NODE - 197. - 188. - 205.]   # semi-regular, like a real culm
+    NODE_L['skin_pole'] = NUP + NLOW; m_skin_pole = skin_mat('skin_pole'); m_face = face_mat('face'); m_inner = inner_mat('inner')
     def hollow(name, z0, z1, mats, node=None, top_face=True, bot_face=True, diaphragm=None):
         o = lathe(name + '_o', natural(z0, z1, node)); o.data.materials.append(mats[0]); parts = [o]
         i = lathe(name + '_i', [(RI, z1), (RI, z0)]); i.data.materials.append(mats[2]); parts.append(i)
@@ -205,14 +210,14 @@ def build(o):
         if bot_face: b = lathe(name + '_b', [(RI, z0), (natural(z0, z0 + 1e-3, node)[0][0], z0)]); b.data.materials.append(mats[1]); parts.append(b)
         if diaphragm is not None: dd = lathe(name + '_dd', [(RI, diaphragm - 1.), (.01, diaphragm - 2.2)]); du = lathe(name + '_du', [(.01, diaphragm + 1.2), (RI, diaphragm)]); [x.data.materials.append(mats[2]) for x in (dd, du)]; parts += [dd, du]
         return parts
-    up = hollow('up', TOP + KERF, Hmm / 2 + 60, (m_skin_pole, m_face, m_inner), top_face=False)
-    low = hollow('low', -Hmm / 2 - 60, BOT - KERF, (m_skin_pole, m_face, m_inner), bot_face=False)
+    up = hollow('up', TOP + KERF, Hmm / 2 + 260, (m_skin_pole, m_face, m_inner), node=NUP, top_face=False)
+    low = hollow('low', -Hmm / 2 - 260, BOT - KERF, (m_skin_pole, m_face, m_inner), node=NLOW, bot_face=False)
     for ob in up + low: ob.location.x = cxmm * U
     # ---------- the piece: local z 0 = the tube's bottom (170 = its rim). The natural piece runs from −2 to 170
     piece = bpy.data.objects.new('piece', None); S.collection.objects.link(piece); piece.rotation_mode = 'XYZ'
     PZ0 = BOT + 2.                                           # world z of the piece's local 0 at rest
     NL = NODE - PZ0                                          # the node's height in the piece (≈ 4 mm above the bottom)
-    NODE_L['skin_piece'] = NL; m_skin = skin_mat('skin_piece', cut=True); m_face_c = face_mat('face_c', cut=True); m_inner_c = inner_mat('inner_c', cut=True)
+    NODE_L['skin_piece'] = [NL]; m_skin = skin_mat('skin_piece', cut=True); m_face_c = face_mat('face_c', cut=True); m_inner_c = inner_mat('inner_c', cut=True)
     nat = hollow('pc', -2., 170., (m_skin, m_face_c, m_inner_c), node=NL, diaphragm=NL + 1.5)
     m_tube = tube_mat(); m_end = face_mat('end', dark=.97); m_bore = plain('bore', (.60, .49, .30), .8)
     tube = lathe('tube', [(prof_r(y), y) for y in [p[0] for p in PROFILE]]); tube.data.materials.append(m_tube)
