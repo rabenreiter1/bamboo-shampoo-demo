@@ -24,7 +24,7 @@ def prof_r(y):
     return PROFILE[-1][1]
 
 VAR = {'d': dict(res=(1280, 720), plate=(1672, 941), culm=(757, 902), node=747, frac=.66, cy=.474),
-       'p': dict(res=(720, 1280), plate=(941, 1672), culm=(321, 605), node=1043, frac=.46, cy=.47)}
+       'p': dict(res=(720, 1280), plate=(941, 1672), culm=(321, 605), node=1043, frac=.573, cy=.434)}
 
 def build(o):
     V = VAR[o]; bpy.ops.wm.read_factory_settings(use_empty=True); S = bpy.context.scene
@@ -172,7 +172,7 @@ def build(o):
         eng = nd(N, 'ShaderNodeTexImage'); eng.image = bpy.data.images.load(os.path.join(TEX, 'engraving-none.png')); eng.image.colorspace_settings.name = 'Non-Color'; eng.extension = 'CLIP'; L.new(uve.outputs[0], eng.inputs['Vector'])
         lz = nd(N, 'ShaderNodeValue'); lz.name = lz.label = 'LASER'; lz.outputs[0].default_value = 1e4
         done = val(N, L, 'GREATER_THAN', zmm, lz.outputs[0]); ink = val(N, L, 'MINIMUM', val(N, L, 'MULTIPLY', val(N, L, 'MULTIPLY', eng.outputs['Color'], done), 2.6), 1.)
-        wood = mixc(N, L, 1., img.outputs['Color'], (.80, .76, .70), 'MULTIPLY'); col = mixc(N, L, ink, wood, (.105, .06, .028))
+        wood = mixc(N, L, 1., img.outputs['Color'], (.98, .96, .93), 'MULTIPLY'); col = mixc(N, L, ink, wood, (.105, .06, .028))
         bs = nd(N, 'ShaderNodeBsdfPrincipled'); L.new(col, bs.inputs['Base Color']); L.new(val(N, L, 'ADD', .62, val(N, L, 'MULTIPLY', ink, .25)), bs.inputs['Roughness'])
         try: bs.inputs['Coat Weight'].default_value = .1; bs.inputs['Coat Roughness'].default_value = .45
         except Exception: pass
