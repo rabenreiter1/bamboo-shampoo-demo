@@ -241,7 +241,7 @@ def build(o):
     box('clamp', 16, 9, 5, (17, 0, 1.2), m_steel, .9)
     bpy.ops.mesh.primitive_cylinder_add(radius=3.2 * U, depth=3 * U, location=(21 * U, 0, 4.2 * U), vertices=6); hx = bpy.context.object; hx.data.materials.append(m_black); hx.parent = tool
     bpy.ops.mesh.primitive_cylinder_add(radius=1.5 * U, depth=1.2 * U, location=(21 * U, 0, 5.4 * U), vertices=6); hs = bpy.context.object; hs.data.materials.append(plain('socket', (.02, .02, .02), .8)); hs.parent = tool
-    box('land', 30.2, 1.2, 14.2, (15, -9.6, -9), m_steel, .3)             # the ground front land of the head: a bright strip
+    box('land', 30.2, 1.2, 2.2, (15, -9.6, -3.2), m_steel, .3)             # the ground front land of the head: a bright strip
     box('flat', 60, 20.2, 1., (150, 0, 4.2), m_steel, .3)                 # the ground clamping flat on the shank
     # the insert: a rhombic carbide plate lying on the head, its nose at the origin
     vs = [(0, 0), (11, -6.4), (22, 0), (11, 6.4)]; verts = [(x * U, y * U, -.2 * U) for x, y in vs] + [((x * .93 + .6) * U, y * .93 * U, -3.4 * U) for x, y in vs]
