@@ -118,7 +118,7 @@ def build(o):
         nz = val(N, L, 'SUBTRACT', zmm, NODE_L[name] if name in NODE_L else 1e6)
         scar = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ABSOLUTE', nz), .01), [(0., (1, 1, 1)), (.02, (1, 1, 1)), (.045, (0, 0, 0))])   # |nz| < ~3 mm (ramp over 0..1 of 100 mm)
         scarn = noise(N, L, vec, 40, 6., 3, .6, 23.)
-        base = mixc(N, L, val(N, L, 'MULTIPLY', scar, val(N, L, 'ADD', .55, val(N, L, 'MULTIPLY', scarn, .45))), base, (.62, .42, .13))
+        base = mixc(N, L, val(N, L, 'MULTIPLY', scar, val(N, L, 'ADD', .55, val(N, L, 'MULTIPLY', scarn, .45))), base, (.70, .46, .12))
         band = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ADD', nz, 14.), .01), [(0., (0, 0, 0)), (.05, (1, 1, 1)), (.11, (1, 1, 1)), (.14, (0, 0, 0))])   # 5…11 mm under the ridge
         base = mixc(N, L, val(N, L, 'MULTIPLY', band, .28), base, (.62, .72, .52))
         bs = nd(N, 'ShaderNodeBsdfPrincipled'); L.new(base, bs.inputs['Base Color'])
@@ -165,7 +165,7 @@ def build(o):
         uve = nd(N, 'ShaderNodeCombineXYZ'); L.new(uu, uve.inputs[0]); L.new(val(N, L, 'DIVIDE', zmm, PRINT_H), uve.inputs[1])
         eng = nd(N, 'ShaderNodeTexImage'); eng.image = bpy.data.images.load(os.path.join(TEX, 'engraving-none.png')); eng.image.colorspace_settings.name = 'Non-Color'; eng.extension = 'CLIP'; L.new(uve.outputs[0], eng.inputs['Vector'])
         lz = nd(N, 'ShaderNodeValue'); lz.name = lz.label = 'LASER'; lz.outputs[0].default_value = 1e4
-        done = val(N, L, 'GREATER_THAN', zmm, lz.outputs[0]); ink = val(N, L, 'MULTIPLY', eng.outputs['Color'], done)
+        done = val(N, L, 'GREATER_THAN', zmm, lz.outputs[0]); ink = val(N, L, 'MINIMUM', val(N, L, 'MULTIPLY', val(N, L, 'MULTIPLY', eng.outputs['Color'], done), 1.7), 1.)
         wood = mixc(N, L, 1., img.outputs['Color'], (.80, .76, .70), 'MULTIPLY'); col = mixc(N, L, ink, wood, (.105, .06, .028))
         bs = nd(N, 'ShaderNodeBsdfPrincipled'); L.new(col, bs.inputs['Base Color']); L.new(val(N, L, 'ADD', .62, val(N, L, 'MULTIPLY', ink, .25)), bs.inputs['Roughness'])
         try: bs.inputs['Coat Weight'].default_value = .1; bs.inputs['Coat Roughness'].default_value = .45
@@ -223,7 +223,7 @@ def build(o):
     for ob in pieces: ob.parent = piece
     # ---------- the turning tool (world): a steel holder with a carbide insert; its tip at the tool empty's origin
     tool = bpy.data.objects.new('tool', None); S.collection.objects.link(tool)
-    m_steel = plain('steel', (.55, .57, .60), .32, 1.); m_black = plain('oxide', (.42, .43, .45), .26, 1.); m_carb = plain('carbide', (.83, .62, .22), .28, 1.)
+    m_steel = plain('steel', (.55, .57, .60), .32, 1.); m_black = plain('oxide', (.62, .63, .66), .3, 1.); m_carb = plain('carbide', (.9, .66, .2), .22, 1.)
     def box(name, sx, sy, sz, loc, mat, bevel=.6):
         bpy.ops.mesh.primitive_cube_add(size=1); ob = bpy.context.object; ob.name = name; ob.scale = (sx * U, sy * U, sz * U); ob.location = tuple(c * U for c in loc); bpy.ops.object.transform_apply(scale=True)
         b = ob.modifiers.new('bv', 'BEVEL'); b.width = bevel * U; b.segments = 3; ob.data.materials.append(mat); ob.parent = tool
@@ -234,21 +234,21 @@ def build(o):
     box('clamp', 16, 9, 5, (17, 0, 1.2), m_steel, .9)
     bpy.ops.mesh.primitive_cylinder_add(radius=3.2 * U, depth=3 * U, location=(21 * U, 0, 4.2 * U), vertices=6); hx = bpy.context.object; hx.data.materials.append(m_black); hx.parent = tool
     # the insert: a rhombic carbide plate lying on the head, its nose at the origin
-    vs = [(0, 0), (9, -5.2), (18, 0), (9, 5.2)]; verts = [(x * U, y * U, -.2 * U) for x, y in vs] + [((x * .93 + .6) * U, y * .93 * U, -3.4 * U) for x, y in vs]
+    vs = [(0, 0), (11, -6.4), (22, 0), (11, 6.4)]; verts = [(x * U, y * U, -.2 * U) for x, y in vs] + [((x * .93 + .6) * U, y * .93 * U, -3.4 * U) for x, y in vs]
     ins = mesh_obj('insert', verts, [(0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)], smooth=False); ins.data.materials.append(m_carb); ins.parent = tool
     b = ins.modifiers.new('bv', 'BEVEL'); b.width = .25 * U; b.segments = 2
     bpy.ops.mesh.primitive_cylinder_add(radius=2.1 * U, depth=1.2 * U, location=(9 * U, 0, -.1 * U)); sc = bpy.context.object; sc.data.materials.append(m_steel); sc.parent = tool
     # ---------- chips: thin curled ribbons of skin, thrown off the cutting point (keyframed ballistics: no caches)
-    m_chip = plain('chip', (.30, .46, .10), .55); rnd = random.Random(7)
+    m_chip = plain('chip', (.22, .42, .05), .5); rnd = random.Random(7)
     def chip_mesh():
-        vs, fs = [], []; n = 10; w = rnd.uniform(.5, 1.1); rad = rnd.uniform(.8, 1.8); turns = rnd.uniform(.4, 1.3); ln = rnd.uniform(3., 8.)
+        vs, fs = [], []; n = 14; w = rnd.uniform(1.2, 2.6); rad = rnd.uniform(1.6, 3.6); turns = rnd.uniform(.6, 2.2); ln = rnd.uniform(8., 22.)
         for i in range(n + 1):
             t = i / n; a = t * turns * 2 * math.pi; x = rad * math.cos(a); z = rad * math.sin(a); y = (t - .5) * ln * .3
             vs += [(x * U, (y - w / 2) * U, z * U), (x * U, (y + w / 2) * U, z * U)]
         for i in range(n): fs.append((2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2))
         return vs, fs
     chips = []
-    for i in range(P.get('chips', 220)):
+    for i in range(P.get('chips', 520)):
         vs, fs = chip_mesh(); c = mesh_obj(f'chip{i}', vs, fs); c.data.materials.append(m_chip); c.rotation_mode = 'XYZ'; chips.append(c)
 
     # ---------- light: the forest's soft green daylight, the low sun from the upper right behind, a tall soft source front left
@@ -257,7 +257,8 @@ def build(o):
     env = wn.new('ShaderNodeTexEnvironment')
     # the plate itself lights the scene (blurred, as an equirect stand-in): its greens and its sun side
     from_plate = bpy.data.images.load(os.path.join(TEX, f'cut-bg-{o}.jpg')); env.image = from_plate; env.projection = 'MIRROR_BALL'
-    wl.new(env.outputs[0], bgn.inputs['Color']); bgn.inputs['Strength'].default_value = P.get('env', .55)
+    wmx = wn.new('ShaderNodeMixRGB'); wmx.inputs['Fac'].default_value = P.get('env_white', .35); wl.new(env.outputs[0], wmx.inputs[1]); wmx.inputs[2].default_value = (.9, .93, .9, 1)   # a share of plain sky: metal and wood do not turn green
+    wl.new(wmx.outputs[0], bgn.inputs['Color']); bgn.inputs['Strength'].default_value = P.get('env', .55)
     def light(kind, name, loc, energy, color, size=1., rot=None, sx=None):
         l = bpy.data.lights.new(name, kind); l.energy = energy; l.color = color
         if kind == 'AREA': l.shape = 'RECTANGLE'; l.size = size; l.size_y = sx or size
@@ -328,10 +329,10 @@ def build(o):
     P1 = Vector((0, -(D - Dend), Zc * (Dend / D)))
     for i, c in enumerate(chips):
         fb = lerp(MILL0 + 1, MILL1 - 1, (i + rnd.random()) / len(chips)); zc = cut_at(fb); r0 = prof_r(max(0., min(170., zc))) + .5
-        v = Vector((rnd.uniform(60, 190), rnd.uniform(-150, 40), rnd.uniform(20, 160))); p0 = P1 + Vector((r0, -2., zc - 85.)); rv = Vector((rnd.uniform(-9, 9), rnd.uniform(-9, 9), rnd.uniform(-9, 9))); r0e = Vector((rnd.uniform(0, 6), rnd.uniform(0, 6), rnd.uniform(0, 6)))
+        v = Vector((rnd.uniform(40, 260), rnd.uniform(-220, 60), rnd.uniform(-20, 220))); p0 = P1 + Vector((r0, -2., zc - 85.)); rv = Vector((rnd.uniform(-9, 9), rnd.uniform(-9, 9), rnd.uniform(-9, 9))); r0e = Vector((rnd.uniform(0, 6), rnd.uniform(0, 6), rnd.uniform(0, 6)))
         c.scale = (0, 0, 0); c.keyframe_insert('scale', frame=0); c.keyframe_insert('scale', frame=int(fb) - 1)
-        for j in range(0, 26, 2):
-            t = j / FPS; f = fb + j; p = p0 + v * t + Vector((0, 0, -1700. * t * t)); c.location = p * U; c.rotation_euler = tuple(r0e + rv * t); c.scale = (1, 1, 1)
+        for j in range(0, 40, 2):
+            t = j / FPS; f = fb + j; p = p0 + v * t + Vector((0, 0, -1100. * t * t)); c.location = p * U; c.rotation_euler = tuple(r0e + rv * t); c.scale = (1, 1, 1)
             c.keyframe_insert('location', frame=f); c.keyframe_insert('rotation_euler', frame=f); c.keyframe_insert('scale', frame=f)
     for ob in list(bpy.data.objects):
         if ob.animation_data and ob.animation_data.action:
