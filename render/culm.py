@@ -108,17 +108,17 @@ def build(o):
         m, nt, N, L = new_mat(name); vec, u, zmm, tc = cyl_coords(N, L)
         fib = noise(N, L, vec, 24, .5, 6, .6); fine = noise(N, L, vec, 80, 1.3, 4, .65, 3.); blot = noise(N, L, vec, 1.5, .8, 4, .5, 7.); wax = noise(N, L, vec, 3., 2., 5, .6, 17.)
         g = P.get('green', 1.)
-        base = ramp(N, L, fib, [(.2, (.020 * g, .120 * g, .004)), (.5, (.040 * g, .195 * g, .008)), (.85, (.080 * g, .30 * g, .016))])
+        base = ramp(N, L, fib, [(.2, (.028 * g, .150 * g, .003)), (.5, (.058 * g, .235 * g, .006)), (.85, (.115 * g, .345 * g, .012))])
         streak = noise(N, L, vec, 7, .25, 3, .5, 31.)
         base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, streak, [(.35, (1, 1, 1)), (.7, (0, 0, 0))]), .55), base, (.012, .075, .003))
-        base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, blot, [(.3, (0, 0, 0)), (.8, (1, 1, 1))]), .35), base, (.16, .33, .03))
+        base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, blot, [(.3, (0, 0, 0)), (.8, (1, 1, 1))]), .35), base, (.20, .36, .02))
         base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, fine, [(.3, (1, 1, 1)), (.65, (0, 0, 0))]), .1), base, (.02, .1, .008))
         base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, wax, [(.35, (0, 0, 0)), (.9, (1, 1, 1))]), .1), base, (.5, .66, .44))
         # the node: a pale waxy band just under the ridge, the dry brown sheath scar on it
         nz = val(N, L, 'SUBTRACT', zmm, NODE_L[name] if name in NODE_L else 1e6)
         scar = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ABSOLUTE', nz), .01), [(0., (1, 1, 1)), (.02, (1, 1, 1)), (.045, (0, 0, 0))])   # |nz| < ~3 mm (ramp over 0..1 of 100 mm)
         scarn = noise(N, L, vec, 40, 6., 3, .6, 23.)
-        base = mixc(N, L, val(N, L, 'MULTIPLY', scar, val(N, L, 'ADD', .55, val(N, L, 'MULTIPLY', scarn, .45))), base, (.50, .36, .13))
+        base = mixc(N, L, val(N, L, 'MULTIPLY', scar, val(N, L, 'ADD', .55, val(N, L, 'MULTIPLY', scarn, .45))), base, (.62, .42, .13))
         band = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ADD', nz, 14.), .01), [(0., (0, 0, 0)), (.05, (1, 1, 1)), (.11, (1, 1, 1)), (.14, (0, 0, 0))])   # 5…11 mm under the ridge
         base = mixc(N, L, val(N, L, 'MULTIPLY', band, .28), base, (.62, .72, .52))
         bs = nd(N, 'ShaderNodeBsdfPrincipled'); L.new(base, bs.inputs['Base Color'])
@@ -166,7 +166,7 @@ def build(o):
         eng = nd(N, 'ShaderNodeTexImage'); eng.image = bpy.data.images.load(os.path.join(TEX, 'engraving-none.png')); eng.image.colorspace_settings.name = 'Non-Color'; eng.extension = 'CLIP'; L.new(uve.outputs[0], eng.inputs['Vector'])
         lz = nd(N, 'ShaderNodeValue'); lz.name = lz.label = 'LASER'; lz.outputs[0].default_value = 1e4
         done = val(N, L, 'GREATER_THAN', zmm, lz.outputs[0]); ink = val(N, L, 'MULTIPLY', eng.outputs['Color'], done)
-        col = mixc(N, L, ink, img.outputs['Color'], (.105, .06, .028))
+        wood = mixc(N, L, 1., img.outputs['Color'], (.80, .76, .70), 'MULTIPLY'); col = mixc(N, L, ink, wood, (.105, .06, .028))
         bs = nd(N, 'ShaderNodeBsdfPrincipled'); L.new(col, bs.inputs['Base Color']); L.new(val(N, L, 'ADD', .62, val(N, L, 'MULTIPLY', ink, .25)), bs.inputs['Roughness'])
         try: bs.inputs['Coat Weight'].default_value = .1; bs.inputs['Coat Roughness'].default_value = .45
         except Exception: pass
@@ -174,12 +174,17 @@ def build(o):
         near = val(N, L, 'MULTIPLY', val(N, L, 'LESS_THAN', val(N, L, 'ABSOLUTE', val(N, L, 'SUBTRACT', zmm, lz.outputs[0])), 1.2), eng.outputs['Color'])
         try: bs.inputs['Emission Color'].default_value = (1., .45, .12, 1); L.new(val(N, L, 'MULTIPLY', near, 14.), bs.inputs['Emission Strength'])
         except Exception: pass
-        bump = nd(N, 'ShaderNodeBump'); bump.inputs['Strength'].default_value = .35; bump.inputs['Distance'].default_value = .002; bump.invert = True; L.new(ink, bump.inputs['Height']); L.new(bump.outputs[0], bs.inputs['Normal'])
+        bump = nd(N, 'ShaderNodeBump'); bump.inputs['Strength'].default_value = .35; bump.inputs['Distance'].default_value = .002; bump.invert = True; L.new(val(N, L, 'ADD', ink, val(N, L, 'MULTIPLY', noise(N, L, vec, 60, .6, 4, .6, 9.), -.25)), bump.inputs['Height']); L.new(bump.outputs[0], bs.inputs['Normal'])
         tr = nd(N, 'ShaderNodeBsdfTransparent'); mx = nd(N, 'ShaderNodeMixShader'); cv = nd(N, 'ShaderNodeValue'); cv.name = cv.label = 'CUT'; cv.outputs[0].default_value = 1e4
         L.new(val(N, L, 'LESS_THAN', zmm, cv.outputs[0]), mx.inputs['Fac']); L.new(bs.outputs[0], mx.inputs[1]); L.new(tr.outputs[0], mx.inputs[2])
         outn = nd(N, 'ShaderNodeOutputMaterial'); L.new(mx.outputs[0], outn.inputs['Surface']); return m
     def plain(name, col, rough=.5, metal=0.):
-        m, nt, N, L = new_mat(name); bs = nd(N, 'ShaderNodeBsdfPrincipled'); bs.inputs['Base Color'].default_value = (*col, 1); bs.inputs['Roughness'].default_value = rough; bs.inputs['Metallic'].default_value = metal
+        m, nt, N, L = new_mat(name); bs = nd(N, 'ShaderNodeBsdfPrincipled')
+        if metal > .5:
+            tc = nd(N, 'ShaderNodeTexCoord'); mp = nd(N, 'ShaderNodeMapping'); mp.inputs['Scale'].default_value = (3., 400., 400.); L.new(tc.outputs['Object'], mp.inputs['Vector']); nz = nd(N, 'ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = 1.; nz.inputs['Detail'].default_value = 3.; L.new(mp.outputs[0], nz.inputs['Vector'])
+            L.new(val(N, L, 'ADD', rough - .08, val(N, L, 'MULTIPLY', nz.outputs['Fac'], .2)), bs.inputs['Roughness'])
+        m_ = None; bs.inputs['Base Color'].default_value = (*col, 1); bs.inputs['Metallic'].default_value = metal
+        if metal <= .5: bs.inputs['Roughness'].default_value = rough
         outn = nd(N, 'ShaderNodeOutputMaterial'); L.new(bs.outputs[0], outn.inputs['Surface']); return m
 
     RO, RI, RN = 29.6, 22.5, 32.2            # natural outer / inner radius, the node ridge
@@ -224,13 +229,15 @@ def build(o):
         b = ob.modifiers.new('bv', 'BEVEL'); b.width = bevel * U; b.segments = 3; ob.data.materials.append(mat); ob.parent = tool
         for p in ob.data.polygons: p.use_smooth = True
         return ob
-    box('shank', 150, 16, 16, (87, 0, 0), m_black)                         # the holder runs off to the right
-    box('head', 22, 16, 13, (13, 0, -1.5), m_black)
+    box('shank', 190, 20, 20, (118, 0, -6), m_black, 1.6)                  # the holder runs off to the right
+    box('head', 30, 20, 14, (15, 0, -9), m_black, 1.2)
+    box('clamp', 16, 9, 5, (17, 0, 1.2), m_steel, .9)
+    bpy.ops.mesh.primitive_cylinder_add(radius=3.2 * U, depth=3 * U, location=(21 * U, 0, 4.2 * U), vertices=6); hx = bpy.context.object; hx.data.materials.append(m_black); hx.parent = tool
     # the insert: a rhombic carbide plate lying on the head, its nose at the origin
-    vs = [(0, 0), (9, -5.2), (18, 0), (9, 5.2)]; verts = [(x * U, y * U, 2.2 * U) for x, y in vs] + [((x * .93 + .6) * U, y * .93 * U, -1.2 * U) for x, y in vs]
+    vs = [(0, 0), (9, -5.2), (18, 0), (9, 5.2)]; verts = [(x * U, y * U, -.2 * U) for x, y in vs] + [((x * .93 + .6) * U, y * .93 * U, -3.4 * U) for x, y in vs]
     ins = mesh_obj('insert', verts, [(0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)], smooth=False); ins.data.materials.append(m_carb); ins.parent = tool
     b = ins.modifiers.new('bv', 'BEVEL'); b.width = .25 * U; b.segments = 2
-    bpy.ops.mesh.primitive_cylinder_add(radius=2.1 * U, depth=1.2 * U, location=(9 * U, 0, 2.5 * U)); sc = bpy.context.object; sc.data.materials.append(m_steel); sc.parent = tool
+    bpy.ops.mesh.primitive_cylinder_add(radius=2.1 * U, depth=1.2 * U, location=(9 * U, 0, -.1 * U)); sc = bpy.context.object; sc.data.materials.append(m_steel); sc.parent = tool
     # ---------- chips: thin curled ribbons of skin, thrown off the cutting point (keyframed ballistics: no caches)
     m_chip = plain('chip', (.30, .46, .10), .55); rnd = random.Random(7)
     def chip_mesh():
@@ -322,11 +329,10 @@ def build(o):
     for i, c in enumerate(chips):
         fb = lerp(MILL0 + 1, MILL1 - 1, (i + rnd.random()) / len(chips)); zc = cut_at(fb); r0 = prof_r(max(0., min(170., zc))) + .5
         v = Vector((rnd.uniform(60, 190), rnd.uniform(-150, 40), rnd.uniform(20, 160))); p0 = P1 + Vector((r0, -2., zc - 85.)); rv = Vector((rnd.uniform(-9, 9), rnd.uniform(-9, 9), rnd.uniform(-9, 9))); r0e = Vector((rnd.uniform(0, 6), rnd.uniform(0, 6), rnd.uniform(0, 6)))
-        c.hide_render = True; c.keyframe_insert('hide_render', frame=0); c.scale = (0, 0, 0); c.keyframe_insert('scale', frame=int(fb) - 1)
+        c.scale = (0, 0, 0); c.keyframe_insert('scale', frame=0); c.keyframe_insert('scale', frame=int(fb) - 1)
         for j in range(0, 26, 2):
             t = j / FPS; f = fb + j; p = p0 + v * t + Vector((0, 0, -1700. * t * t)); c.location = p * U; c.rotation_euler = tuple(r0e + rv * t); c.scale = (1, 1, 1)
             c.keyframe_insert('location', frame=f); c.keyframe_insert('rotation_euler', frame=f); c.keyframe_insert('scale', frame=f)
-        c.hide_render = False; c.keyframe_insert('hide_render', frame=int(fb) - 1); c.hide_render = True; c.keyframe_insert('hide_render', frame=int(fb) + 27)
     for ob in list(bpy.data.objects):
         if ob.animation_data and ob.animation_data.action:
             for fc in ob.animation_data.action.fcurves:
