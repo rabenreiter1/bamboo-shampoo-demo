@@ -1,0 +1,16 @@
+d_: 7 frames
+p_: 7 frames
+d_ chunk 5: 1 frames, 33s
+p_ chunk 5: 1 frames, 51s
+d_ chunk 6: 1 frames, 29s
+p_ chunk 6: 1 frames, 46s
+d_ chunk 2: 1 frames, 22s
+p_ chunk 2: 1 frames, 38s
+d_ chunk 1: 1 frames, 15s
+p_ chunk 1: 1 frames, 28s
+d_ chunk 3: 1 frames, 16s
+p_ chunk 3: 1 frames, 30s
+d_ chunk 4: 1 frames, 25s
+p_ chunk 4: 1 frames, 39s
+d_ chunk 0: 1 frames, 26s
+p_ chunk 0: 1 frames, 49s
