@@ -24,7 +24,7 @@ def prof_r(y):
     return PROFILE[-1][1]
 
 VAR = {'d': dict(res=(1280, 720), plate=(1672, 941), culm=(757, 902), node=747, frac=.66, cy=.474),
-       'p': dict(res=(720, 1280), plate=(941, 1672), culm=(321, 605), node=1043, frac=.573, cy=.434)}
+       'p': dict(res=(720, 1280), plate=(941, 1672), culm=(321, 605), node=1043, frac=.50, cy=.434)}
 
 def build(o):
     V = VAR[o]; bpy.ops.wm.read_factory_settings(use_empty=True); S = bpy.context.scene
