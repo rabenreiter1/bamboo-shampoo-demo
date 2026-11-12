@@ -42,7 +42,7 @@ def build(o):
     cd = bpy.data.cameras.new('cam'); cam = bpy.data.objects.new('cam', cd); S.collection.objects.link(cam); S.camera = cam
     cd.sensor_fit = 'VERTICAL'; cd.angle_y = fov; cd.clip_start = .5; cd.clip_end = 400
     cam.location = (0, -D * U, 0); cam.rotation_euler = (math.pi / 2, 0, 0)
-    cd.dof.use_dof = True; cd.dof.aperture_fstop = P.get('fstop', .28)        # (1 BU = 100 mm: the f-number is scaled with it, this is about f/2.8)
+    cd.dof.use_dof = True; cd.dof.aperture_fstop = P.get('fstop', .1)        # (1 BU = 100 mm: the f-number is scaled with it, this is about f/2.8)
     foc = bpy.data.objects.new('focus', None); S.collection.objects.link(foc); cd.dof.focus_object = foc
 
     # ---------- helpers
@@ -108,15 +108,17 @@ def build(o):
         m, nt, N, L = new_mat(name); vec, u, zmm, tc = cyl_coords(N, L)
         fib = noise(N, L, vec, 24, .5, 6, .6); fine = noise(N, L, vec, 80, 1.3, 4, .65, 3.); blot = noise(N, L, vec, 1.5, .8, 4, .5, 7.); wax = noise(N, L, vec, 3., 2., 5, .6, 17.)
         g = P.get('green', 1.)
-        base = ramp(N, L, fib, [(.2, (.050 * g, .215 * g, .012)), (.5, (.075 * g, .30 * g, .018)), (.85, (.115 * g, .40 * g, .03))])
-        base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, blot, [(.3, (0, 0, 0)), (.8, (1, 1, 1))]), .35), base, (.22, .42, .04))
+        base = ramp(N, L, fib, [(.2, (.020 * g, .120 * g, .004)), (.5, (.040 * g, .195 * g, .008)), (.85, (.080 * g, .30 * g, .016))])
+        streak = noise(N, L, vec, 7, .25, 3, .5, 31.)
+        base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, streak, [(.35, (1, 1, 1)), (.7, (0, 0, 0))]), .55), base, (.012, .075, .003))
+        base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, blot, [(.3, (0, 0, 0)), (.8, (1, 1, 1))]), .35), base, (.16, .33, .03))
         base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, fine, [(.3, (1, 1, 1)), (.65, (0, 0, 0))]), .1), base, (.02, .1, .008))
         base = mixc(N, L, val(N, L, 'MULTIPLY', ramp(N, L, wax, [(.35, (0, 0, 0)), (.9, (1, 1, 1))]), .1), base, (.5, .66, .44))
         # the node: a pale waxy band just under the ridge, the dry brown sheath scar on it
         nz = val(N, L, 'SUBTRACT', zmm, NODE_L[name] if name in NODE_L else 1e6)
         scar = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ABSOLUTE', nz), .01), [(0., (1, 1, 1)), (.02, (1, 1, 1)), (.045, (0, 0, 0))])   # |nz| < ~3 mm (ramp over 0..1 of 100 mm)
         scarn = noise(N, L, vec, 40, 6., 3, .6, 23.)
-        base = mixc(N, L, val(N, L, 'MULTIPLY', scar, val(N, L, 'ADD', .55, val(N, L, 'MULTIPLY', scarn, .45))), base, (.42, .30, .12))
+        base = mixc(N, L, val(N, L, 'MULTIPLY', scar, val(N, L, 'ADD', .55, val(N, L, 'MULTIPLY', scarn, .45))), base, (.50, .36, .13))
         band = ramp(N, L, val(N, L, 'MULTIPLY', val(N, L, 'ADD', nz, 14.), .01), [(0., (0, 0, 0)), (.05, (1, 1, 1)), (.11, (1, 1, 1)), (.14, (0, 0, 0))])   # 5…11 mm under the ridge
         base = mixc(N, L, val(N, L, 'MULTIPLY', band, .28), base, (.62, .72, .52))
         bs = nd(N, 'ShaderNodeBsdfPrincipled'); L.new(base, bs.inputs['Base Color'])
@@ -180,7 +182,7 @@ def build(o):
         m, nt, N, L = new_mat(name); bs = nd(N, 'ShaderNodeBsdfPrincipled'); bs.inputs['Base Color'].default_value = (*col, 1); bs.inputs['Roughness'].default_value = rough; bs.inputs['Metallic'].default_value = metal
         outn = nd(N, 'ShaderNodeOutputMaterial'); L.new(bs.outputs[0], outn.inputs['Surface']); return m
 
-    RO, RI, RN = 29.6, 22.5, 31.2            # natural outer / inner radius, the node ridge
+    RO, RI, RN = 29.6, 22.5, 32.2            # natural outer / inner radius, the node ridge
     NODE_L = {'skin_pole': None}             # per material: the node's local height (mm); filled below
     def natural(z0, z1, node=None):          # outer wall profile between two heights (mm, local), with the node's ridge
         pr = []; n = max(2, int((z1 - z0) / 2))
@@ -216,7 +218,7 @@ def build(o):
     for ob in pieces: ob.parent = piece
     # ---------- the turning tool (world): a steel holder with a carbide insert; its tip at the tool empty's origin
     tool = bpy.data.objects.new('tool', None); S.collection.objects.link(tool)
-    m_steel = plain('steel', (.55, .57, .60), .32, 1.); m_black = plain('oxide', (.035, .035, .04), .45, .9); m_carb = plain('carbide', (.83, .62, .22), .28, 1.)
+    m_steel = plain('steel', (.55, .57, .60), .32, 1.); m_black = plain('oxide', (.42, .43, .45), .26, 1.); m_carb = plain('carbide', (.83, .62, .22), .28, 1.)
     def box(name, sx, sy, sz, loc, mat, bevel=.6):
         bpy.ops.mesh.primitive_cube_add(size=1); ob = bpy.context.object; ob.name = name; ob.scale = (sx * U, sy * U, sz * U); ob.location = tuple(c * U for c in loc); bpy.ops.object.transform_apply(scale=True)
         b = ob.modifiers.new('bv', 'BEVEL'); b.width = bevel * U; b.segments = 3; ob.data.materials.append(mat); ob.parent = tool
@@ -248,7 +250,7 @@ def build(o):
     env = wn.new('ShaderNodeTexEnvironment')
     # the plate itself lights the scene (blurred, as an equirect stand-in): its greens and its sun side
     from_plate = bpy.data.images.load(os.path.join(TEX, f'cut-bg-{o}.jpg')); env.image = from_plate; env.projection = 'MIRROR_BALL'
-    wl.new(env.outputs[0], bgn.inputs['Color']); bgn.inputs['Strength'].default_value = P.get('env', 1.3)
+    wl.new(env.outputs[0], bgn.inputs['Color']); bgn.inputs['Strength'].default_value = P.get('env', .55)
     def light(kind, name, loc, energy, color, size=1., rot=None, sx=None):
         l = bpy.data.lights.new(name, kind); l.energy = energy; l.color = color
         if kind == 'AREA': l.shape = 'RECTANGLE'; l.size = size; l.size_y = sx or size
@@ -258,8 +260,8 @@ def build(o):
         else: ob.rotation_euler = (Vector((0, 0, 0)) - Vector(loc)).to_track_quat('-Z', 'Y').to_euler()
         return ob
     light('SUN', 'sun', (6, 8, 9), P.get('sun', 3.2), (1., .9, .68))
-    light('AREA', 'key', (-9, -11, 3), P.get('key', 900), (.96, 1., .92), 5., sx=14.)
-    light('AREA', 'rimr', (10, 2, 2), P.get('rim', 500), (1., .95, .8), 3., sx=12.)
+    light('AREA', 'key', (-7, -12, 3), P.get('key', 1500), (.98, 1., .94), 1.4, sx=16.)
+    light('AREA', 'rimr', (10, 2, 2), P.get('rim', 350), (1., .95, .8), 3., sx=12.)
 
     # ---------- compositor: the render over the forest plate; the plate falls out of focus as the piece comes forward
     S.use_nodes = True; ct = S.node_tree; cn = ct.nodes; cl = ct.links; cn.clear()
