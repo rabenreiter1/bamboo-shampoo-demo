@@ -1,4 +1,5 @@
 # Journey ch5–6 (the cut and the form) as one path-traced shot over the forest plate.
+# (12 Nov: Bruno — the shot does not show the piece's bottom; it only tilts to show its open top.)
 # A (frames 0–120): the culm stands in the forest (frame 0 = the journey's f13 picture). It is cut just BELOW a segment
 #   divider, so the piece carries that divider as its natural closed bottom, with the node ring around it. The piece
 #   comes out of the pole towards the camera, turns once all the way round and shows its bottom and its open top.
@@ -129,8 +130,9 @@ def build(o):
         rg = val(N, L, 'ADD', .3, val(N, L, 'MULTIPLY', ramp(N, L, wax, [(.35, (0, 0, 0)), (.9, (1, 1, 1))]), .22)); L.new(rg, bs.inputs['Roughness'])
         try: bs.inputs['Coat Weight'].default_value = .25; bs.inputs['Coat Roughness'].default_value = .12
         except Exception: pass
-        bump = nd(N, 'ShaderNodeBump'); bump.inputs['Strength'].default_value = .12; bump.inputs['Distance'].default_value = .002
-        L.new(val(N, L, 'ADD', val(N, L, 'MULTIPLY', fib, .6), val(N, L, 'MULTIPLY', fine, .4)), bump.inputs['Height']); L.new(bump.outputs[0], bs.inputs['Normal'])
+        bump = nd(N, 'ShaderNodeBump'); bump.inputs['Strength'].default_value = .3; bump.inputs['Distance'].default_value = .003
+        pores = noise(N, L, vec, 260, 2.2, 3, .7, 41.)
+        L.new(val(N, L, 'ADD', val(N, L, 'ADD', val(N, L, 'MULTIPLY', fib, .5), val(N, L, 'MULTIPLY', fine, .35)), val(N, L, 'MULTIPLY', pores, .25)), bump.inputs['Height']); L.new(bump.outputs[0], bs.inputs['Normal'])
         outn = nd(N, 'ShaderNodeOutputMaterial')
         if cut:
             tr = nd(N, 'ShaderNodeBsdfTransparent'); mx = nd(N, 'ShaderNodeMixShader'); cv = nd(N, 'ShaderNodeValue'); cv.name = cv.label = 'CUT'; cv.outputs[0].default_value = 1e4
@@ -169,7 +171,7 @@ def build(o):
         uve = nd(N, 'ShaderNodeCombineXYZ'); L.new(uu, uve.inputs[0]); L.new(val(N, L, 'DIVIDE', zmm, PRINT_H), uve.inputs[1])
         eng = nd(N, 'ShaderNodeTexImage'); eng.image = bpy.data.images.load(os.path.join(TEX, 'engraving-none.png')); eng.image.colorspace_settings.name = 'Non-Color'; eng.extension = 'CLIP'; L.new(uve.outputs[0], eng.inputs['Vector'])
         lz = nd(N, 'ShaderNodeValue'); lz.name = lz.label = 'LASER'; lz.outputs[0].default_value = 1e4
-        done = val(N, L, 'GREATER_THAN', zmm, lz.outputs[0]); ink = val(N, L, 'MINIMUM', val(N, L, 'MULTIPLY', val(N, L, 'MULTIPLY', eng.outputs['Color'], done), 1.7), 1.)
+        done = val(N, L, 'GREATER_THAN', zmm, lz.outputs[0]); ink = val(N, L, 'MINIMUM', val(N, L, 'MULTIPLY', val(N, L, 'MULTIPLY', eng.outputs['Color'], done), 2.6), 1.)
         wood = mixc(N, L, 1., img.outputs['Color'], (.80, .76, .70), 'MULTIPLY'); col = mixc(N, L, ink, wood, (.105, .06, .028))
         bs = nd(N, 'ShaderNodeBsdfPrincipled'); L.new(col, bs.inputs['Base Color']); L.new(val(N, L, 'ADD', .62, val(N, L, 'MULTIPLY', ink, .25)), bs.inputs['Roughness'])
         try: bs.inputs['Coat Weight'].default_value = .1; bs.inputs['Coat Roughness'].default_value = .45
@@ -228,7 +230,7 @@ def build(o):
     for ob in pieces: ob.parent = piece
     # ---------- the turning tool (world): a steel holder with a carbide insert; its tip at the tool empty's origin
     tool = bpy.data.objects.new('tool', None); S.collection.objects.link(tool)
-    m_steel = plain('steel', (.55, .57, .60), .32, 1.); m_black = plain('oxide', (.62, .63, .66), .3, 1.); m_carb = plain('carbide', (.9, .66, .2), .22, 1.)
+    m_steel = plain('steel', (.55, .57, .60), .32, 1.); m_black = plain('oxide', (.085, .088, .095), .46, 1.); m_carb = plain('carbide', (.9, .66, .2), .22, 1.)
     def box(name, sx, sy, sz, loc, mat, bevel=.6):
         bpy.ops.mesh.primitive_cube_add(size=1); ob = bpy.context.object; ob.name = name; ob.scale = (sx * U, sy * U, sz * U); ob.location = tuple(c * U for c in loc); bpy.ops.object.transform_apply(scale=True)
         b = ob.modifiers.new('bv', 'BEVEL'); b.width = bevel * U; b.segments = 3; ob.data.materials.append(mat); ob.parent = tool
@@ -238,6 +240,9 @@ def build(o):
     box('head', 30, 20, 14, (15, 0, -9), m_black, 1.2)
     box('clamp', 16, 9, 5, (17, 0, 1.2), m_steel, .9)
     bpy.ops.mesh.primitive_cylinder_add(radius=3.2 * U, depth=3 * U, location=(21 * U, 0, 4.2 * U), vertices=6); hx = bpy.context.object; hx.data.materials.append(m_black); hx.parent = tool
+    bpy.ops.mesh.primitive_cylinder_add(radius=1.5 * U, depth=1.2 * U, location=(21 * U, 0, 5.4 * U), vertices=6); hs = bpy.context.object; hs.data.materials.append(plain('socket', (.02, .02, .02), .8)); hs.parent = tool
+    box('land', 30.2, 1.2, 14.2, (15, -9.6, -9), m_steel, .3)             # the ground front land of the head: a bright strip
+    box('flat', 60, 20.2, 1., (150, 0, 4.2), m_steel, .3)                 # the ground clamping flat on the shank
     # the insert: a rhombic carbide plate lying on the head, its nose at the origin
     vs = [(0, 0), (11, -6.4), (22, 0), (11, 6.4)]; verts = [(x * U, y * U, -.2 * U) for x, y in vs] + [((x * .93 + .6) * U, y * .93 * U, -3.4 * U) for x, y in vs]
     ins = mesh_obj('insert', verts, [(0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)], smooth=False); ins.data.materials.append(m_carb); ins.parent = tool
@@ -296,7 +301,7 @@ def build(o):
         p0 = Vector((cxmm, 0., PZ0 + 85. - 1.2 * k0)); p1 = Vector((0., -(D - Dend), Zc * (Dend / D)))
         pos = p0.lerp(p1, k); pos.y -= 0.                                    # (a straight line towards the lens: no swerve)
         yaw = 2 * math.pi * ease((f - 18) / 96.)
-        pitch = -math.radians(62) * ease((f - 30) / 16.) * (1 - ease((f - 56) / 16.)) + math.radians(48) * ease((f - 70) / 14.) * (1 - ease((f - 96) / 16.))   # first its bottom (the divider), then its open top
+        pitch = math.radians(48) * ease((f - 70) / 14.) * (1 - ease((f - 96) / 16.))   # first its bottom (the divider), then its open top
         return pos, yaw, pitch
     MILL0, MILL1 = A_END + 12, A_END + 88; LAS0, LAS1 = A_END + 100, A_END + 144
     def spin_at(f):                                                          # lathe turns (rad): spins up, turns fast while milling, comes to rest facing front

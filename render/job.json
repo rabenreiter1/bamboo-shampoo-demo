@@ -1,4 +1,42 @@
-{ "name": "culm-pre5", "script": "culm.py", "frames": [0, 30, 46, 60, 84, 100, 120], "chunks": 7, "fps": 6, "encode": false,
-  "samples": 48, "noise": 0.05, "scale": 1, "sheet_cols": 7, "sheet_w": 360, "stills": [0, 1, 2, 4],
-  "params": {},
-  "variants": [ { "tag": "d_", "o": "d" }, { "tag": "p_", "o": "p" } ] }
+{
+ "name": "culm-pre6",
+ "script": "culm.py",
+ "frames": [
+  30,
+  60,
+  84,
+  100,
+  150,
+  185,
+  215,
+  250,
+  270
+ ],
+ "chunks": 9,
+ "fps": 6,
+ "encode": false,
+ "samples": 48,
+ "noise": 0.05,
+ "scale": 1,
+ "sheet_cols": 9,
+ "sheet_w": 360,
+ "stills": [
+  1,
+  2,
+  4,
+  5,
+  7,
+  8
+ ],
+ "params": {},
+ "variants": [
+  {
+   "tag": "d_",
+   "o": "d"
+  },
+  {
+   "tag": "p_",
+   "o": "p"
+  }
+ ]
+}
